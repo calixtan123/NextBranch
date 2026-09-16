@@ -18,7 +18,7 @@ Recorded 16 September 2026 in `/Users/calixtan/personal-projects/tfl-tracker`.
 | `npm test` | exit 0; pass — 18 files, 99 tests |
 | `npm run build` | exit 0; pass — `/`, `/_not-found`, `/api/journey`, `/manifest.webmanifest` |
 | `npm run verify` | exit 0; pass — typecheck, lint, and the 99-test suite |
-| `git diff --check c57f9c4..HEAD` | pending until the verified files are committed |
+| `git diff --check c57f9c4..HEAD` | exit 0; pass — checks the complete committed implementation range |
 | `file public/icons/*.png public/fonts/*.woff2` | exit 0; pass — PNGs are 192×192, 512×512, 512×512; both fonts are WOFF2 |
 | `node scripts/tfl-discovery.mjs --fixture tests/fixtures/tfl/camden-arrivals.json` | exit 0; pass — explicit fixture path and sanitized JSON |
 | `node ~/.codex/skills/impeccable/scripts/detect.mjs --json ...` | exit 0; pass — no reported frontend anti-patterns |
