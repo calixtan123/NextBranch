@@ -1,0 +1,44 @@
+[
+  {
+    "id": "-774693282",
+    "vehicleId": "002",
+    "naptanId": "940GZZLUEUS",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZBPSUST",
+    "destinationName": "Battersea Power Station Underground Station",
+    "timestamp": "2026-09-15T20:52:10.5014049Z",
+    "expectedArrival": "2026-09-15T21:08:14Z",
+    "timeToStation": 964,
+    "platformName": "Southbound - Platform 2",
+    "direction": "inbound",
+    "towards": "Battersea via CX"
+  },
+  {
+    "id": "-909524977",
+    "vehicleId": "005",
+    "naptanId": "940GZZLUEUS",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMHL",
+    "destinationName": "Mill Hill East Underground Station",
+    "timestamp": "2026-09-15T20:52:10.5014049Z",
+    "expectedArrival": "2026-09-15T21:01:14Z",
+    "timeToStation": 544,
+    "platformName": "Northbound - Platform 3",
+    "direction": "outbound",
+    "towards": "Mill Hill East via Bank"
+  },
+  {
+    "id": "-1435415310",
+    "vehicleId": "006",
+    "naptanId": "940GZZLUEUS",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMDN",
+    "destinationName": "Morden Underground Station",
+    "timestamp": "2026-09-15T20:52:10.5014049Z",
+    "expectedArrival": "2026-09-15T21:12:13Z",
+    "timeToStation": 1203,
+    "platformName": "Southbound - Platform 6",
+    "direction": "inbound",
+    "towards": "Morden via Bank"
+  }
+]

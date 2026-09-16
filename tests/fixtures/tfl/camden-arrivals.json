@@ -1,0 +1,44 @@
+[
+  {
+    "id": "-1855777704",
+    "vehicleId": "005",
+    "naptanId": "940GZZLUCTN",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMHL",
+    "destinationName": "Mill Hill East Underground Station",
+    "timestamp": "2026-09-15T20:51:13.975687Z",
+    "expectedArrival": "2026-09-15T21:04:12Z",
+    "timeToStation": 779,
+    "platformName": "Northbound - Platform 3",
+    "direction": "outbound",
+    "towards": "Mill Hill East via Bank"
+  },
+  {
+    "id": "-220489563",
+    "vehicleId": "006",
+    "naptanId": "940GZZLUCTN",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMDN",
+    "destinationName": "Morden Underground Station",
+    "timestamp": "2026-09-15T20:51:13.975687Z",
+    "expectedArrival": "2026-09-15T21:10:12Z",
+    "timeToStation": 1139,
+    "platformName": "Southbound - Platform 4",
+    "direction": "inbound",
+    "towards": "Morden via Bank"
+  },
+  {
+    "id": "738345388",
+    "vehicleId": "011",
+    "naptanId": "940GZZLUCTN",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUKNG",
+    "destinationName": "Kennington Underground Station",
+    "timestamp": "2026-09-15T20:51:13.975687Z",
+    "expectedArrival": "2026-09-15T20:57:12Z",
+    "timeToStation": 359,
+    "platformName": "Southbound - Platform 2",
+    "direction": "inbound",
+    "towards": "Kennington via CX"
+  }
+]
