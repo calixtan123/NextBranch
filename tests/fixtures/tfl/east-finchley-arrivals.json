@@ -1,0 +1,44 @@
+[
+  {
+    "id": "-2042178387",
+    "vehicleId": "002",
+    "naptanId": "940GZZLUFYC",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZBPSUST",
+    "destinationName": "Battersea Power Station Underground Station",
+    "timestamp": "2026-09-15T20:52:10.8622641Z",
+    "expectedArrival": "2026-09-15T20:53:43Z",
+    "timeToStation": 93,
+    "platformName": "Southbound - Platform 3",
+    "direction": "inbound",
+    "towards": "Battersea via CX"
+  },
+  {
+    "id": "993377627",
+    "vehicleId": "004",
+    "naptanId": "940GZZLUFYC",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUHBT",
+    "destinationName": "High Barnet Underground Station",
+    "timestamp": "2026-09-15T20:52:10.8622641Z",
+    "expectedArrival": "2026-09-15T20:57:13Z",
+    "timeToStation": 303,
+    "platformName": "Northbound - Platform 2",
+    "direction": "outbound",
+    "towards": "High Barnet via CX"
+  },
+  {
+    "id": "-1638135044",
+    "vehicleId": "005",
+    "naptanId": "940GZZLUFYC",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMHL",
+    "destinationName": "Mill Hill East Underground Station",
+    "timestamp": "2026-09-15T20:52:10.8622641Z",
+    "expectedArrival": "2026-09-15T21:17:13Z",
+    "timeToStation": 1503,
+    "platformName": "Northbound - Platform 1",
+    "direction": "outbound",
+    "towards": "Mill Hill East via Bank"
+  }
+]

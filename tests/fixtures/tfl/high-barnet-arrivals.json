@@ -1,0 +1,41 @@
+[
+  {
+    "id": "-1275148232",
+    "vehicleId": "004",
+    "naptanId": "940GZZLUHBT",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUHBT",
+    "destinationName": "High Barnet Underground Station",
+    "timestamp": "2026-09-15T20:53:08.9381447Z",
+    "expectedArrival": "2026-09-15T21:06:42Z",
+    "timeToStation": 814,
+    "platformName": "Southbound - Platform 1",
+    "towards": "High Barnet via CX"
+  },
+  {
+    "id": "-1275148232",
+    "vehicleId": "004",
+    "naptanId": "940GZZLUHBT",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUHBT",
+    "destinationName": "High Barnet Underground Station",
+    "timestamp": "2026-09-15T20:53:08.9381447Z",
+    "expectedArrival": "2026-09-15T21:05:41Z",
+    "timeToStation": 753,
+    "platformName": "Southbound - Platform 2",
+    "towards": "High Barnet via CX"
+  },
+  {
+    "id": "-1275148232",
+    "vehicleId": "004",
+    "naptanId": "940GZZLUHBT",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUHBT",
+    "destinationName": "High Barnet Underground Station",
+    "timestamp": "2026-09-15T20:53:08.9381447Z",
+    "expectedArrival": "2026-09-15T21:06:41Z",
+    "timeToStation": 813,
+    "platformName": "Southbound - Platform 3",
+    "towards": "High Barnet via CX"
+  }
+]

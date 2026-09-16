@@ -1,0 +1,2 @@
+import { describe, expect, it } from 'vitest'; import { displayCountdown } from './time';
+describe('countdown',()=>{it('shows whole minutes and Due through departed grace',()=>{expect(displayCountdown(1)).toBe('1 min');expect(displayCountdown(60)).toBe('1 min');expect(displayCountdown(61)).toBe('2 min');expect(displayCountdown(0)).toBe('Due');expect(displayCountdown(-30)).toBe('Due');expect(displayCountdown(-31)).toBe('Departed');});});

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "-766732723",
+    "vehicleId": "205",
+    "naptanId": "940GZZLUMGT",
+    "lineId": "circle",
+    "destinationNaptanId": "940GZZLUERC",
+    "destinationName": "Edgware Road (Circle Line) Underground Station",
+    "timestamp": "2026-09-15T20:53:09.1578163Z",
+    "expectedArrival": "2026-09-15T21:21:48Z",
+    "timeToStation": 1719,
+    "platformName": "Eastbound - Platform 1",
+    "direction": "outbound",
+    "towards": "Edgware Road (Circle)"
+  },
+  {
+    "id": "-2121900214",
+    "vehicleId": "210",
+    "naptanId": "940GZZLUMGT",
+    "lineId": "circle",
+    "destinationNaptanId": "940GZZLUERC",
+    "destinationName": "Edgware Road (Circle Line) Underground Station",
+    "timestamp": "2026-09-15T20:53:09.1578163Z",
+    "expectedArrival": "2026-09-15T20:55:48Z",
+    "timeToStation": 159,
+    "platformName": "Eastbound - Platform 1",
+    "direction": "outbound",
+    "towards": "Edgware Road (Circle)"
+  },
+  {
+    "id": "1865270177",
+    "vehicleId": "211",
+    "naptanId": "940GZZLUMGT",
+    "lineId": "circle",
+    "destinationNaptanId": "940GZZLUERC",
+    "destinationName": "Edgware Road (Circle Line) Underground Station",
+    "timestamp": "2026-09-15T20:53:09.1578163Z",
+    "expectedArrival": "2026-09-15T21:05:48Z",
+    "timeToStation": 759,
+    "platformName": "Eastbound - Platform 1",
+    "direction": "outbound",
+    "towards": "Edgware Road (Circle)"
+  }
+]

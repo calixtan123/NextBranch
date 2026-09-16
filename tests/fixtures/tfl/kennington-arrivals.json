@@ -1,0 +1,42 @@
+[
+  {
+    "id": "2136477399",
+    "vehicleId": "003",
+    "naptanId": "940GZZLUKNG",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMDN",
+    "destinationName": "Morden Underground Station",
+    "timestamp": "2026-09-15T20:52:10.6940745Z",
+    "expectedArrival": "2026-09-15T21:06:43Z",
+    "timeToStation": 873,
+    "platformName": "Southbound - Platform 4",
+    "direction": "inbound",
+    "towards": "Morden via Bank"
+  },
+  {
+    "id": "-1182240279",
+    "vehicleId": "011",
+    "naptanId": "940GZZLUKNG",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUKNG",
+    "destinationName": "Kennington Underground Station",
+    "timestamp": "2026-09-15T20:52:10.6940745Z",
+    "expectedArrival": "2026-09-15T21:14:44Z",
+    "timeToStation": 1354,
+    "platformName": "Southbound - Platform 2",
+    "towards": "Kennington via CX"
+  },
+  {
+    "id": "1465838854",
+    "vehicleId": "040",
+    "naptanId": "940GZZLUKNG",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUKNG",
+    "destinationName": "Kennington Underground Station",
+    "timestamp": "2026-09-15T20:52:10.6940745Z",
+    "expectedArrival": "2026-09-15T21:18:44Z",
+    "timeToStation": 1594,
+    "platformName": "Southbound - Platform 2",
+    "towards": "Kennington via CX"
+  }
+]

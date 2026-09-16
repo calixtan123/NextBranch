@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1171568495",
+    "vehicleId": "003",
+    "naptanId": "940GZZLUSKW",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMDN",
+    "destinationName": "Morden Underground Station",
+    "timestamp": "2026-09-15T20:51:42.1093128Z",
+    "expectedArrival": "2026-09-15T21:11:11Z",
+    "timeToStation": 1169,
+    "platformName": "Southbound - Platform 3",
+    "direction": "inbound",
+    "towards": "Morden via Bank"
+  },
+  {
+    "id": "1171634031",
+    "vehicleId": "013",
+    "naptanId": "940GZZLUSKW",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUMDN",
+    "destinationName": "Morden Underground Station",
+    "timestamp": "2026-09-15T20:51:42.1093128Z",
+    "expectedArrival": "2026-09-15T20:55:11Z",
+    "timeToStation": 209,
+    "platformName": "Southbound - Platform 3",
+    "direction": "inbound",
+    "towards": "Morden via Bank"
+  },
+  {
+    "id": "-213941005",
+    "vehicleId": "057",
+    "naptanId": "940GZZLUSKW",
+    "lineId": "northern",
+    "destinationNaptanId": "940GZZLUEGW",
+    "destinationName": "Edgware Underground Station",
+    "timestamp": "2026-09-15T20:51:42.1093128Z",
+    "expectedArrival": "2026-09-15T21:03:11Z",
+    "timeToStation": 689,
+    "platformName": "Northbound - Platform 2",
+    "direction": "outbound",
+    "towards": "Edgware via Bank"
+  }
+]

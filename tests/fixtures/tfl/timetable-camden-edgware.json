@@ -1,0 +1,1 @@
+{"lineId":"northern","timetable":{"departureStopId":"940GZZLUCTN","routes":[{"stationIntervals":[{"id":"0","intervals":[{"stopId":"940GZZLUEGW","timeToArrival":22}]}],"schedules":[{"name":"Monday - Thursday","knownJourneys":[{"hour":"12","minute":"00","intervalId":0}]}]}]}}

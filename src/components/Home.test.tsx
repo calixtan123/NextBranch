@@ -1,0 +1,343 @@
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Home from "./Home";
+
+const fetchJourney = vi.hoisted(() => vi.fn());
+const requestedJourneys = vi.hoisted(() => [] as Array<{ from: string; to: string } | null>);
+const requestState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, dataKey: null as string | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
+const searchParams = vi.hoisted(() => new URLSearchParams());
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => searchParams,
+  useRouter: () => ({ push: vi.fn() }),
+}));
+vi.mock("./useJourneyRequest", () => ({
+  useJourneyRequest: (journey: { from: string; to: string } | null) => { requestedJourneys.push(journey); return { ...requestState, data: journey && requestState.dataKey === `${journey.from}:${journey.to}` ? requestState.data : null, fetchJourney }; },
+}));
+
+const saved = { from: "940GZZLUCTN", to: "940GZZLUEGW", fromName: "Camden Town", toName: "Edgware" };
+
+describe("Home", () => {
+  afterEach(() => vi.useRealTimers());
+  beforeEach(() => {
+    const makeStorage = () => { let value: string | null = null; return { getItem: () => value, setItem: (_key: string, next: string) => { value = next; }, removeItem: () => { value = null; } }; };
+    Object.defineProperty(window, "localStorage", { configurable: true, value: makeStorage() });
+    Object.defineProperty(window, "sessionStorage", { configurable: true, value: makeStorage() });
+    fetchJourney.mockReset();
+    requestedJourneys.length = 0;
+    requestState.data = null;
+    requestState.dataKey = null;
+    requestState.loading = false;
+    requestState.issue = null;
+    searchParams.delete("from");
+    searchParams.delete("to");
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: undefined });
+  });
+
+  it("renders the same first screen before storage hydration and then shows saved-first returning state", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    expect(screen.getByRole("heading", { name: "Northern Direct" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Camden Town → Edgware" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+  });
+
+  it("keeps Journeys and Change as separate views while a route is active", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Journeys" })).toBeInTheDocument());
+    expect(fetchJourney).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Plan a journey" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    expect(screen.getByRole("heading", { name: "Plan a journey" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Journeys" })).not.toBeInTheDocument();
+  });
+
+  it("passes an active journey only to results and resumes after reactivation", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Camden Town → Edgware" })).toBeInTheDocument());
+    expect(requestedJourneys.at(-1)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(requestedJourneys.at(-1)).toEqual({ from: saved.from, to: saved.to, fromName: saved.fromName, toName: saved.toName }));
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    expect(requestedJourneys.at(-1)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(requestedJourneys.at(-1)?.from).toBe(saved.from));
+  });
+
+  it("clears an invalid destination when the origin changes", async () => {
+    render(<Home />);
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "battersea" } });
+    fireEvent.click(screen.getByRole("option", { name: "Battersea Power Station" }));
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "bank" } });
+    fireEvent.click(screen.getByRole("option", { name: "Bank" }));
+    expect(boxes[1]).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Check trains" })).toBeDisabled();
+  });
+
+  it("shows results view after one explicit submit without rendering the saved screen", async () => {
+    render(<Home />);
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "london" } });
+    fireEvent.click(screen.getByRole("option", { name: "London Bridge" }));
+    expect(screen.getByRole("button", { name: "Check trains" })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(fetchJourney).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("heading", { name: "Plan a journey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Journeys" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Selected journey" })).toBeInTheDocument();
+  });
+
+  it("keeps live announcements separate from the changing results and stable across clock ticks", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.data = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [{ id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:01:00.000Z", secondsToOrigin: 60, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "estimate" }],
+      additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "next", fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+    };
+    const { container } = render(<Home />);
+    await act(async () => { vi.advanceTimersByTime(0); });
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await act(async () => { vi.advanceTimersByTime(0); });
+    const results = container.querySelector("section:not(.journey-bar)");
+    expect(results).not.toHaveAttribute("aria-live");
+    const announcement = screen.getByRole("status");
+    expect(announcement).toHaveTextContent("1 suitable train");
+    const initialAnnouncement = announcement.textContent;
+    await act(async () => { vi.advanceTimersByTime(1_000); });
+    expect(screen.getByRole("status")).toHaveTextContent(initialAnnouncement ?? "");
+    expect(screen.getByRole("status")).not.toHaveTextContent(/sec ago|seconds ago/);
+  });
+
+  it("announces a refreshed response when observedAt changes", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.data = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [], additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: null, fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+    };
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Camden Town → Edgware" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("0 suitable trains"));
+    const first = screen.getByRole("status");
+    requestState.data = { ...requestState.data, observedAt: "2026-09-16T12:01:00.000Z", trains: [{ id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToOrigin: 120, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "estimate" }] };
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("1 suitable train"));
+    expect(screen.getByRole("status")).not.toBe(first);
+  });
+
+  it("does not fetch on initial launch or a valid query URL", async () => {
+    render(<Home />);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchJourney).not.toHaveBeenCalled();
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    fetchJourney.mockReset();
+    render(<Home />);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchJourney).not.toHaveBeenCalled();
+  });
+
+  it("does not expose cached cards after switching to a different route", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.data = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [{ id: "old", destinationName: "Old card", expectedArrival: "2026-09-16T12:01:00.000Z", secondsToOrigin: 60, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable", }],
+      additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "old", fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+    };
+    render(<Home />);
+    await waitFor(() => screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(screen.getByText("Old card")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "bank" } });
+    fireEvent.click(screen.getByRole("option", { name: "Bank" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "edg" } });
+    fireEvent.click(screen.getByRole("option", { name: "Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(screen.queryByText("Old card")).not.toBeInTheDocument());
+  });
+
+  it("hides the install hint in standalone mode and after session dismissal", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: true }) });
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(screen.queryByText(/home screen/)).not.toBeInTheDocument();
+  });
+
+  it("keeps cached same-route data stale and hides ranking language during retry", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.issue = "upstream";
+    requestState.data = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [{ id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:01:00.000Z", secondsToOrigin: 60, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: "2026-09-16T12:10:00.000Z", destinationSeconds: 600, evidence: "estimate" }],
+      additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "next", fastestTrainId: "next", qualification: "best_arrival", rankings: "best_arrival", minutesSaved: 3,
+    };
+    render(<Home />);
+    await waitFor(() => screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Last prediction"));
+    expect(screen.queryByText("NEXT & BEST ARRIVAL")).not.toBeInTheDocument();
+    expect(screen.queryByText("Arrives 3 min earlier")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Last prediction");
+  });
+
+  it("keeps a dismissal for the session", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    sessionStorage.setItem("northern-direct:install-dismissed", "1");
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(screen.queryByText(/home screen/)).not.toBeInTheDocument();
+  });
+
+  it("restores a removed journey with Undo and expires Undo after five seconds", async () => {
+    const other = { from: "940GZZLUACY", to: "940GZZLUBLM", fromName: "Archway", toName: "Balham" };
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved, other]));
+    render(<Home />);
+    await waitFor(() => screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Camden Town to Edgware" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Journey removed");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("button", { name: "Camden Town → Edgware" })).toBeInTheDocument();
+
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Camden Town to Edgware" }));
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  it("offers a real Install button only after beforeinstallprompt is captured", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+    const prompt = vi.fn().mockResolvedValue(undefined);
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: prompt });
+    window.dispatchEvent(event);
+    fireEvent.click(await screen.findByRole("button", { name: "Install" }));
+    expect(prompt).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows install guidance after two explicit successful journeys, not background requests", async () => {
+    const result = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [], additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: null, fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+    };
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.data = result;
+    render(<Home />);
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "edg" } });
+    fireEvent.click(screen.getByRole("option", { name: "Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
+    fetchJourney(); // background-like refresh must not count as an explicit success.
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    const changed = screen.getAllByRole("combobox");
+    fireEvent.focus(changed[0]!);
+    fireEvent.change(changed[0]!, { target: { value: "bank" } });
+    fireEvent.click(screen.getByRole("option", { name: "Bank" }));
+    requestState.dataKey = "940GZZLUBNK:940GZZLUEGW";
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(screen.getByText(/home screen/)).toBeInTheDocument());
+  });
+
+  it("makes the install hint eligible immediately after the first saved journey", async () => {
+    render(<Home />);
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "edg" } });
+    fireEvent.click(screen.getByRole("option", { name: "Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save journey" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Save journey" }));
+    await waitFor(() => expect(screen.getByText(/home screen/)).toBeInTheDocument());
+  });
+
+  it("names the oldest route for ninth-save confirmation and cancel is a no-op", async () => {
+    const routes = [
+      { from: "940GZZLUAGL", to: "940GZZLUACY", fromName: "Angel", toName: "Archway" },
+      { from: "940GZZLUACY", to: "940GZZLUBLM", fromName: "Archway", toName: "Balham" },
+      { from: "940GZZLUAGL", to: "940GZZLUBLM", fromName: "Angel", toName: "Balham" },
+      { from: "940GZZLUBLM", to: "940GZZLUAGL", fromName: "Balham", toName: "Angel" },
+      { from: "940GZZLUACY", to: "940GZZLUBNK", fromName: "Archway", toName: "Bank" },
+      { from: "940GZZLUBNK", to: "940GZZLUACY", fromName: "Bank", toName: "Archway" },
+      { from: "940GZZLUAGL", to: "940GZZLUBNK", fromName: "Angel", toName: "Bank" },
+      { from: "940GZZLUBNK", to: "940GZZLUAGL", fromName: "Bank", toName: "Angel" },
+    ];
+    localStorage.setItem("northern-direct:journeys", JSON.stringify(routes));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "New journey" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "New journey" }));
+    const boxes = screen.getAllByRole("combobox");
+    fireEvent.focus(boxes[0]!);
+    fireEvent.change(boxes[0]!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    fireEvent.focus(boxes[1]!);
+    fireEvent.change(boxes[1]!, { target: { value: "edg" } });
+    fireEvent.click(screen.getByRole("option", { name: "Edgware" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save journey" })).toBeInTheDocument());
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Save journey" }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Bank to Angel"));
+    expect(JSON.parse(localStorage.getItem("northern-direct:journeys") ?? "[]")).toHaveLength(8);
+    confirm.mockRestore();
+  });
+
+  it("refreshes once when the highlighted train expires, not for an old following train", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    requestState.dataKey = `${saved.from}:${saved.to}`;
+    requestState.data = {
+      journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+      trains: [
+        { id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:00:00.000Z", secondsToOrigin: 0, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable" },
+        { id: "following", destinationName: "Edgware", expectedArrival: "2026-09-16T11:58:00.000Z", secondsToOrigin: -120, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable" },
+      ],
+      additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "next", fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+    };
+    render(<Home />);
+    await act(async () => { vi.advanceTimersByTime(0); });
+    fireEvent.click(screen.getByRole("button", { name: "Camden Town → Edgware" }));
+    await act(async () => { vi.advanceTimersByTime(0); });
+    fetchJourney.mockClear();
+    await act(async () => { vi.advanceTimersByTime(31_000); });
+    expect(fetchJourney).toHaveBeenCalledTimes(1);
+  });
+});
