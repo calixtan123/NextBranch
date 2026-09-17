@@ -1,0 +1,93 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export type RequestIssue = "offline" | "upstream" | "invalid" | null;
+type InFlight = { key: string; controller: AbortController; promise: Promise<void> };
+type Options<T> = {
+  key: string;
+  active: boolean;
+  url: () => string;
+  parse: (value: unknown) => T | null;
+};
+
+/** Shares cancellation, polling, stale retention, and retry handling between live views. */
+export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
+  const [data, setData] = useState<T | null>(null);
+  const [dataKey, setDataKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingKey, setLoadingKey] = useState("");
+  const [issue, setIssue] = useState<RequestIssue>(null);
+  const [issueKey, setIssueKey] = useState("");
+  const inFlight = useRef<InFlight | null>(null);
+  const cooldown = useRef(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const fetchLive = useCallback(async (manual = false) => {
+    if (!active || !key) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setIssueKey(key); setIssue("offline"); return;
+    }
+    if (manual) {
+      if (Date.now() < cooldown.current) return;
+      cooldown.current = Date.now() + 10_000;
+      setCooldownUntil(cooldown.current);
+    }
+    const existing = inFlight.current;
+    if (existing?.key === key) return existing.promise;
+    existing?.controller.abort();
+    const controller = new AbortController();
+    setLoadingKey(key); setLoading(true);
+    const run = (async () => {
+      try {
+        const result = await fetch(url(), { cache: "no-store", signal: controller.signal });
+        let parsed: T | null = null;
+        if (result.ok) {
+          try { parsed = parse(await result.json()); } catch { throw new Error("invalid"); }
+        }
+        if (!parsed) throw new Error(result.status >= 500 ? "upstream" : "invalid");
+        if (!controller.signal.aborted) {
+          setDataKey(key); setData(parsed); setIssueKey(""); setIssue(null);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setIssueKey(key);
+          setIssue(error instanceof Error && error.message === "invalid" ? "invalid" : "upstream");
+        }
+      } finally {
+        if (inFlight.current?.controller === controller) {
+          inFlight.current = null;
+          if (!controller.signal.aborted) { setLoadingKey(""); setLoading(false); }
+        }
+      }
+    })();
+    inFlight.current = { key, controller, promise: run };
+    return run;
+  }, [active, key, parse, url]);
+  useEffect(() => { inFlight.current?.controller.abort(); inFlight.current = null; }, [active, key]);
+  useEffect(() => () => inFlight.current?.controller.abort(), []);
+  useEffect(() => {
+    if (!active || !key) return;
+    const offline = () => {
+      inFlight.current?.controller.abort(); inFlight.current = null;
+      setLoadingKey(""); setLoading(false); setIssueKey(key); setIssue("offline");
+    };
+    const resume = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void fetchLive();
+    };
+    const interval = window.setInterval(resume, 30_000);
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume); window.addEventListener("offline", offline);
+    return () => {
+      window.clearInterval(interval); document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume); window.removeEventListener("offline", offline);
+    };
+  }, [active, fetchLive, key]);
+  return {
+    data: dataKey === key ? data : null,
+    setData,
+    loading: loading && loadingKey === key,
+    issue: issueKey === key ? issue : null,
+    fetchLive,
+    cooldownUntil,
+  };
+}

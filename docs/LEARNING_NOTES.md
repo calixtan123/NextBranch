@@ -30,8 +30,11 @@ React state. Avoid accidentally starting a request during render.
 
 `TrainCard.tsx` is a presentational component receiving props. `Home.tsx` owns
 state (`useState`), derived values (`useMemo`), side effects (`useEffect`), and
-stable callbacks (`useCallback`). `useJourneyRequest.ts` is a custom hook that
-encapsulates fetch, polling, aborts, and keyed cached data.
+stable callbacks (`useCallback`). `useLiveRequest.ts` is a shared custom hook
+for fetch, polling, aborts, and keyed cached data. `useJourneyRequest.ts` and
+`useDeparturesRequest.ts` give that shared lifecycle their own URL and response
+parser. This is dependency injection: the shared mechanism depends on small
+functions supplied by each feature, rather than knowing journey or station details itself.
 
 🚩 Effects run after render and can run more than once in development. Always
 return cleanup for timers, listeners, and in-flight work.
@@ -40,8 +43,9 @@ return cleanup for timers, listeners, and in-flight work.
 
 `Home.tsx` is a client component because it needs browser events and storage.
 `src/app/page.tsx` is the App Router page entry. `src/app/layout.tsx` is the
-root layout and owns metadata/font setup. `src/app/api/journey/route.ts` is a
-server route handler and can safely import the `server-only` TfL client.
+root layout and owns metadata/font setup. `src/app/api/journey/route.ts` and
+`src/app/api/departures/route.ts` are server route handlers and can safely
+import the `server-only` TfL client.
 
 🚩 Do not import server-only modules into a client component or expose secrets
 through `NEXT_PUBLIC_*`. Keep the boundary explicit.

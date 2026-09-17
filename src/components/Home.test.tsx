@@ -5,6 +5,9 @@ import Home from "./Home";
 const fetchJourney = vi.hoisted(() => vi.fn());
 const requestedJourneys = vi.hoisted(() => [] as Array<{ from: string; to: string } | null>);
 const requestState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, dataKey: null as string | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
+const fetchDepartures = vi.hoisted(() => vi.fn());
+const requestedDepartures = vi.hoisted(() => [] as Array<{ station: string | null; active: boolean }>);
+const departureState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
 const searchParams = vi.hoisted(() => new URLSearchParams());
 vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
@@ -12,6 +15,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("./useJourneyRequest", () => ({
   useJourneyRequest: (journey: { from: string; to: string } | null) => { requestedJourneys.push(journey); return { ...requestState, data: journey && requestState.dataKey === `${journey.from}:${journey.to}` ? requestState.data : null, fetchJourney }; },
+}));
+vi.mock("./useDeparturesRequest", () => ({
+  useDeparturesRequest: (station: string | null, active: boolean) => { requestedDepartures.push({ station, active }); return { ...departureState, fetchDepartures }; },
 }));
 
 const saved = { from: "940GZZLUCTN", to: "940GZZLUEGW", fromName: "Camden Town", toName: "Edgware" };
@@ -24,12 +30,18 @@ describe("Home", () => {
     Object.defineProperty(window, "sessionStorage", { configurable: true, value: makeStorage() });
     fetchJourney.mockReset();
     requestedJourneys.length = 0;
+    fetchDepartures.mockReset();
+    requestedDepartures.length = 0;
+    departureState.data = null;
+    departureState.loading = false;
+    departureState.issue = null;
     requestState.data = null;
     requestState.dataKey = null;
     requestState.loading = false;
     requestState.issue = null;
     searchParams.delete("from");
     searchParams.delete("to");
+    searchParams.delete("station");
     Object.defineProperty(window, "matchMedia", { configurable: true, value: undefined });
   });
 
@@ -72,6 +84,7 @@ describe("Home", () => {
 
   it("clears an invalid destination when the origin changes", async () => {
     render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
     fireEvent.change(boxes[0]!, { target: { value: "cam" } });
@@ -88,6 +101,7 @@ describe("Home", () => {
 
   it("shows results view after one explicit submit without rendering the saved screen", async () => {
     render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
     fireEvent.change(boxes[0]!, { target: { value: "cam" } });
@@ -145,16 +159,110 @@ describe("Home", () => {
     expect(screen.getByRole("status")).not.toBe(first);
   });
 
-  it("does not fetch on initial launch or a valid query URL", async () => {
-    render(<Home />);
+  it("does not fetch on initial launch and fetches a valid journey URL", async () => {
+    const first = render(<Home />);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetchJourney).not.toHaveBeenCalled();
+    first.unmount();
     searchParams.set("from", saved.from);
     searchParams.set("to", saved.to);
     fetchJourney.mockReset();
     render(<Home />);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fetchJourney).not.toHaveBeenCalled();
+    expect(fetchJourney).toHaveBeenCalledTimes(1);
+  });
+
+  it("synchronizes navigation from a station URL to a journey URL and activates only the matching request", async () => {
+    searchParams.set("station", saved.from);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Departures" })).toBeInTheDocument());
+    expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: true });
+    expect(requestedJourneys.at(-1)).toBeNull();
+
+    searchParams.delete("station");
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("region", { name: "Selected journey" })).toBeInTheDocument());
+    expect(requestedJourneys.at(-1)?.from).toBe(saved.from);
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  it("gives a station URL precedence over a concurrent journey URL", async () => {
+    searchParams.set("station", saved.from);
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Departures" })).toBeInTheDocument());
+    expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: true });
+    expect(requestedJourneys.at(-1)).toBeNull();
+  });
+
+  it("activates departures after selecting a station and deactivates it when switching to journeys", async () => {
+    render(<Home />);
+    const stationBox = screen.getByRole("combobox", { name: "Station" });
+    fireEvent.focus(stationBox);
+    fireEvent.change(stationBox, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    await waitFor(() => expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: true }));
+    expect(fetchDepartures).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: false });
+  });
+
+  it("clears a journey URL when history moves to root and leaves no live request active", async () => {
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(screen.getByRole("region", { name: "Selected journey" })).toBeInTheDocument());
+    searchParams.delete("from");
+    searchParams.delete("to");
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue(""));
+    expect(screen.getByRole("heading", { name: "Departures" })).toBeInTheDocument();
+    expect(requestedJourneys.at(-1)).toBeNull();
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  it("clears a station URL when history moves to root and leaves both live hooks inactive", async () => {
+    searchParams.set("station", saved.from);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: true }));
+    searchParams.delete("station");
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue(""));
+    expect(requestedJourneys.at(-1)).toBeNull();
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  it("clears live selections when history moves to invalid station or non-direct journey parameters", async () => {
+    searchParams.set("station", saved.from);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: true }));
+    searchParams.set("station", "unknown");
+    rerender(<Home />);
+    await waitFor(() => expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false }));
+    expect(requestedJourneys.at(-1)).toBeNull();
+
+    searchParams.delete("station");
+    searchParams.set("from", "940GZZLUBNK");
+    searchParams.set("to", "940GZZLUCHX");
+    rerender(<Home />);
+    await waitFor(() => expect(requestedJourneys.at(-1)).toBeNull());
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  it("restores saved journeys on root history but keeps an explicit valid station URL in Departures", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    searchParams.set("station", saved.from);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Departures" })).toBeInTheDocument());
+    expect(screen.queryByRole("heading", { name: "Journeys" })).not.toBeInTheDocument();
+    searchParams.delete("station");
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(requestedJourneys.at(-1)).toBeNull();
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
   });
 
   it("does not expose cached cards after switching to a different route", async () => {
@@ -253,6 +361,7 @@ describe("Home", () => {
     requestState.dataKey = `${saved.from}:${saved.to}`;
     requestState.data = result;
     render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
     fireEvent.change(boxes[0]!, { target: { value: "cam" } });
@@ -275,6 +384,7 @@ describe("Home", () => {
 
   it("makes the install hint eligible immediately after the first saved journey", async () => {
     render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
     fireEvent.change(boxes[0]!, { target: { value: "cam" } });

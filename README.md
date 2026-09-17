@@ -12,7 +12,7 @@ worker.
 ## Architecture
 
 ```text
-Browser → Next frontend → /api/journey route handler → TfL Open Data
+Browser → Next frontend → /api/journey or /api/departures route handler → TfL Open Data
 ```
 
 React owns search, saved journeys, rendering, and request lifecycle. The route
@@ -62,20 +62,20 @@ node scripts/tfl-discovery.mjs --fixture tests/fixtures/tfl/camden-arrivals.json
 ## Project map
 
 - `src/app/page.tsx`, `src/components/`: App Router page and accessible UI.
-- `src/app/api/journey/route.ts`: server boundary and degradation policy.
+- `src/app/api/journey/route.ts`: direct-journey server boundary and degradation policy.
+- `src/app/api/departures/route.ts`: cache-free station departure-board boundary.
 - `src/lib/northern/`: schemas, topology, route matching, ETA, identity, and ranking.
 - `tests/fixtures/tfl/`: deterministic sanitized TfL examples.
 - `scripts/`: discovery and asset utilities.
 - `docs/`: discovery, learning, and verification records; `plans/`: phased plan.
-- `DESIGN.md` and `PRODUCT.md`: visual and product constraints.
 
 ## Refresh, cache, and PWA policy
 
-Live arrivals are requested with `no-store`. Topology and timetables use a
+Live arrivals and departure boards are requested with `no-store`. Topology and timetables use a
 bounded 12-hour Next server cache, with a bundled topology fallback that is
-accepted for 30 days. The browser polls only while results are active and
-visible/online, and manual refresh has a 10-second cooldown. A stale result is
-retained as clearly marked context after an upstream failure.
+accepted for 30 days. The browser polls only while an active live view is
+visible and online, and manual refresh has a 10-second cooldown. A stale result is
+retained as clearly marked context after an upstream failure; stale departure countdowns are deliberately de-emphasised rather than presented as fresh data.
 
 The manifest and owned icons support “Add to home screen”. There is no service
 worker, offline data cache, background sync, or guaranteed install prompt;
