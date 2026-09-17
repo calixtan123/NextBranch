@@ -1,6 +1,17 @@
 node_modules/
 .next/
+next-env.d.ts
 .env*
 !.env.example
 coverage/
 *.tsbuildinfo
+.vercel/
+npm-debug.log*
+
+
+tfl-stationdata-detailed
+.DS_Store
+
+# Agents.md
+AGENTS.md
+CLAUDE.md
