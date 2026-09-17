@@ -15,3 +15,7 @@ tfl-stationdata-detailed
 # Agents.md
 AGENTS.md
 CLAUDE.md
+
+# Local agent skill tooling
+.agents/
+skills-lock.json
