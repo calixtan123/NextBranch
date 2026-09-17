@@ -1,6 +1,6 @@
-# Northern Direct
+# NextBranch
 
-Northern Direct is a small, safety-first Northern line journey checker. It
+NextBranch is a small, safety-first Northern line journey checker. It
 shows trains that the available route evidence says serve the selected
 destination, their origin arrival, platform confidence, and destination ETA.
 
