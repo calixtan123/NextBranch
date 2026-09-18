@@ -43,23 +43,35 @@ async function get(
     : deadline.signal;
   // An owned timer can be cleared on completion; AbortSignal.timeout cannot.
   const timer = setTimeout(() => deadline.abort(), TFL_REQUEST_TIMEOUT_MS);
+  let onAbort: (() => void) | undefined;
   try {
     signal.throwIfAborted();
-    const response = await fetch(url, {
-      ...(cache === "topology"
-        ? { next: { revalidate: TOPOLOGY_REVALIDATE_SECONDS } }
-        : { cache: "no-store" as const }),
-      signal,
+    const aborted = new Promise<never>((_resolve, reject) => {
+      onAbort = () => reject(signal.reason);
+      signal.addEventListener("abort", onAbort, { once: true });
     });
-    if (!response.ok)
-      throw new TflError("upstream", `TfL upstream status ${response.status}`);
-    return await response.json();
+    // Settle independently of transport cooperation, including body reads.
+    // Promise.race also observes late transport rejection after cancellation.
+    const payload = (async () => {
+      const response = await fetch(url, {
+        ...(cache === "topology"
+          ? { next: { revalidate: TOPOLOGY_REVALIDATE_SECONDS } }
+          : { cache: "no-store" as const }),
+        signal,
+      });
+      signal.throwIfAborted();
+      if (!response.ok)
+        throw new TflError("upstream", `TfL upstream status ${response.status}`);
+      return response.json();
+    })();
+    return await Promise.race([payload, aborted]);
   } catch (error) {
     if (signal.aborted || ((error instanceof DOMException || error instanceof Error) && ["AbortError", "TimeoutError"].includes(error.name)))
       throw new TflError("upstream", "TfL request was interrupted");
     throw error;
   } finally {
     clearTimeout(timer);
+    if (onAbort) signal.removeEventListener("abort", onAbort);
   }
 }
 

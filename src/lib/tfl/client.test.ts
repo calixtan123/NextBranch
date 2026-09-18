@@ -134,6 +134,53 @@ describe("TfL arrivals boundary", () => {
     expect(signal?.aborted).toBe(false);
   });
 
+  // Break: ignoring transport abort leaves calls pending, permits late success,
+  // or leaks a caller-cancelled request's timer until its original deadline.
+  it.each([
+    ["fetch", "timeout", "resolve"],
+    ["body", "timeout", "resolve"],
+    ["fetch", "caller", "resolve"],
+    ["body", "caller", "resolve"],
+    ["fetch", "timeout", "reject"],
+    ["body", "timeout", "reject"],
+    ["fetch", "caller", "reject"],
+    ["body", "caller", "reject"],
+  ])("settles %s ignoring abort on %s cancellation before late %s", async (phase, cancellation, lateOutcome) => {
+    vi.useFakeTimers();
+    process.env.TFL_API_KEY = "test-key";
+    const caller = new AbortController();
+    let resolveLate!: (value: unknown) => void;
+    let rejectLate!: (reason: unknown) => void;
+    const pending = new Promise((resolve, reject) => { resolveLate = resolve; rejectLate = reject; });
+    const response = { ok: true, status: 200, json: async () => topology };
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", vi.fn((_url, options) => {
+      signal = options.signal;
+      return phase === "fetch" ? pending : Promise.resolve({ ...response, json: () => pending });
+    }));
+    let settled: unknown;
+    const request = getRoutes(caller.signal).then(
+      (value) => { settled = value; },
+      (error: unknown) => { settled = error; },
+    );
+    await vi.advanceTimersByTimeAsync(cancellation === "timeout" ? 7_999 : 100);
+    expect(settled).toBeUndefined();
+    expect(signal?.aborted).toBe(false);
+    if (cancellation === "caller") caller.abort();
+    await vi.advanceTimersByTimeAsync(cancellation === "timeout" ? 1 : 0);
+    expect(settled).toBeInstanceOf(TflError);
+    expect(settled).toMatchObject({ code: "upstream" });
+    expect(signal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    await request;
+    const failure = settled;
+    if (lateOutcome === "resolve") resolveLate(phase === "fetch" ? response : topology);
+    else rejectLate(new Error("late transport failure"));
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(settled).toBe(failure);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("keeps only records for the requested station", async () => {
     vi.stubGlobal(
       "fetch",
