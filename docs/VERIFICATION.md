@@ -56,3 +56,61 @@ The manifest test confirms standalone metadata and three owned PNG icons:
 
 Mocked/dependency-injected tests are deterministic unit/component/API-boundary
 tests. They are not live TfL integration tests.
+
+## Manual mobile release checklist
+
+This checklist is a release gate, not an automated test. Run it against an
+HTTPS Preview for production-like installation and geolocation evidence. Use
+the local HTTP workflows in the README for layout and interaction checks, and
+record simulator/emulator results separately from physical-device evidence.
+
+### Viewports and device interaction
+
+- [ ] Check a **320px portrait** viewport and a **390px portrait** viewport.
+- [ ] Check landscape orientation and confirm the primary content remains
+  usable.
+- [ ] Open each form with the software keyboard visible; confirm fields,
+  suggestions, validation, and submit controls remain reachable.
+- [ ] Increase browser text zoom; confirm text, controls, and status messages
+  remain readable and usable.
+- [ ] Move keyboard focus through navigation, form fields, suggestions,
+  actions, saved journeys, and error/retry controls; focus must remain visible.
+- [ ] Confirm interactive controls have comfortable touch targets (the
+  project target is at least 44 by 44 CSS pixels).
+- [ ] Confirm there is no horizontal scrolling at either portrait width or in
+  landscape.
+- [ ] On an iPhone with a notch or home indicator, confirm content and actions
+  do not sit under the safe areas.
+
+### Navigation and data states
+
+- [ ] Open a station deep link (`?station=<id>`), a journey deep link
+  (`?from=<id>&to=<id>`), and an invalid/empty link; confirm the visible state
+  matches the URL.
+- [ ] Navigate between station and journey views, then use browser Back and
+  Forward; confirm the URL and view recover together.
+- [ ] Check a fresh live response and confirm its update indicator and
+  countdowns are understandable.
+- [ ] Force or simulate an upstream failure after a successful response;
+  confirm retained data is labelled **stale** and is not presented as fresh.
+- [ ] Check offline presentation and retry behaviour; confirm the app explains
+  that live TfL data requires a connection and does not claim offline live
+  support.
+- [ ] Check an invalid/error response and confirm an actionable error is shown
+  without exposing credentials or raw upstream URLs.
+
+### Installation evidence
+
+- [ ] On a physical iPhone, use iOS Safari's **Share → Add to Home Screen →
+  Add**, launch the icon, and check the standalone presentation.
+- [ ] On a physical Android phone, use Chrome's **Install app** or **Add to
+  Home screen**, launch the icon, and check the standalone presentation.
+- [ ] Repeat the relevant browser-menu check in the iOS Simulator and standard
+  Android Emulator if useful, but label it supplementary: simulator/emulator
+  evidence never replaces physical-device evidence.
+- [ ] Record whether the HTTPS Preview, rather than local HTTP, was used for
+  installation and geolocation checks.
+
+If a manual item cannot be run, record **NOT RUN** with the reason. Do not turn
+simulator success, a local HTTP result, or a manifest response into a claim
+that a physical device, geolocation, installation, or offline mode was tested.

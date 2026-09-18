@@ -37,6 +37,82 @@ npm run dev
 Open <http://localhost:3000>. Never put the key in a `NEXT_PUBLIC_*` variable,
 browser code, fixtures, or a committed file. `.env.local` is ignored by git.
 
+## Phone and simulator workflows
+
+The normal `localhost` address is reachable only from the Mac running Next.js.
+For a physical phone, start the development server on the Mac's network
+interfaces:
+
+```bash
+npm run dev -- --hostname 0.0.0.0
+```
+
+`--hostname` is a Next.js command-line option. `0.0.0.0` tells the development
+server to listen for connections on the Mac's network interfaces. LAN means
+“local area network”: in this workflow it is the trusted Wi-Fi network shared
+by the Mac and the phone. Find the Mac's Wi-Fi/LAN IP address in the macOS
+network settings, then use that address on the phone:
+
+```text
+http://<Mac-LAN-IP>:3000
+```
+
+The physical phone must be on the same trusted Wi-Fi. The TfL request still
+passes through the Mac's Next.js server, so keep `TFL_API_KEY` in the Mac's
+`.env.local` only. Do not copy the key to the phone, put it in a URL, or create
+a `NEXT_PUBLIC_TFL_API_KEY` variable. If the phone cannot connect, check the
+Mac firewall and whether the Wi-Fi network blocks device-to-device traffic;
+never solve this by exposing the key or development server to an untrusted
+network.
+
+An iOS Simulator is a virtual iPhone running on the Mac; an Android Emulator
+is a virtual Android device. They are useful for repeatable browser checks but
+are not physical-device evidence (for example, they do not reproduce every
+radio, safe-area, keyboard, or OS integration detail). Use these addresses:
+
+| Target | Browser | Address |
+| --- | --- | --- |
+| Physical phone on the same Wi-Fi | Safari or Chrome | `http://<Mac-LAN-IP>:3000` |
+| iOS Simulator | Safari | `http://localhost:3000` |
+| Standard Android Emulator | Chrome | `http://10.0.2.2:3000` |
+
+`10.0.2.2` is the standard Android Emulator alias for the host computer's
+`localhost`; it is not the address to use on a physical Android phone.
+
+Local HTTP is enough to check responsive layout, interaction, keyboard/focus
+behaviour, and the application's ordinary live/stale/error handling. An
+HTTPS Preview is a deployed preview URL served over encrypted HTTPS. Use an
+HTTPS Preview for production-like PWA installation and geolocation checks:
+modern browsers restrict sensitive APIs such as geolocation to a secure
+context, and install behaviour differs between HTTP development pages and a
+deployed origin. A local HTTP check must not be recorded as geolocation or
+production-like installation evidence.
+
+PWA means “Progressive Web App”: a website that can advertise install metadata
+to the browser and, when the browser supports it, open from a home-screen icon
+like an app. This project has a web manifest, standalone metadata, and owned
+icons, but deliberately has no service worker or offline live-data cache. An
+installed icon therefore does not make live TfL data available offline.
+
+### Install from a physical browser
+
+Use the HTTPS Preview on a physical device when collecting release evidence.
+The browser may offer slightly different wording, and the app does not promise
+a guaranteed install prompt.
+
+- **iOS Safari:** open the HTTPS Preview, tap **Share**, choose **Add to Home
+  Screen**, review the name, and tap **Add**. Launch the new home-screen icon
+  and check that the app opens in its standalone presentation.
+- **Android Chrome:** open the HTTPS Preview, tap the three-dot menu, choose
+  **Install app** or **Add to Home screen** (the available label depends on
+  Chrome), confirm, and launch the new icon.
+
+Simulator/emulator installation can be a useful supplementary check of browser
+menus and manifest metadata, but it does not replace a physical iPhone or
+Android phone check. Record physical-device installation, safe-area, and
+network results separately in the release checklist in
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+
 ## Tests and build
 
 Tests use fixed fixtures and dependency injection; normal tests never call live
