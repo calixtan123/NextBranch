@@ -19,3 +19,6 @@ CLAUDE.md
 # Local agent skill tooling
 .agents/
 skills-lock.json
+
+# Isolated feature worktrees created by local development tooling
+.worktrees/
