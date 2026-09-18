@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./Home";
+import { STATIONS_STORAGE_KEY } from "@/lib/storage/stations";
 
 const fetchJourney = vi.hoisted(() => vi.fn());
 const requestedJourneys = vi.hoisted(() => [] as Array<{ from: string; to: string } | null>);
@@ -21,6 +22,8 @@ vi.mock("./useDeparturesRequest", () => ({
 }));
 
 const saved = { from: "940GZZLUCTN", to: "940GZZLUEGW", fromName: "Camden Town", toName: "Edgware" };
+const savedStation = { id: "940GZZLUCTN", name: "Camden Town", lastUsedAt: 200 };
+const recentStation = { id: "940GZZLUAGL", name: "Angel", lastUsedAt: 100 };
 const defaultUserAgent = navigator.userAgent;
 const defaultVendor = navigator.vendor;
 
@@ -130,6 +133,97 @@ describe("Home", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Camden Town → Edgware" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+  });
+
+  // Break: stored stations select and fetch a live board before the passenger explicitly chooses one.
+  it("shows canonical saved and recent station controls at startup without activating departures", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [savedStation], recent: [recentStation] }));
+    render(<Home />);
+
+    const stationList = await screen.findByRole("list", { name: "Saved and recent stations" });
+    const choiceButtons = within(stationList).getAllByRole("button").filter((button) => button.textContent === "Camden Town" || button.textContent === "Angel");
+    expect(choiceButtons.map((button) => button.textContent)).toEqual(["Camden Town", "Angel"]);
+    expect(within(stationList).getByRole("button", { name: "Unsave Camden Town" })).toBeInTheDocument();
+    expect(within(stationList).getByRole("button", { name: "Save Angel" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("");
+    expect(fetchDepartures).not.toHaveBeenCalled();
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  // Break: saving a recent row looks successful but disappears after the next client mount.
+  it("saves a recent station and preserves its membership after remount", async () => {
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [], recent: [savedStation] }));
+    const firstMount = render(<Home />);
+    await screen.findByRole("button", { name: "Save Camden Town" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Camden Town" }));
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}" )).toMatchObject({
+        saved: [{ id: savedStation.id, name: savedStation.name }],
+        recent: [],
+      });
+    });
+    firstMount.unmount();
+
+    render(<Home />);
+    expect(await screen.findByRole("button", { name: "Unsave Camden Town" })).toBeInTheDocument();
+    expect(fetchDepartures).not.toHaveBeenCalled();
+  });
+
+  // Break: Unsaving loses the saved timestamp, so Undo cannot restore the user's original membership metadata.
+  it("unsaves a station and Undo restores its original saved membership and timestamp", async () => {
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [savedStation], recent: [recentStation] }));
+    render(<Home />);
+    await screen.findByRole("button", { name: "Unsave Camden Town" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Unsave Camden Town" }));
+    expect(screen.getByRole("status", { name: "Station actions" })).toHaveTextContent("Station unsaved");
+    expect(screen.getByRole("button", { name: "Save Camden Town" })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}" )).toEqual({ saved: [], recent: [savedStation, recentStation] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("button", { name: "Unsave Camden Town" })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}" )).toEqual({ saved: [savedStation], recent: [recentStation] });
+  });
+
+  // Break: removing a station either retains it in hidden storage or leaves its Undo action available forever.
+  it("removes a station completely and expires the station Undo after five seconds", async () => {
+    vi.useFakeTimers();
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [], recent: [savedStation] }));
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Camden Town" }));
+
+    expect(screen.getByRole("status", { name: "Station actions" })).toHaveTextContent("Station removed");
+    expect(screen.queryByRole("button", { name: /^Camden Town$/ })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}" )).toEqual({ saved: [], recent: [] });
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_999); });
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  // Break: local station history overrides a valid deep link, or root history ignores local station rows after navigation.
+  it("gives station and journey deep links precedence over local stations before returning to the chooser", async () => {
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [savedStation], recent: [recentStation] }));
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    const { rerender } = render(<Home />);
+    await waitFor(() => expect(screen.getByRole("region", { name: "Selected journey" })).toBeInTheDocument());
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+
+    searchParams.set("station", savedStation.id);
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Camden Town"));
+    expect(requestedJourneys.at(-1)).toBeNull();
+
+    searchParams.delete("station");
+    searchParams.delete("from");
+    searchParams.delete("to");
+    rerender(<Home />);
+    expect(await screen.findByRole("list", { name: "Saved and recent stations" })).toBeInTheDocument();
+    expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
   });
 
   it("keeps Journeys and Change as separate views while a route is active", async () => {

@@ -52,6 +52,37 @@ test("selects a station and renders grouped live departures", async ({ page }) =
   await expect(page.getByText("Battersea Power Station", { exact: true })).toBeVisible();
 });
 
+// Regression: stored rows trigger a background board request, lack keyboard access, or disappear before a remount.
+test("keeps saved and recent stations inactive until a keyboard choice opens one board", async ({ page }) => {
+  const departureRequests: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/departures") departureRequests.push(request.url());
+  });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("northern-direct:stations:v1", JSON.stringify({
+      saved: [{ id: "940GZZLUCTN", name: "Wrong saved name", lastUsedAt: 20 }],
+      recent: [{ id: "940GZZLUAGL", name: "Wrong recent name", lastUsedAt: 10 }],
+    }));
+  });
+  departureRequests.length = 0;
+  await page.reload();
+
+  await expect(page.getByRole("list", { name: "Saved and recent stations" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Camden Town", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Angel", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Station", exact: true })).toHaveValue("");
+  await expectNoOverflow(page);
+  await expectAccessible(page);
+  expect(departureRequests).toEqual([]);
+
+  await page.getByRole("button", { name: "Camden Town", exact: true }).press("Enter");
+  await expect(page).toHaveURL(STATION_URL);
+  await expect(page.getByRole("list", { name: "Platform 1 · Northbound departures" })).toBeVisible();
+  expect(departureRequests).toHaveLength(1);
+});
+
 // Regression: form submission, persistent saving, or reopening a saved pair stops fetching results.
 test("plans a direct journey and reopens it after a new page load", async ({ page }) => {
   await page.goto("/");
