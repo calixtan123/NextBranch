@@ -266,14 +266,23 @@ export function removeStation(collection: StationCollection, stationId: string):
  * Returns
  * -------
  * StationCollection
- *     The updated, normalized collection.
+ *     The updated, normalized collection. At capacity, Undo evicts the lowest-priority
+ *     non-restored displayed station so the original record is guaranteed to return.
  */
 export function restoreStation(collection: StationCollection, station: SavedStation, membership: StationMembership): StationCollection {
   const current = normalizeCollection(collection);
   const restored = canonicalStation(station);
   if (!restored) return current;
-  const saved = current.saved.filter((item) => item.id !== restored.id);
-  const recent = current.recent.filter((item) => item.id !== restored.id);
+  const withoutRestored = {
+    saved: current.saved.filter((item) => item.id !== restored.id),
+    recent: current.recent.filter((item) => item.id !== restored.id),
+  };
+  const displayedWithoutRestored = displayStations(withoutRestored);
+  const evicted = displayedWithoutRestored.length >= MAX_STATIONS
+    ? displayedWithoutRestored.at(-1)
+    : null;
+  const saved = withoutRestored.saved.filter((item) => item.id !== evicted?.id);
+  const recent = withoutRestored.recent.filter((item) => item.id !== evicted?.id);
   return membership === "saved"
     ? normalizeCollection({ saved: [restored, ...saved], recent })
     : normalizeCollection({ saved, recent: [restored, ...recent] });

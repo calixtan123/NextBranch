@@ -60,6 +60,9 @@ export default function Home() {
   const explicitPending = useRef(false);
   const viewTouched = useRef(false);
   const previousUrlKey = useRef(urlKey);
+  const latestUrlSelection = useRef({ hasStation: Boolean(urlStation), hasJourney: validUrlJourney });
+  const stationCollectionRef = useRef<StationCollection>({ saved: [], recent: [] });
+  const stationStorageInitialized = useRef(false);
   const stationUndoSequence = useRef(0);
   const journey = useMemo(() => from && to ? { from: from.id, to: to.id, fromName: from.name, toName: to.name } : null, [from, to]);
   const activeJourney = useMemo(() => activated && journey && activated.from === journey.from && activated.to === journey.to ? journey : null, [activated, journey]);
@@ -73,6 +76,10 @@ export default function Home() {
   const expiredRefresh = useRef("");
   const clearJourneyUndo = useCallback(() => setJourneyUndo(null), []);
   const clearStationUndo = useCallback(() => setStationUndo(null), []);
+
+  useEffect(() => {
+    latestUrlSelection.current = { hasStation: Boolean(urlStation), hasJourney: validUrlJourney };
+  }, [urlStation, validUrlJourney]);
 
   // Browser history can change search parameters without remounting this client
   // component. Treat an explicit URL as the source of truth for live views.
@@ -107,16 +114,19 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const journeys = readJourneys();
-      const stations = readStations();
+      const stations = stationStorageInitialized.current ? stationCollectionRef.current : readStations();
+      stationStorageInitialized.current = true;
+      stationCollectionRef.current = stations;
       setSaved(journeys);
       setStationCollection(stations);
-      if (!viewTouched.current && !urlStation && !validUrlJourney) {
+      const { hasStation, hasJourney } = latestUrlSelection.current;
+      if (!viewTouched.current && !hasStation && !hasJourney) {
         setView(displayStations(stations).length ? "departures" : journeys.length ? "journeys" : "departures");
       }
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [urlStation, validUrlJourney]);
+  }, []);
   useEffect(() => {
     if (!hasLiveData) return;
     let interval: number | undefined;
@@ -156,7 +166,13 @@ export default function Home() {
   useEffect(() => { if (view === "results" && activeJourney) void fetchJourney(); }, [view, activeJourney, fetchJourney]);
   useEffect(() => { if (view === "departures" && boardStation) void fetchDepartures(); }, [view, boardStation, fetchDepartures]);
   const submit = () => { if (!journey || validation) return; explicitPending.current = true; setActivated({ from: journey.from, to: journey.to }); navigateView("results"); router.push(`/?from=${journey.from}&to=${journey.to}`); };
-  const persistStationCollection = (next: StationCollection) => setStationCollection(writeStations(next));
+  const updateStationCollection = useCallback((update: (current: StationCollection) => StationCollection) => {
+    const current = stationStorageInitialized.current ? stationCollectionRef.current : readStations();
+    const next = writeStations(update(current));
+    stationStorageInitialized.current = true;
+    stationCollectionRef.current = next;
+    setStationCollection(next);
+  }, []);
   const queueStationUndo = useCallback((station: SavedStation, membership: StationMembership, message: string) => {
     stationUndoSequence.current += 1;
     setStationUndo({ id: stationUndoSequence.current, station, membership, message });
@@ -164,24 +180,24 @@ export default function Home() {
   const selectBoardStation = useCallback((station: Station | null) => {
     setBoardStation(station);
     if (!station) return;
-    setStationCollection(writeStations(recordRecentStation(stationCollection, station.id, Date.now())));
+    updateStationCollection((current) => recordRecentStation(current, station.id, Date.now()));
     router.push(`/?station=${station.id}`);
-  }, [router, stationCollection]);
+  }, [router, updateStationCollection]);
   const saveStationRow = useCallback((station: SavedStation) => {
-    setStationCollection(writeStations(saveStation(stationCollection, station.id, Date.now())));
+    updateStationCollection((current) => saveStation(current, station.id, Date.now()));
     queueStationUndo(station, "recent", "Station saved.");
-  }, [queueStationUndo, stationCollection]);
+  }, [queueStationUndo, updateStationCollection]);
   const unsaveStationRow = (station: SavedStation) => {
-    persistStationCollection(unsaveStation(stationCollection, station.id));
+    updateStationCollection((current) => unsaveStation(current, station.id));
     queueStationUndo(station, "saved", "Station unsaved.");
   };
   const removeStationRow = (station: SavedStation, membership: StationMembership) => {
-    persistStationCollection(removeStation(stationCollection, station.id));
+    updateStationCollection((current) => removeStation(current, station.id));
     queueStationUndo(station, membership, "Station removed.");
   };
   const undoStationAction = () => {
     if (!stationUndo) return;
-    persistStationCollection(restoreStation(stationCollection, stationUndo.station, stationUndo.membership));
+    updateStationCollection((current) => restoreStation(current, stationUndo.station, stationUndo.membership));
     clearStationUndo();
   };
   const trains = useMemo(() => data?.trains.map((train) => ({ ...train, secondsToOrigin: now === null ? train.secondsToOrigin : secondsToOrigin(train.expectedArrival, new Date(now)) })) ?? [], [data, now]);

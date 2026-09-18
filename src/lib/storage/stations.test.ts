@@ -83,6 +83,18 @@ describe("saved and recent departure stations", () => {
     expect(restored).toEqual({ saved: [camden], recent: [{ ...angel, lastUsedAt: 80 }, archway] });
   });
 
+  // Break: normal capacity truncation drops an old restored row after a replacement station fills its former slot.
+  it("keeps a restored station at capacity by evicting the lowest-priority non-restored row", () => {
+    const initial: StationCollection = { saved: [], recent: [camden, angel, archway, balham, bank] };
+    const removed = removeStation(initial, bank.id);
+    const withReplacement = recordRecentStation(removed, edgware.id, 60);
+
+    expect(restoreStation(withReplacement, bank, "recent")).toEqual({
+      saved: [],
+      recent: [{ ...edgware, lastUsedAt: 60 }, camden, angel, archway, bank],
+    });
+  });
+
   // Break: storage failures throw into the departure screen or write non-station live payloads.
   it("uses a versioned envelope, keeps only station data, and tolerates denied storage access", () => {
     const persisted = store();
