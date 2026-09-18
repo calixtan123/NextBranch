@@ -116,3 +116,36 @@ human verification aid as intended.
 - Network access from a phone can still be blocked by a Mac firewall or
   Wi-Fi client isolation; the README calls this out without suggesting unsafe
   key/server exposure.
+
+## Fix Round 1
+
+### Reviewer finding addressed
+
+The original `docs/VERIFICATION.md` used separate checkbox lists, which did
+not give a release operator a per-target result record. Replaced that section
+with a 16-row manual release matrix. It separately represents physical iPhone
+plus Safari plus HTTPS Preview, physical Android plus Chrome plus HTTPS
+Preview, iOS Simulator plus Safari plus local HTTP, and standard Android
+Emulator plus Chrome plus local HTTP. Each row has Target, Browser,
+Protocol/origin, Viewport/orientation, Applicable checks, Result, and
+Notes/evidence columns. HTTPS installation/geolocation rows are distinct from
+local layout/interaction rows, and simulator/emulator rows explicitly cannot
+stand in for physical-device evidence.
+
+Added concise operator definitions for secure context, deep link, safe areas,
+manifest, and standalone presentation at the point those terms are used.
+No prose-grep tests or production changes were added.
+
+### Fix-round verification
+
+| Command | Result |
+| --- | --- |
+| `rg -n -i "Manual mobile release matrix|Physical iPhone|Physical Android phone|iOS Simulator|Standard Android Emulator|HTTPS Preview|Viewport/orientation|Applicable checks|Result.*PASS|Notes/evidence|secure context|deep link|safe areas|manifest|standalone presentation" docs/VERIFICATION.md` | exit 0; all required matrix targets, columns, origins, and glossary terms present |
+| `git diff --check` | exit 0; no whitespace errors |
+| `npm run verify` | exit 0; typecheck, lint, 23 test files, 161 tests passed |
+| `npm run build` | exit 0; Next 16.3.5 production build passed; expected app, API, and manifest routes generated |
+
+The matrix remains `NOT RUN` for all manual rows because no physical device,
+simulator/emulator session, or HTTPS Preview was available. That status is
+intentional and preserves the distinction between documentation verification
+and unperformed device evidence.

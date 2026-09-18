@@ -57,60 +57,63 @@ The manifest test confirms standalone metadata and three owned PNG icons:
 Mocked/dependency-injected tests are deterministic unit/component/API-boundary
 tests. They are not live TfL integration tests.
 
-## Manual mobile release checklist
+## Manual mobile release matrix
 
-This checklist is a release gate, not an automated test. Run it against an
-HTTPS Preview for production-like installation and geolocation evidence. Use
-the local HTTP workflows in the README for layout and interaction checks, and
-record simulator/emulator results separately from physical-device evidence.
+This matrix is the manual release gate. Copy it into the release record (or
+duplicate rows when more than one device is checked) and replace each `NOT RUN`
+with `PASS` or `FAIL`. A **secure context** is the browser's protected
+environment for sensitive web APIs; for this release, use the deployed HTTPS
+Preview as the secure-context evidence. Local HTTP is intentionally limited to
+layout and interaction checks. Keep physical-device rows separate from
+simulator/emulator rows.
 
-### Viewports and device interaction
+In the table, a **deep link** is a URL containing the selected state so that it
+opens directly to a station or journey (for example, `?station=<id>` or
+`?from=<id>&to=<id>`). **Safe areas** are the inset regions around an iPhone
+notch, rounded corners, or home indicator where content should not be placed.
+For each row, record the device/OS version, build or Preview URL, date, and
+evidence (screenshots, screen recording, or a concise observation) in Notes.
 
-- [ ] Check a **320px portrait** viewport and a **390px portrait** viewport.
-- [ ] Check landscape orientation and confirm the primary content remains
-  usable.
-- [ ] Open each form with the software keyboard visible; confirm fields,
-  suggestions, validation, and submit controls remain reachable.
-- [ ] Increase browser text zoom; confirm text, controls, and status messages
-  remain readable and usable.
-- [ ] Move keyboard focus through navigation, form fields, suggestions,
-  actions, saved journeys, and error/retry controls; focus must remain visible.
-- [ ] Confirm interactive controls have comfortable touch targets (the
-  project target is at least 44 by 44 CSS pixels).
-- [ ] Confirm there is no horizontal scrolling at either portrait width or in
-  landscape.
-- [ ] On an iPhone with a notch or home indicator, confirm content and actions
-  do not sit under the safe areas.
+| Target | Browser | Protocol/origin | Viewport/orientation | Applicable checks | Result (`PASS`, `FAIL`, or `NOT RUN`) | Notes/evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Physical iPhone | Safari | HTTPS Preview (`https://…`) | 320px portrait | Layout/reflow; no horizontal scrolling; touch targets; visible focus; text zoom; software keyboard; deep-link and Back/Forward history; live, stale, offline, and error states | NOT RUN |  |
+| Physical iPhone | Safari | HTTPS Preview (`https://…`) | 390px portrait | Same interaction/data checks; iPhone safe areas around notch/home indicator | NOT RUN |  |
+| Physical iPhone | Safari | HTTPS Preview (`https://…`) | Landscape | Layout/reflow; no horizontal scrolling; touch targets; focus; keyboard; text zoom; deep-link/history; live, stale, offline, and error states; iPhone safe areas | NOT RUN |  |
+| Physical iPhone | Safari | HTTPS Preview (`https://…`) | Device viewport / home screen | Safari **Share → Add to Home Screen → Add**; launch the icon; confirm standalone presentation; geolocation, if the feature is enabled | NOT RUN | HTTPS evidence only; do not substitute local HTTP or simulator results |
+| Physical Android phone | Chrome | HTTPS Preview (`https://…`) | 320px portrait | Layout/reflow; no horizontal scrolling; touch targets; visible focus; text zoom; software keyboard; deep-link and Back/Forward history; live, stale, offline, and error states | NOT RUN |  |
+| Physical Android phone | Chrome | HTTPS Preview (`https://…`) | 390px portrait | Same interaction/data checks | NOT RUN |  |
+| Physical Android phone | Chrome | HTTPS Preview (`https://…`) | Landscape | Layout/reflow; no horizontal scrolling; touch targets; focus; keyboard; text zoom; deep-link/history; live, stale, offline, and error states | NOT RUN |  |
+| Physical Android phone | Chrome | HTTPS Preview (`https://…`) | Device viewport / home screen | Chrome **Install app** or **Add to Home screen**; launch the icon; confirm standalone presentation; geolocation, if the feature is enabled | NOT RUN | HTTPS evidence only; do not substitute local HTTP or emulator results |
+| iOS Simulator | Safari | Local HTTP (`http://localhost:3000`) | 320px portrait | Supplementary layout/reflow; no horizontal scrolling; touch targets; visible focus; text zoom; software keyboard; deep-link and Back/Forward history; live, stale, offline, and error states | NOT RUN | Local layout/interaction evidence only; not physical-device or HTTPS installation/geolocation evidence |
+| iOS Simulator | Safari | Local HTTP (`http://localhost:3000`) | 390px portrait | Same supplementary interaction/data checks | NOT RUN |  |
+| iOS Simulator | Safari | Local HTTP (`http://localhost:3000`) | Landscape | Supplementary layout/reflow; no horizontal scrolling; touch targets; focus; keyboard; text zoom; deep-link/history; live, stale, offline, and error states | NOT RUN | Simulator result; do not report as physical iPhone evidence |
+| iOS Simulator | Safari | Local HTTP (`http://localhost:3000`) | Simulator viewport / browser menu | Optional manifest/menu observation only; installation and geolocation are not release evidence here | NOT RUN | Use the physical iPhone HTTPS row for installation/geolocation evidence |
+| Standard Android Emulator | Chrome | Local HTTP (`http://10.0.2.2:3000`) | 320px portrait | Supplementary layout/reflow; no horizontal scrolling; touch targets; visible focus; text zoom; software keyboard; deep-link and Back/Forward history; live, stale, offline, and error states | NOT RUN | Local layout/interaction evidence only; not physical-device or HTTPS installation/geolocation evidence |
+| Standard Android Emulator | Chrome | Local HTTP (`http://10.0.2.2:3000`) | 390px portrait | Same supplementary interaction/data checks | NOT RUN |  |
+| Standard Android Emulator | Chrome | Local HTTP (`http://10.0.2.2:3000`) | Landscape | Supplementary layout/reflow; no horizontal scrolling; touch targets; focus; keyboard; text zoom; deep-link/history; live, stale, offline, and error states | NOT RUN | Emulator result; do not report as physical Android evidence |
+| Standard Android Emulator | Chrome | Local HTTP (`http://10.0.2.2:3000`) | Emulator viewport / browser menu | Optional manifest/menu observation only; installation and geolocation are not release evidence here | NOT RUN | Use the physical Android HTTPS row for installation/geolocation evidence |
 
-### Navigation and data states
+### Operator terms and pass criteria
 
-- [ ] Open a station deep link (`?station=<id>`), a journey deep link
-  (`?from=<id>&to=<id>`), and an invalid/empty link; confirm the visible state
-  matches the URL.
-- [ ] Navigate between station and journey views, then use browser Back and
-  Forward; confirm the URL and view recover together.
-- [ ] Check a fresh live response and confirm its update indicator and
-  countdowns are understandable.
-- [ ] Force or simulate an upstream failure after a successful response;
-  confirm retained data is labelled **stale** and is not presented as fresh.
-- [ ] Check offline presentation and retry behaviour; confirm the app explains
-  that live TfL data requires a connection and does not claim offline live
-  support.
-- [ ] Check an invalid/error response and confirm an actionable error is shown
-  without exposing credentials or raw upstream URLs.
+The **manifest** is the JSON metadata that tells a browser the app's name,
+icons, start URL, and display preference. A **standalone presentation** is the
+home-screen launch view with the browser's ordinary address/tab controls hidden;
+it does not imply offline data. Treat a row as `PASS` only when every check in
+its Applicable checks cell is observed. Use `FAIL` for a regression or
+unexpected browser/device result, and `NOT RUN` when the environment or
+evidence was unavailable.
 
-### Installation evidence
+For every target, the operator should check the following behavior through the
+rows above: the software keyboard must not hide fields, suggestions,
+validation, or submit controls; text zoom must keep text and status messages
+usable; keyboard focus must remain visible; controls should meet the project's
+44-by-44 CSS-pixel touch-target goal; and neither portrait width nor landscape
+may introduce horizontal scrolling. Deep links must match the visible state
+and recover with browser Back/Forward. Fresh data, clearly labelled stale data,
+offline guidance, and actionable errors must remain distinguishable, with no
+credentials or raw upstream URLs exposed.
 
-- [ ] On a physical iPhone, use iOS Safari's **Share → Add to Home Screen →
-  Add**, launch the icon, and check the standalone presentation.
-- [ ] On a physical Android phone, use Chrome's **Install app** or **Add to
-  Home screen**, launch the icon, and check the standalone presentation.
-- [ ] Repeat the relevant browser-menu check in the iOS Simulator and standard
-  Android Emulator if useful, but label it supplementary: simulator/emulator
-  evidence never replaces physical-device evidence.
-- [ ] Record whether the HTTPS Preview, rather than local HTTP, was used for
-  installation and geolocation checks.
-
-If a manual item cannot be run, record **NOT RUN** with the reason. Do not turn
-simulator success, a local HTTP result, or a manifest response into a claim
-that a physical device, geolocation, installation, or offline mode was tested.
+If a manual row cannot be run, leave it as **NOT RUN** and record the reason.
+Never turn a simulator/emulator result, local HTTP result, or manifest response
+into a claim that a physical device, HTTPS installation, geolocation, or
+offline live-data mode was tested.
