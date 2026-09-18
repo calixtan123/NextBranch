@@ -47,6 +47,8 @@ export default function Home() {
   const departureRequest = useDeparturesRequest(boardStation?.id ?? null, view === "departures" && Boolean(boardStation));
   const { data, loading, issue, fetchJourney, cooldownUntil } = routeRequest;
   const { data: departures, loading: departuresLoading, issue: departuresIssue, fetchDepartures, cooldownUntil: departuresCooldown } = departureRequest;
+  const hasLiveData = (view === "results" && Boolean(data)) || (view === "departures" && Boolean(departures));
+  const activeCooldown = view === "departures" ? departuresCooldown : view === "results" ? cooldownUntil : 0;
   const expiredRefresh = useRef("");
   const clearUndo = useCallback(() => setUndo(null), []);
 
@@ -90,7 +92,32 @@ export default function Home() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [urlStation, validUrlJourney]);
-  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1_000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    if (!hasLiveData) return;
+    let interval: number | undefined;
+    const syncVisibility = () => {
+      window.clearInterval(interval);
+      interval = undefined;
+      if (document.visibilityState !== "visible") return;
+      setNow(Date.now());
+      interval = window.setInterval(() => setNow(Date.now()), 1_000);
+    };
+    // Defer the initial update, keeping the server and first browser render equal.
+    const initial = window.setTimeout(syncVisibility, 0);
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", syncVisibility);
+    };
+  }, [hasLiveData]);
+  useEffect(() => {
+    if (hasLiveData || !activeCooldown) return;
+    // Empty views need only a cooldown expiry, not a repeating countdown clock.
+    const initial = window.setTimeout(() => setNow(Date.now()), 0);
+    const expiry = window.setTimeout(() => setNow(Date.now()), Math.max(0, activeCooldown - Date.now()));
+    return () => { window.clearTimeout(initial); window.clearTimeout(expiry); };
+  }, [activeCooldown, hasLiveData]);
   useEffect(() => {
     if (!data || issue || !explicitPending.current) return;
     explicitPending.current = false;

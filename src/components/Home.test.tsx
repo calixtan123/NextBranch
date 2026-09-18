@@ -25,6 +25,7 @@ const saved = { from: "940GZZLUCTN", to: "940GZZLUEGW", fromName: "Camden Town",
 describe("Home", () => {
   afterEach(() => vi.useRealTimers());
   beforeEach(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     const makeStorage = () => { let value: string | null = null; return { getItem: () => value, setItem: (_key: string, next: string) => { value = next; }, removeItem: () => { value = null; } }; };
     Object.defineProperty(window, "localStorage", { configurable: true, value: makeStorage() });
     Object.defineProperty(window, "sessionStorage", { configurable: true, value: makeStorage() });
@@ -35,14 +36,87 @@ describe("Home", () => {
     departureState.data = null;
     departureState.loading = false;
     departureState.issue = null;
+    departureState.cooldownUntil = 0;
     requestState.data = null;
     requestState.dataKey = null;
     requestState.loading = false;
     requestState.issue = null;
+    requestState.cooldownUntil = 0;
     searchParams.delete("from");
     searchParams.delete("to");
     searchParams.delete("station");
     Object.defineProperty(window, "matchMedia", { configurable: true, value: undefined });
+  });
+
+  // Break: an unconditional clock wakes once per second on empty and search screens.
+  it("does not keep a clock running without live data", async () => {
+    vi.useFakeTimers();
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(vi.getTimerCount()).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    expect(screen.getByRole("heading", { name: "Plan a journey" })).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // Break: hidden tabs keep ticking, resume shows old time, or navigation leaks a clock.
+  it.each(["departures", "results"])("pauses the %s clock while hidden and catches up immediately on return", async (view) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    if (view === "departures") {
+      searchParams.set("station", saved.from);
+      departureState.data = {
+        station: { id: saved.from, name: saved.fromName }, observedAt: "2026-09-16T12:00:00.000Z",
+        newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+        platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToStation: 120, towards: null }] }],
+      };
+    } else {
+      searchParams.set("from", saved.from);
+      searchParams.set("to", saved.to);
+      requestState.dataKey = `${saved.from}:${saved.to}`;
+      requestState.data = {
+        journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
+        trains: [{ id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToOrigin: 120, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable" }],
+        additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "next", fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
+      };
+    }
+    const { unmount } = render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.getByText("2 min")).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(1);
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    fireEvent(document, new Event("visibilitychange"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByText("2 min")).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(0);
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    fireEvent(document, new Event("visibilitychange"));
+    expect(screen.getByText("1 min")).toBeInTheDocument();
+    expect(screen.getByText("Updated 60 sec ago")).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+    fireEvent(document, new Event("visibilitychange"));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // Break: pausing an empty screen's clock leaves the refresh cooldown absent or stuck.
+  it("expires the manual refresh cooldown even before departure data arrives", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    searchParams.set("station", saved.from);
+    const { rerender } = render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    departureState.cooldownUntil = Date.now() + 10_000;
+    rerender(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.getByRole("button", { name: "Refresh available soon" })).toBeDisabled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_999); });
+    expect(screen.getByRole("button", { name: "Refresh available soon" })).toBeDisabled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("renders the same first screen before storage hydration and then shows saved-first returning state", async () => {

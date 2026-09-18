@@ -1,8 +1,11 @@
+/** Owns the lifecycle of uncached browser requests for both live views. */
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type RequestIssue = "offline" | "upstream" | "invalid" | null;
+// The server gets eight seconds; allow time for its normalized failure response.
+const LIVE_REQUEST_TIMEOUT_MS = 12_000;
 type InFlight = { key: string; controller: AbortController; promise: Promise<void> };
 type Options<T> = {
   key: string;
@@ -36,27 +39,45 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     if (existing?.key === key) return existing.promise;
     existing?.controller.abort();
     const controller = new AbortController();
+    let timedOut = false;
+    const timer = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, LIVE_REQUEST_TIMEOUT_MS);
+    let rejectAbort!: (reason: unknown) => void;
+    const aborted = new Promise<never>((_resolve, reject) => { rejectAbort = reject; });
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      rejectAbort(controller.signal.reason);
+    };
+    controller.signal.addEventListener("abort", onAbort, { once: true });
     setLoadingKey(key); setLoading(true);
     const run = (async () => {
       try {
-        const result = await fetch(url(), { cache: "no-store", signal: controller.signal });
-        let parsed: T | null = null;
-        if (result.ok) {
-          try { parsed = parse(await result.json()); } catch { throw new Error("invalid"); }
-        }
-        if (!parsed) throw new Error(result.status >= 500 ? "upstream" : "invalid");
+        // Racing the whole read also settles callers when a transport ignores abort.
+        const parsed = await Promise.race([(async () => {
+          const result = await fetch(url(), { cache: "no-store", signal: controller.signal });
+          let value: T | null = null;
+          if (result.ok) {
+            try { value = parse(await result.json()); } catch { throw new Error("invalid"); }
+          }
+          if (!value) throw new Error(result.status >= 500 ? "upstream" : "invalid");
+          return value;
+        })(), aborted]);
         if (!controller.signal.aborted) {
           setDataKey(key); setData(parsed); setIssueKey(""); setIssue(null);
         }
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (inFlight.current?.controller === controller && (!controller.signal.aborted || timedOut)) {
           setIssueKey(key);
-          setIssue(error instanceof Error && error.message === "invalid" ? "invalid" : "upstream");
+          setIssue(!timedOut && error instanceof Error && error.message === "invalid" ? "invalid" : "upstream");
         }
       } finally {
+        window.clearTimeout(timer);
+        controller.signal.removeEventListener("abort", onAbort);
         if (inFlight.current?.controller === controller) {
           inFlight.current = null;
-          if (!controller.signal.aborted) { setLoadingKey(""); setLoading(false); }
+          if (!controller.signal.aborted || timedOut) { setLoadingKey(""); setLoading(false); }
         }
       }
     })();
@@ -64,7 +85,7 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     return run;
   }, [active, key, parse, url]);
   useEffect(() => { inFlight.current?.controller.abort(); inFlight.current = null; }, [active, key]);
-  useEffect(() => () => inFlight.current?.controller.abort(), []);
+  useEffect(() => () => { inFlight.current?.controller.abort(); inFlight.current = null; }, []);
   useEffect(() => {
     if (!active || !key) return;
     const offline = () => {
