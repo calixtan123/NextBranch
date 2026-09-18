@@ -99,6 +99,25 @@ describe("Home", () => {
     expect(screen.getByRole("button", { name: "Check trains" })).toBeDisabled();
   });
 
+  it("enables Swap only after both journey stations are selected", async () => {
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+
+    const [from, to] = screen.getAllByRole("combobox");
+    const swap = screen.getByRole("button", { name: "Swap" });
+    expect(swap).toBeDisabled();
+
+    fireEvent.focus(from!);
+    fireEvent.change(from!, { target: { value: "cam" } });
+    fireEvent.click(screen.getByRole("option", { name: "Camden Town" }));
+    expect(swap).toBeDisabled();
+
+    fireEvent.focus(to!);
+    fireEvent.change(to!, { target: { value: "london" } });
+    fireEvent.click(screen.getByRole("option", { name: "London Bridge" }));
+    expect(swap).not.toBeDisabled();
+  });
+
   it("shows results view after one explicit submit without rendering the saved screen", async () => {
     render(<Home />);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));

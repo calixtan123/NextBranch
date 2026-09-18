@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { getArrivals, getRoutes, getTimetable } from "./client";
+import { getArrivals, getRoutes, getTimetable, TflError } from "./client";
 
 const originalKey = process.env.TFL_API_KEY;
 const arrival = [{
@@ -71,6 +71,19 @@ describe("TfL arrivals boundary", () => {
     await expect(getArrivals("station-a")).resolves.toMatchObject([
       { id: "right", naptanId: "station-a" },
     ]);
+  });
+
+  it("normalizes an all-malformed non-empty arrivals payload as an upstream error", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: "bad" }] }),
+    );
+
+    await expect(getArrivals("940GZZLUCTN")).rejects.toMatchObject({
+      code: "upstream",
+      name: TflError.name,
+    });
   });
 
   it("rejects a timetable whose departure stop differs from the request", async () => {

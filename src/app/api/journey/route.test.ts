@@ -51,14 +51,16 @@ describe("journey API", () => {
     expect(body.trains).toEqual([]);
     expect(body).toHaveProperty("minutesSaved", null);
   });
-  it("maps origin failure to 503", async () => {
+  it("maps a malformed origin arrivals payload to the public 503 response", async () => {
     const get = createJourneyHandler({
       ...base,
       arrivals: async () => {
-        throw Error("down");
+        throw new TflError("upstream", "TfL arrivals payload invalid");
       },
     });
-    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(503);
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(503);
+    expect(await result.json()).toEqual({ error: "TFL_UNAVAILABLE" });
   });
   it("maps configuration failure to 500 and keeps no-store on failures", async () => {
     const get = createJourneyHandler({

@@ -55,9 +55,9 @@ describe("departures API", () => {
     });
   });
 
-  it("maps TfL configuration and upstream failures to explicit no-store responses", async () => {
+  it("maps TfL configuration and malformed-arrivals upstream failures to explicit no-store responses", async () => {
     const configuration = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("config", "missing"); } });
-    const upstream = createDeparturesHandler({ now: () => now, arrivals: async () => { throw Error("down"); } });
+    const upstream = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("upstream", "TfL arrivals payload invalid"); } });
     expect(await (await configuration(request(`?station=${station}`))).json()).toEqual({ error: "CONFIGURATION_ERROR" });
     expect((await configuration(request(`?station=${station}`))).status).toBe(500);
     expect((await upstream(request(`?station=${station}`))).status).toBe(503);
