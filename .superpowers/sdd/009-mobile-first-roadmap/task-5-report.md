@@ -172,3 +172,65 @@ events worked in both engines without synthetic events or API monkey-patching.
 - The browser tests cover the frontend contract using fixed API snapshots. The
   existing route/unit tests cover server parsing and TfL integration behavior;
   these E2E tests deliberately do not call live TfL.
+
+## Fix Round 1 — Guard separate HTTP-client resource requests
+
+Review finding confirmed: Playwright's `request` fixture is a separate HTTP
+client, so browser `context.route` interception does not protect manifest/icon
+requests made through it. An absolute cross-origin icon URL or a local URL with
+an external redirect could escape the fixture boundary.
+
+Changes:
+
+- Added `e2e/local-resource.ts` with `getLocalResource`. It resolves each resource
+  against the configured base URL and rejects any different origin before making
+  a request. Requests use `maxRedirects: 0`; every 3xx response is disposed and
+  rejected instead of following its Location header.
+- Updated both the manifest request and every icon request in `mobile.spec.ts`
+  to use that helper. All existing status, content-type, manifest metadata, PNG
+  signature, and image-dimension assertions are preserved.
+- Added two focused checks in `e2e/local-resource.spec.ts`. Controlled real HTTP
+  servers use distinct ephemeral loopback origins; the target server counts
+  received requests. The tests prove that an absolute cross-origin resource is
+  rejected with zero target requests, a valid local response is accepted, and a
+  local 302 redirect is rejected with zero target requests. This exercises the
+  actual HTTP client's redirect behavior without contacting external services.
+  Both configured projects run these checks.
+
+RED/GREEN evidence:
+
+```text
+RED: extracted the existing unguarded request behavior into the helper,
+then ran npm run test:e2e -- --grep 'manifest resource guard'.
+4 failed (two checks in each project); exit 1.
+Both checks reported: Received promise resolved instead of rejected.
+The actual response URL was the controlled target server's /icon.png,
+with status 200, proving the direct URL and redirect reached that target.
+
+GREEN: added pre-request origin validation and disabled automatic redirects.
+npm run test:e2e -- --grep 'manifest'
+6 passed (3.2s); exit 0.
+This includes both guards plus the existing full manifest/icon check in
+mobile-chromium and mobile-webkit. Guard tests assert zero target requests.
+
+npm run verify
+TypeScript and ESLint passed.
+Test Files 23 passed (23); Tests 161 passed (161).
+Duration 1.58s; exit 0.
+
+npm run build
+Next.js 16.3.5 compiled successfully, completed TypeScript, and generated
+all 4 static pages; exit 0.
+
+npm run test:e2e
+Running 36 tests using 2 workers.
+36 passed (13.0s); exit 0.
+32 existing browser scenarios plus 4 request-guard checks across both projects.
+
+git diff --check
+Exit 0.
+```
+
+Only this review finding was addressed. There were no production changes,
+dependency changes, skipped checks, retries, or newly outstanding concerns.
+The previously noted local Node/hosted CI and manual-device limits still apply.

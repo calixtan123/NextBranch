@@ -2,6 +2,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test, JOURNEY_URL, STATION_URL } from "./fixtures";
+import { getLocalResource } from "./local-resource";
 
 /** Selects a station through the same list a touch user sees. */
 async function chooseStation(page: Page, label: string, name: string) {
@@ -191,11 +192,12 @@ for (const width of [320, 390]) {
 }
 
 // Regression: broken manifest metadata or missing icons prevent browser installation discovery.
-test("serves a discoverable standalone manifest and usable app icons", async ({ page, request }) => {
+test("serves a discoverable standalone manifest and usable app icons", async ({ page, request, baseURL }) => {
+  if (!baseURL) throw new Error("Manifest checks require the configured local origin");
   await page.goto("/");
   const manifestPath = await page.locator('link[rel="manifest"]').getAttribute("href");
   expect(manifestPath).toBe("/manifest.webmanifest");
-  const response = await request.get(manifestPath!);
+  const response = await getLocalResource(request, manifestPath!, baseURL);
   expect(response.ok()).toBe(true);
   expect(response.headers()["content-type"]).toContain("application/manifest+json");
   const manifest = await response.json();
@@ -206,7 +208,7 @@ test("serves a discoverable standalone manifest and usable app icons", async ({ 
     expect.objectContaining({ purpose: "maskable", sizes: "512x512" }),
   ]));
   for (const icon of manifest.icons) {
-    const image = await request.get(icon.src);
+    const image = await getLocalResource(request, icon.src, baseURL);
     expect(image.ok()).toBe(true);
     expect(image.headers()["content-type"]).toContain("image/png");
     const bytes = await image.body();
