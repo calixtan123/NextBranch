@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Combobox from "./Combobox";
 import DepartureBoard from "./DepartureBoard";
+import InstallHint from "./InstallHint";
 import TrainCard from "./TrainCard";
 import { useDeparturesRequest } from "./useDeparturesRequest";
 import { useJourneyRequest } from "./useJourneyRequest";
@@ -14,10 +15,9 @@ import type { Journey } from "@/lib/journeys/types";
 import { readJourneys, removeJourney, restoreJourney, saveJourney, willReplaceOldest } from "@/lib/storage/journeys";
 
 const fromUrl = (value: string | null) => value ? byId.get(value) ?? null : null;
-type InstallEvent = Event & { prompt: () => Promise<void> };
 type View = "departures" | "search" | "journeys" | "results";
 
-/** Coordinates the departure board, route planner, saved journeys, and PWA prompt. */
+/** Coordinates the departure board, route planner, and saved journeys. */
 export default function Home() {
   const params = useSearchParams();
   const router = useRouter();
@@ -36,8 +36,6 @@ export default function Home() {
   const [now, setNow] = useState<number | null>(null);
   const [undo, setUndo] = useState<{ journey: Journey; index: number } | null>(null);
   const [successes, setSuccesses] = useState(0);
-  const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
-  const [installDismissed, setInstallDismissed] = useState(false);
   const explicitPending = useRef(false);
   const viewTouched = useRef(false);
   const previousUrlKey = useRef(urlKey);
@@ -84,11 +82,9 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const journeys = readJourneys();
-      let dismissed = false;
-      try { dismissed = window.sessionStorage.getItem("northern-direct:install-dismissed") === "1"; } catch { /* storage is optional */ }
       setSaved(journeys);
       if (!viewTouched.current && !urlStation && !validUrlJourney) setView(journeys.length ? "journeys" : "departures");
-      setInstallDismissed(dismissed); setHydrated(true);
+      setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [urlStation, validUrlJourney]);
@@ -124,7 +120,6 @@ export default function Home() {
     const timer = window.setTimeout(() => setSuccesses((count) => count + 1), 0);
     return () => window.clearTimeout(timer);
   }, [data, issue]);
-  useEffect(() => { const accept = (event: Event) => { event.preventDefault(); setInstallEvent(event as InstallEvent); }; window.addEventListener("beforeinstallprompt", accept); return () => window.removeEventListener("beforeinstallprompt", accept); }, []);
   const navigateView = (next: View) => { viewTouched.current = true; setView(next); };
   const showDepartures = () => navigateView("departures");
   const showJourneys = () => navigateView(saved.length ? "journeys" : "search");
@@ -151,7 +146,7 @@ export default function Home() {
   };
   const allowedDestinations = directDestinations(from);
   const validation = from && to && from.id === to.id ? "Choose two different stations." : from && to && !allowedDestinations.some((station) => station.id === to.id) ? "Choose a direct destination." : null;
-  const installEligible = hydrated && !installDismissed && (successes >= 2 || saved.length > 0) && !window.matchMedia?.("(display-mode: standalone)").matches;
+  const installEligible = hydrated && (successes >= 2 || saved.length > 0);
   const handleFromChange = (next: Station | null) => { setFrom(next); if (to && next && !directDestinations(next).some((station) => station.id === to.id)) setTo(null); };
   const saveActive = () => { if (!activeJourney) return; const oldest = willReplaceOldest(activeJourney); if (oldest && !window.confirm(`Replace your oldest saved route, ${oldest.fromName} to ${oldest.toName}?`)) return; setSaved(saveJourney(activeJourney)); };
   const departureProblem = departuresIssue === "offline" ? "Live TfL data requires an internet connection." : departuresIssue === "upstream" ? "Live TfL data is temporarily unavailable. Try again shortly." : "We couldn’t read the latest live prediction.";
@@ -167,7 +162,7 @@ export default function Home() {
     {view === "results" && data && <><p key={data.observedAt} role="status" aria-live="polite" className="visually-hidden">{trains.length} suitable {trains.length === 1 ? "train" : "trains"} observed.</p><section aria-busy={loading}><div className="result-heading"><h2>Next trains</h2><button disabled={now !== null && now < cooldownUntil} onClick={() => void fetchJourney(true)}>{now !== null && now < cooldownUntil ? "Refresh available soon" : "Refresh"}</button></div><p className={stale ? "muted" : "updated"}>Updated {now === null ? 0 : Math.max(0, Math.round((now - new Date(data.observedAt).getTime()) / 1000))} sec ago</p>{!trains.length ? <p className="empty">No suitable trains are currently predicted.</p> : trains.filter((train) => train.secondsToOrigin >= -30).map((train) => <TrainCard key={train.id} train={train} rank={ranks(train.id)} fresh={!stale} minutesSaved={data.fastestTrainId !== data.nextTrainId && data.fastestTrainId === train.id ? data.minutesSaved : null} />)}{data.withheldAmbiguousCount > 0 && <p className="muted">{data.withheldAmbiguousCount === 1 ? "1 ambiguous service was" : `${data.withheldAmbiguousCount} ambiguous services were`} withheld.</p>}</section></>}
     {undo && <div className="undo" role="status">Journey removed. <button onClick={() => { setSaved(restoreJourney(undo.journey, undo.index)); setUndo(null); }}>Undo</button></div>}
     {undo && <UndoExpiry clear={clearUndo} />}
-    {installEligible && <aside className="install-hint">Add Northern Direct to your home screen for quicker access. {installEvent && <button onClick={() => void installEvent.prompt()}>Install</button>}<button onClick={() => { setInstallDismissed(true); try { window.sessionStorage.setItem("northern-direct:install-dismissed", "1"); } catch { /* session persistence is best effort */ } }}>Dismiss</button></aside>}
+    <InstallHint eligible={installEligible} />
     <footer>Unofficial app. Powered by TfL Open Data.</footer>
   </main>;
 }

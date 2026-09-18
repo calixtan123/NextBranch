@@ -21,6 +21,8 @@ vi.mock("./useDeparturesRequest", () => ({
 }));
 
 const saved = { from: "940GZZLUCTN", to: "940GZZLUEGW", fromName: "Camden Town", toName: "Edgware" };
+const defaultUserAgent = navigator.userAgent;
+const defaultVendor = navigator.vendor;
 
 describe("Home", () => {
   afterEach(() => vi.useRealTimers());
@@ -46,6 +48,8 @@ describe("Home", () => {
     searchParams.delete("to");
     searchParams.delete("station");
     Object.defineProperty(window, "matchMedia", { configurable: true, value: undefined });
+    Object.defineProperty(navigator, "userAgent", { configurable: true, value: defaultUserAgent });
+    Object.defineProperty(navigator, "vendor", { configurable: true, value: defaultVendor });
   });
 
   // Break: an unconditional clock wakes once per second on empty and search screens.
@@ -417,6 +421,36 @@ describe("Home", () => {
     expect(screen.queryByText(/home screen/)).not.toBeInTheDocument();
   });
 
+  // Break: an install event captured before deferred initialization bypasses an existing session dismissal.
+  it("keeps session dismissal when a prompt arrives during initialization", async () => {
+    vi.useFakeTimers();
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    sessionStorage.setItem("northern-direct:install-dismissed", "1");
+    render(<Home />);
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+  });
+
+  // Break: initialization downgrades an appinstalled terminal state, allowing a later prompt to reappear.
+  it("keeps installed state when appinstalled arrives during initialization", async () => {
+    vi.useFakeTimers();
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    window.dispatchEvent(new Event("appinstalled"));
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+  });
+
   it("restores a removed journey with Undo and expires Undo after five seconds", async () => {
     const other = { from: "940GZZLUACY", to: "940GZZLUBLM", fromName: "Archway", toName: "Balham" };
     localStorage.setItem("northern-direct:journeys", JSON.stringify([saved, other]));
@@ -433,17 +467,116 @@ describe("Home", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
-  it("offers a real Install button only after beforeinstallprompt is captured", async () => {
+  it("captures beforeinstallprompt before exposing a Chromium installation route", async () => {
     localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
     render(<Home />);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
-    const prompt = vi.fn().mockResolvedValue(undefined);
     const event = new Event("beforeinstallprompt", { cancelable: true });
-    Object.defineProperty(event, "prompt", { value: prompt });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
     window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(await screen.findByRole("button", { name: "Install" })).toBeInTheDocument();
+  });
+
+  // Break: a consumed browser prompt leaves an active button, so users can try to reuse it.
+  it("shows a prompting state and consumes the browser prompt after Install is selected", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    let resolvePrompt: (() => void) | undefined;
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => new Promise<void>((resolve) => { resolvePrompt = resolve; }) });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
+
     fireEvent.click(await screen.findByRole("button", { name: "Install" }));
-    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Installing…" })).toBeDisabled();
+
+    resolvePrompt?.();
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
+  });
+
+  // Break: iOS Safari users receive no safe manual installation route when Chromium's event is unavailable.
+  it("shows Safari Share then Add to Home Screen instructions for eligible iOS Safari users", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    Object.defineProperty(navigator, "userAgent", { configurable: true, value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1" });
+    Object.defineProperty(navigator, "vendor", { configurable: true, value: "Apple Computer, Inc." });
+    render(<Home />);
+
+    expect(await screen.findByText(/In Safari, tap Share, then Add to Home Screen\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+  });
+
+  // Break: a rejected native prompt becomes an unhandled rejection or leaves unusable installation UI behind.
+  it("hides installation guidance when the browser prompt rejects", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.reject(new Error("prompt unavailable")) });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "dismissed" }) });
+    window.dispatchEvent(event);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Install" }));
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
+  });
+
+  // Break: native dismissal continues to advertise an installation action the browser has already declined.
+  it("hides installation guidance after a dismissed browser prompt", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "dismissed" }) });
+    window.dispatchEvent(event);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Install" }));
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
+  });
+
+  // Break: an installed app continues to offer setup instructions, or unsupported browsers are advertised as installable.
+  it("hides guidance after appinstalled and does not show unsupported browsers an install route", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Install" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/In Safari, tap Share/)).not.toBeInTheDocument();
+
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
+    expect(await screen.findByRole("button", { name: "Install" })).toBeInTheDocument();
+    window.dispatchEvent(new Event("appinstalled"));
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
+  });
+
+  // Break: switching into standalone display mode after startup leaves install guidance visible.
+  it("hides guidance when standalone display mode changes after startup", async () => {
+    localStorage.setItem("northern-direct:journeys", JSON.stringify([saved]));
+    let onDisplayModeChange: ((event: MediaQueryListEvent) => void) | undefined;
+    let standalone = false;
+    const mediaQuery = {
+      get matches() { return standalone; },
+      addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => { onDisplayModeChange = listener; },
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList;
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: () => mediaQuery });
+    render(<Home />);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Journeys" })).toBeInTheDocument());
+
+    const installEvent = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(installEvent, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(installEvent, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(installEvent);
+    expect(await screen.findByRole("button", { name: "Install" })).toBeInTheDocument();
+
+    standalone = true;
+    onDisplayModeChange?.({ matches: true } as MediaQueryListEvent);
+    await waitFor(() => expect(screen.queryByText(/home screen/)).not.toBeInTheDocument());
   });
 
   it("shows install guidance after two explicit successful journeys, not background requests", async () => {
@@ -454,6 +587,10 @@ describe("Home", () => {
     requestState.dataKey = `${saved.from}:${saved.to}`;
     requestState.data = result;
     render(<Home />);
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
@@ -472,11 +609,15 @@ describe("Home", () => {
     fireEvent.click(screen.getByRole("option", { name: "Bank" }));
     requestState.dataKey = "940GZZLUBNK:940GZZLUEGW";
     fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
-    await waitFor(() => expect(screen.getByText(/home screen/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Install" })).toBeInTheDocument());
   });
 
   it("makes the install hint eligible immediately after the first saved journey", async () => {
     render(<Home />);
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.defineProperty(event, "prompt", { value: () => Promise.resolve() });
+    Object.defineProperty(event, "userChoice", { value: Promise.resolve({ outcome: "accepted" }) });
+    window.dispatchEvent(event);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     const boxes = screen.getAllByRole("combobox");
     fireEvent.focus(boxes[0]!);
@@ -488,7 +629,7 @@ describe("Home", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check trains" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Save journey" })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Save journey" }));
-    await waitFor(() => expect(screen.getByText(/home screen/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Install" })).toBeInTheDocument());
   });
 
   it("names the oldest route for ninth-save confirmation and cancel is a no-op", async () => {
