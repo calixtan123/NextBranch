@@ -291,6 +291,39 @@ describe("Home", () => {
     expect(screen.getByRole("button", { name: "Save Edgware" })).toBeInTheDocument();
   });
 
+  // Break: storage hydration can cancel a pending station URL timer after the URL has already been marked as handled.
+  it("applies a station URL changed before initial station storage hydration finishes", async () => {
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [savedStation], recent: [] }));
+    const timers: Array<{ callback: () => void; cancelled: boolean }> = [];
+    const originalSetTimeout = window.setTimeout;
+    const originalClearTimeout = window.clearTimeout;
+    window.setTimeout = ((callback: () => void) => {
+      timers.push({ callback, cancelled: false });
+      return timers.length;
+    }) as typeof window.setTimeout;
+    window.clearTimeout = ((id: number) => {
+      const timer = timers[id - 1];
+      if (timer) timer.cancelled = true;
+    }) as typeof window.clearTimeout;
+
+    try {
+      const { rerender } = render(<Home />);
+      searchParams.set("station", saved.to);
+      rerender(<Home />);
+
+      for (let index = 0; index < timers.length; index += 1) {
+        const timer = timers[index]!;
+        if (!timer.cancelled) await act(async () => { timer.callback(); });
+      }
+
+      expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Edgware");
+      expect(requestedDepartures.at(-1)).toEqual({ station: saved.to, active: true });
+    } finally {
+      window.setTimeout = originalSetTimeout;
+      window.clearTimeout = originalClearTimeout;
+    }
+  });
+
   // Break: removing a station either retains it in hidden storage or leaves its Undo action available forever.
   it("removes a station completely and expires the station Undo after five seconds", async () => {
     vi.useFakeTimers();

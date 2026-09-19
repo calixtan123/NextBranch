@@ -85,28 +85,26 @@ export default function Home() {
   // component. Treat an explicit URL as the source of truth for live views.
   useEffect(() => {
     if (previousUrlKey.current === urlKey) return;
-    previousUrlKey.current = urlKey;
     const timer = window.setTimeout(() => {
       if (urlStation) {
         setBoardStation((current) => current?.id === urlStation.id ? current : urlStation);
         setActivated((current) => current === null ? current : null);
         setView((current) => current === "departures" ? current : "departures");
-        return;
-      }
-      if (validUrlJourney && initialFrom && initialTo) {
+      } else if (validUrlJourney && initialFrom && initialTo) {
         setFrom((current) => current?.id === initialFrom.id ? current : initialFrom);
         setTo((current) => current?.id === initialTo.id ? current : initialTo);
         setBoardStation((current) => current === null ? current : null);
         setActivated((current) => current?.from === initialFrom.id && current.to === initialTo.id ? current : { from: initialFrom.id, to: initialTo.id });
         setView((current) => current === "results" ? current : "results");
-        return;
+      } else {
+        setFrom((current) => current === null ? current : null);
+        setTo((current) => current === null ? current : null);
+        setBoardStation((current) => current === null ? current : null);
+        setActivated((current) => current === null ? current : null);
+        const defaultView = stationRows.length ? "departures" : saved.length ? "journeys" : "departures";
+        setView((current) => current === defaultView ? current : defaultView);
       }
-      setFrom((current) => current === null ? current : null);
-      setTo((current) => current === null ? current : null);
-      setBoardStation((current) => current === null ? current : null);
-      setActivated((current) => current === null ? current : null);
-      const defaultView = stationRows.length ? "departures" : saved.length ? "journeys" : "departures";
-      setView((current) => current === defaultView ? current : defaultView);
+      previousUrlKey.current = urlKey;
     }, 0);
     return () => window.clearTimeout(timer);
   }, [initialFrom, initialTo, saved.length, stationRows.length, urlKey, urlStation, validUrlJourney]);
