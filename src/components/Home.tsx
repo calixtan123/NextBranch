@@ -33,7 +33,8 @@ type View = "departures" | "search" | "journeys" | "results";
 type StationUndo = {
   id: number;
   station: SavedStation;
-  membership: StationMembership;
+  membership: StationMembership | null;
+  displaced?: { station: SavedStation; membership: StationMembership };
   message: string;
 };
 
@@ -68,6 +69,7 @@ export default function Home() {
   const journey = useMemo(() => from && to ? { from: from.id, to: to.id, fromName: from.name, toName: to.name } : null, [from, to]);
   const activeJourney = useMemo(() => activated && journey && activated.from === journey.from && activated.to === journey.to ? journey : null, [activated, journey]);
   const stationRows = useMemo(() => displayStations(stationCollection), [stationCollection]);
+  const activeStationSaved = Boolean(boardStation && stationCollection.saved.some((station) => station.id === boardStation.id));
   const routeRequest = useJourneyRequest(view === "results" ? activeJourney : null);
   const departureRequest = useDeparturesRequest(boardStation?.id ?? null, view === "departures" && Boolean(boardStation));
   const { data, loading, issue, fetchJourney, cooldownUntil } = routeRequest;
@@ -172,9 +174,9 @@ export default function Home() {
     stationCollectionRef.current = next;
     setStationCollection(next);
   }, []);
-  const queueStationUndo = useCallback((station: SavedStation, membership: StationMembership, message: string) => {
+  const queueStationUndo = useCallback((station: SavedStation, membership: StationMembership | null, message: string, displaced?: StationUndo["displaced"]) => {
     stationUndoSequence.current += 1;
-    setStationUndo({ id: stationUndoSequence.current, station, membership, message });
+    setStationUndo({ id: stationUndoSequence.current, station, membership, displaced, message });
   }, []);
   const selectBoardStation = useCallback((station: Station | null) => {
     setBoardStation(station);
@@ -186,6 +188,35 @@ export default function Home() {
     updateStationCollection((current) => saveStation(current, station.id, Date.now()));
     queueStationUndo(station, "recent", "Station saved.");
   }, [queueStationUndo, updateStationCollection]);
+  const saveActiveStation = useCallback(() => {
+    if (!boardStation) return;
+    const savedAt = Date.now();
+    let previous: SavedStation | null = null;
+    let displaced: StationUndo["displaced"];
+    let changed = false;
+    updateStationCollection((current) => {
+      if (current.saved.some((station) => station.id === boardStation.id)) return current;
+      previous = current.recent.find((station) => station.id === boardStation.id) ?? null;
+      changed = true;
+      const next = saveStation(current, boardStation.id, savedAt);
+      const nextIds = new Set(displayStations(next).map((station) => station.id));
+      const removed = displayStations(current).find((station) => !nextIds.has(station.id));
+      if (removed) {
+        displaced = {
+          station: removed,
+          membership: current.saved.some((station) => station.id === removed.id) ? "saved" : "recent",
+        };
+      }
+      return next;
+    });
+    if (!changed) return;
+    queueStationUndo(
+      previous ?? { id: boardStation.id, name: boardStation.name, lastUsedAt: savedAt },
+      previous ? "recent" : null,
+      "Station saved.",
+      displaced,
+    );
+  }, [boardStation, queueStationUndo, updateStationCollection]);
   const unsaveStationRow = (station: SavedStation) => {
     updateStationCollection((current) => unsaveStation(current, station.id));
     queueStationUndo(station, "saved", "Station unsaved.");
@@ -196,7 +227,14 @@ export default function Home() {
   };
   const undoStationAction = () => {
     if (!stationUndo) return;
-    updateStationCollection((current) => restoreStation(current, stationUndo.station, stationUndo.membership));
+    updateStationCollection((current) => {
+      const restored = stationUndo.membership
+        ? restoreStation(current, stationUndo.station, stationUndo.membership)
+        : removeStation(current, stationUndo.station.id);
+      return stationUndo.displaced
+        ? restoreStation(restored, stationUndo.displaced.station, stationUndo.displaced.membership)
+        : restored;
+    });
     clearStationUndo();
   };
   const trains = useMemo(() => data?.trains.map((train) => ({ ...train, secondsToOrigin: now === null ? train.secondsToOrigin : secondsToOrigin(train.expectedArrival, new Date(now)) })) ?? [], [data, now]);
@@ -229,6 +267,7 @@ export default function Home() {
         <h2 id="departures-title">Departures</h2>
         <div className="result-actions">
           {boardStation && <ShareControl selection={{ type: "station", stationId: boardStation.id }} label={`Share ${boardStation.name} departures`} />}
+          {boardStation && !activeStationSaved && <button className="text-button" type="button" onClick={saveActiveStation}>Save station</button>}
           <button disabled={now !== null && now < departuresCooldown} onClick={() => void fetchDepartures(true)}>{now !== null && now < departuresCooldown ? "Refresh available soon" : "Refresh"}</button>
         </div>
       </div>

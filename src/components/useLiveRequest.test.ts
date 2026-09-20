@@ -7,6 +7,9 @@ const url = () => "/api/departures?station=a";
 const parse = (value: unknown) => value as { version: number };
 const options = { key: "a", active: true, url, parse };
 const response = (version: number) => new Response(JSON.stringify({ version }), { status: 200 });
+const delay = (milliseconds: number) => new Promise<void>((resolve) => {
+  window.setTimeout(resolve, milliseconds);
+});
 
 describe("live request deadlines", () => {
   beforeEach(() => {
@@ -17,8 +20,31 @@ describe("live request deadlines", () => {
   });
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+  // Break: the browser deadline expires during the journey route's second legal server phase.
+  it("accepts a valid response after delayed route lookup and failed optional destination work", async () => {
+    vi.mocked(fetch).mockImplementationOnce(async () => {
+      await delay(7_999); // Route lookup may consume almost one server deadline.
+      await Promise.allSettled([
+        delay(7_999).then(() => { throw new Error("destination unavailable"); }),
+        delay(7_999).then(() => { throw new Error("timetable unavailable"); }),
+      ]);
+      return response(1);
+    });
+    const { result } = renderHook(() => useLiveRequest(options));
+
+    await act(async () => { void result.current.fetchLive(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_997); });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.issue).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.issue).toBeNull();
+    expect(result.current.data).toEqual({ version: 1 });
+  });
+
   // Break: a timed-out refresh leaves loading/in-flight set or loses keyed stale data.
-  it("ends a hung refresh at twelve seconds, retains stale data, and accepts a retry", async () => {
+  it("ends a hung refresh at twenty seconds, retains stale data, and accepts a retry", async () => {
     let resolveLate!: (value: Response) => void;
     vi.mocked(fetch)
       .mockResolvedValueOnce(response(1))
@@ -29,7 +55,7 @@ describe("live request deadlines", () => {
     await act(async () => { void result.current.fetchLive(true); void result.current.fetchLive(); });
     expect(fetch).toHaveBeenCalledTimes(2);
     const signal = vi.mocked(fetch).mock.calls[1]![1]!.signal!;
-    await act(async () => { await vi.advanceTimersByTimeAsync(11_999); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(19_999); });
     expect(result.current.loading).toBe(true);
     expect(result.current.issue).toBeNull();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
@@ -49,7 +75,7 @@ describe("live request deadlines", () => {
     vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => new Promise(() => {}) } as Response);
     const { result } = renderHook(() => useLiveRequest(options));
     await act(async () => { void result.current.fetchLive(); });
-    await act(async () => { await vi.advanceTimersByTimeAsync(12_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
     expect(result.current.loading).toBe(false);
     expect(result.current.issue).toBe("upstream");
     expect(result.current.data).toBeNull();
@@ -71,7 +97,7 @@ describe("live request deadlines", () => {
     });
     expect(signal.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(event === "inactive" || event === "unmount" ? 0 : timersBefore);
-    await act(async () => { await vi.advanceTimersByTimeAsync(12_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
     if (event !== "unmount") expect(result.current.issue).toBe(event === "offline" ? "offline" : null);
   });
 
@@ -83,7 +109,7 @@ describe("live request deadlines", () => {
     await act(async () => { await result.current.fetchLive(); });
     const signal = vi.mocked(fetch).mock.calls[0]![1]!.signal!;
     expect(vi.getTimerCount()).toBe(timersBefore);
-    await act(async () => { await vi.advanceTimersByTimeAsync(12_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
     expect(signal.aborted).toBe(false);
     expect(result.current.loading).toBe(false);
     expect(result.current.issue).toBe(status === 200 ? null : status === 503 ? "upstream" : "invalid");
@@ -97,7 +123,7 @@ describe("live request deadlines", () => {
     const { result } = renderHook(() => useLiveRequest(options));
     await act(async () => { void result.current.fetchLive(); });
     await act(async () => {
-      vi.advanceTimersByTime(12_000);
+      vi.advanceTimersByTime(20_000);
       window.dispatchEvent(new Event("offline"));
     });
     expect(result.current.issue).toBe("offline");

@@ -4,8 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type RequestIssue = "offline" | "upstream" | "invalid" | null;
-// The server gets eight seconds; allow time for its normalized failure response.
-const LIVE_REQUEST_TIMEOUT_MS = 12_000;
+// Journey requests can use two sequential eight-second server stages; leave response overhead.
+const LIVE_REQUEST_TIMEOUT_MS = 20_000;
 type InFlight = { key: string; controller: AbortController; promise: Promise<void> };
 type Options<T> = {
   key: string;

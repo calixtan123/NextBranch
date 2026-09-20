@@ -207,6 +207,83 @@ describe("Home", () => {
     expect(screen.getByRole("button", { name: "Share Camden Town to Edgware journey" })).toBeInTheDocument();
   });
 
+  // Break: a clean shared board cannot be saved without reselecting it, or persistence refetches/recreates removed history.
+  it("saves a clean shared station board, survives remount, and stays removed", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-19T12:00:00.000Z"));
+    searchParams.set("station", savedStation.id);
+    const firstMount = render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(fetchDepartures).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save station" }));
+    expect(fetchDepartures).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}")).toEqual({
+      saved: [{ ...savedStation, lastUsedAt: stationSelectionAt }],
+      recent: [],
+    });
+    firstMount.unmount();
+
+    fetchDepartures.mockClear();
+    const secondMount = render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.queryByRole("button", { name: "Save station" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unsave Camden Town" })).toBeInTheDocument();
+    expect(fetchDepartures).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Camden Town" }));
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}")).toEqual({ saved: [], recent: [] });
+    secondMount.unmount();
+
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.getByRole("button", { name: "Save station" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unsave Camden Town" })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}")).toEqual({ saved: [], recent: [] });
+  });
+
+  // Break: Undo after saving a never-stored shared station incorrectly demotes it into Recent.
+  it("undoes a clean shared station save back to no stored membership", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-19T12:00:00.000Z"));
+    searchParams.set("station", savedStation.id);
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    fetchDepartures.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save station" }));
+    fireEvent.click(within(screen.getByRole("status", { name: "Station actions" })).getByRole("button", { name: "Undo" }));
+
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}")).toEqual({ saved: [], recent: [] });
+    expect(screen.getByRole("button", { name: "Save station" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Saved and recent stations" })).not.toBeInTheDocument();
+    expect(fetchDepartures).not.toHaveBeenCalled();
+  });
+
+  // Break: saving a shared station at capacity permanently loses the row displaced by the save after Undo.
+  it("restores the displaced station when undoing an active-board save at capacity", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-19T12:00:00.000Z"));
+    const initial = {
+      saved: [],
+      recent: [
+        recentStation,
+        { id: "940GZZLUACY", name: "Archway", lastUsedAt: 90 },
+        { id: "940GZZLUBLM", name: "Balham", lastUsedAt: 80 },
+        { id: "940GZZLUBNK", name: "Bank", lastUsedAt: 70 },
+        { id: "940GZZLUEGW", name: "Edgware", lastUsedAt: 60 },
+      ],
+    };
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify(initial));
+    searchParams.set("station", savedStation.id);
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save station" }));
+    fireEvent.click(within(screen.getByRole("status", { name: "Station actions" })).getByRole("button", { name: "Undo" }));
+
+    expect(JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY) ?? "{}")).toEqual(initial);
+  });
+
   // Break: saving a recent row looks successful but disappears after the next client mount.
   it("saves a recent station and preserves its membership after remount", async () => {
     localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [], recent: [savedStation] }));

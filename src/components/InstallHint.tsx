@@ -1,5 +1,7 @@
 "use client";
 
+/** Presents and owns the browser-specific PWA installation lifecycle. */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const DISMISSAL_KEY = "northern-direct:install-dismissed";

@@ -1,3 +1,5 @@
+/** Verifies canonical, bounded, and failure-tolerant departure-station storage. */
+
 import { describe, expect, it } from "vitest";
 import {
   STATIONS_STORAGE_KEY,
