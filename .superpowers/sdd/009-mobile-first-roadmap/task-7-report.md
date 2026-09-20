@@ -190,3 +190,45 @@ creates before calling Back; the final complete two-browser run passed.
 None remaining. The final full verification, production build, and both mobile
 browser projects pass. Playwright emitted the pre-existing harmless
 `NO_COLOR`/`FORCE_COLOR` environment warning; it did not affect results.
+
+## Fix Round 1
+
+### What changed
+
+Added the repository-required concise JSDoc module comments to the two new
+Task 7 modules only:
+
+- `src/components/ShareControl.tsx` now documents that it owns canonical
+  station/journey sharing through browser-native APIs. The `"use client"`
+  directive remains the file's first statement, as required by Next.js.
+- `src/components/ShareControl.test.tsx` now documents that it verifies
+  canonical sharing, native browser handling, and clipboard fallback feedback.
+
+### Covering tests and checks
+
+```text
+npm test -- src/components/ShareControl.test.tsx
+
+Test Files  1 passed (1)
+Tests  7 passed (7)
+Exit 0
+```
+
+```text
+npm run typecheck
+
+> tsc --noEmit
+Exit 0
+```
+
+```text
+npm run lint
+
+> eslint .
+Exit 0
+```
+
+### Scope check
+
+No sharing behavior, styles, browser tests, configuration, or `.gitignore`
+content changed in this fix round.

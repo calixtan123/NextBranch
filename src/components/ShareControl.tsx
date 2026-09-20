@@ -1,5 +1,7 @@
 "use client";
 
+/** Provides canonical station and journey sharing through browser-native APIs. */
+
 import { useState } from "react";
 
 /** Identifies the currently active canonical view that may be shared. */

@@ -1,3 +1,5 @@
+/** Verifies canonical URL sharing, native browser behavior, and clipboard fallback feedback. */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ShareControl, { buildShareUrl } from "./ShareControl";
