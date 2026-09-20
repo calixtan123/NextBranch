@@ -29,7 +29,11 @@ const defaultUserAgent = navigator.userAgent;
 const defaultVendor = navigator.vendor;
 
 describe("Home", () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "share");
+    Reflect.deleteProperty(navigator, "clipboard");
+  });
   beforeEach(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     const makeStorage = () => {
@@ -160,6 +164,47 @@ describe("Home", () => {
     expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("");
     expect(fetchDepartures).not.toHaveBeenCalled();
     expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+  });
+
+  // Break: a selected board lacks a share action, or a total sharing failure hides its useful departures.
+  it("shares an active station without discarding visible departure results when sharing fails", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    searchParams.set("station", saved.from);
+    departureState.data = {
+      station: { id: saved.from, name: saved.fromName }, observedAt: "2026-09-16T12:00:00.000Z",
+      newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToStation: 120, towards: null }] }],
+    };
+    Object.defineProperty(navigator, "share", { configurable: true, value: vi.fn().mockRejectedValue(new Error("Share unavailable")) });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error("Clipboard unavailable")) } });
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    expect(screen.getByText("Edgware")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Share Camden Town departures" }));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to share link.");
+    expect(screen.getByText("Edgware")).toBeInTheDocument();
+  });
+
+  // Break: chooser and saved-route screens offer links for inactive selections, or active journey results lack sharing.
+  it("offers sharing only for an active station or activated journey", () => {
+    const stationMount = render(<Home />);
+    expect(screen.queryByRole("button", { name: /Share/ })).not.toBeInTheDocument();
+    stationMount.unmount();
+
+    searchParams.set("station", saved.from);
+    const activeStationMount = render(<Home />);
+    expect(screen.getByRole("button", { name: "Share Camden Town departures" })).toBeInTheDocument();
+    activeStationMount.unmount();
+
+    searchParams.delete("station");
+    searchParams.set("from", saved.from);
+    searchParams.set("to", saved.to);
+    render(<Home />);
+    expect(screen.getByRole("button", { name: "Share Camden Town to Edgware journey" })).toBeInTheDocument();
   });
 
   // Break: saving a recent row looks successful but disappears after the next client mount.

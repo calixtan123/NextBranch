@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Combobox from "./Combobox";
 import DepartureBoard from "./DepartureBoard";
 import InstallHint from "./InstallHint";
+import ShareControl from "./ShareControl";
 import TrainCard from "./TrainCard";
 import { useDeparturesRequest } from "./useDeparturesRequest";
 import { useJourneyRequest } from "./useJourneyRequest";
@@ -226,7 +227,10 @@ export default function Home() {
     {view === "departures" && <section className="panel" aria-labelledby="departures-title">
       <div className="result-heading">
         <h2 id="departures-title">Departures</h2>
-        <button disabled={now !== null && now < departuresCooldown} onClick={() => void fetchDepartures(true)}>{now !== null && now < departuresCooldown ? "Refresh available soon" : "Refresh"}</button>
+        <div className="result-actions">
+          {boardStation && <ShareControl selection={{ type: "station", stationId: boardStation.id }} label={`Share ${boardStation.name} departures`} />}
+          <button disabled={now !== null && now < departuresCooldown} onClick={() => void fetchDepartures(true)}>{now !== null && now < departuresCooldown ? "Refresh available soon" : "Refresh"}</button>
+        </div>
       </div>
       {stationRows.length > 0 && <section className="station-history" aria-labelledby="station-history-title">
         <h3 id="station-history-title">Saved and recent stations</h3>
@@ -253,7 +257,7 @@ export default function Home() {
     </section>}
     {view === "journeys" && <section className="saved-panel" aria-labelledby="saved-title"><h2 id="saved-title">Journeys</h2>{saved.length ? saved.map((item) => <div className="saved-row" key={`${item.from}-${item.to}`}><button onClick={() => activate(item)}>{item.fromName} → {item.toName}</button><button aria-label={`Remove ${item.fromName} to ${item.toName}`} onClick={() => { const index = saved.findIndex((entry) => entry.from === item.from && entry.to === item.to); setSaved(removeJourney(item)); setJourneyUndo({ journey: item, index }); }}>Remove</button></div>) : <p className="muted">No saved journeys yet.</p>}<button className="primary" onClick={() => navigateView("search")}>New journey</button></section>}
     {view === "search" && <section className="panel" aria-labelledby="search-title"><h2 id="search-title">Plan a journey</h2><form onSubmit={(event) => { event.preventDefault(); submit(); }}><Combobox label="From" value={from} onChange={handleFromChange} /><Combobox label="To" value={to} onChange={setTo} options={directDestinations(from)} disabled={!from} />{validation && <p className="validation" role="alert">{validation}</p>}<div className="form-actions"><button type="button" disabled={!from || !to} onClick={() => { const origin = from; setFrom(to); setTo(origin); }}>Swap</button><button className="primary" type="submit" disabled={!journey || Boolean(validation)}>Check trains</button></div></form></section>}
-    {view === "results" && activeJourney && <section className="journey-bar" aria-label="Selected journey"><span>{activeJourney.fromName} → {activeJourney.toName}</span><button onClick={saveActive}>{saved.some((item) => item.from === activeJourney.from && item.to === activeJourney.to) ? "Saved" : "Save journey"}</button></section>}
+    {view === "results" && activeJourney && <section className="journey-bar" aria-label="Selected journey"><span>{activeJourney.fromName} → {activeJourney.toName}</span><div className="journey-actions"><ShareControl selection={{ type: "journey", from: activeJourney.from, to: activeJourney.to }} label={`Share ${activeJourney.fromName} to ${activeJourney.toName} journey`} /><button onClick={saveActive}>{saved.some((item) => item.from === activeJourney.from && item.to === activeJourney.to) ? "Saved" : "Save journey"}</button></div></section>}
     {view === "results" && loading && !data && <p role="status" className="status">Checking live Northern line trains…</p>}
     {view === "results" && issue && <div role="alert" className="warning">{issue === "offline" ? "Live TfL data requires an internet connection." : issue === "upstream" ? "Live TfL data is temporarily unavailable. Try again shortly." : "We couldn’t read the latest live prediction."}{data && <><br /><strong>Last prediction — information may be stale.</strong></>} <button onClick={() => void fetchJourney()}>Retry</button></div>}
     {view === "results" && data && <><p key={data.observedAt} role="status" aria-live="polite" className="visually-hidden">{trains.length} suitable {trains.length === 1 ? "train" : "trains"} observed.</p><section aria-busy={loading}><div className="result-heading"><h2>Next trains</h2><button disabled={now !== null && now < cooldownUntil} onClick={() => void fetchJourney(true)}>{now !== null && now < cooldownUntil ? "Refresh available soon" : "Refresh"}</button></div><p className={stale ? "muted" : "updated"}>Updated {now === null ? 0 : Math.max(0, Math.round((now - new Date(data.observedAt).getTime()) / 1000))} sec ago</p>{!trains.length ? <p className="empty">No suitable trains are currently predicted.</p> : trains.filter((train) => train.secondsToOrigin >= -30).map((train) => <TrainCard key={train.id} train={train} rank={ranks(train.id)} fresh={!stale} minutesSaved={data.fastestTrainId !== data.nextTrainId && data.fastestTrainId === train.id ? data.minutesSaved : null} />)}{data.withheldAmbiguousCount > 0 && <p className="muted">{data.withheldAmbiguousCount === 1 ? "1 ambiguous service was" : `${data.withheldAmbiguousCount} ambiguous services were`} withheld.</p>}</section></>}

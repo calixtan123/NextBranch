@@ -111,6 +111,7 @@ test("back and forward restore station and journey deep links", async ({ page })
   await chooseStation(page, "From", "Camden Town");
   await chooseStation(page, "To", "Edgware");
   await page.getByRole("button", { name: "Check trains" }).click();
+  await expect(page).toHaveURL(JOURNEY_URL);
   await expect(page.getByRole("heading", { name: "Next trains" })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(STATION_URL);
@@ -121,6 +122,43 @@ test("back and forward restore station and journey deep links", async ({ page })
   await expect(page).toHaveURL(JOURNEY_URL);
   await expect(page.getByRole("heading", { name: "Next trains" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Selected journey" })).toContainText("Camden Town → Edgware");
+});
+
+// Regression: sharing includes incidental browser state, or a recipient cannot open a generated link without local history.
+test("shares canonical links that reopen in clean state", async ({ page, baseURL }) => {
+  if (!baseURL) throw new Error("Share checks require the configured local origin");
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async ({ url }: ShareData) => { document.documentElement.dataset.sharedUrl = url ?? ""; },
+    });
+  });
+
+  await page.goto(STATION_URL);
+  await expect(page.getByRole("list", { name: "Platform 1 · Northbound departures" })).toBeVisible();
+  await page.getByRole("button", { name: "Share Camden Town departures" }).click();
+  await expect.poll(() => page.locator("html").getAttribute("data-shared-url")).toBe(new URL(STATION_URL, baseURL).toString());
+  const stationUrl = await page.locator("html").getAttribute("data-shared-url");
+  if (!stationUrl) throw new Error("Native sharing did not receive the station URL");
+
+  await page.evaluate(() => localStorage.clear());
+  const stationPath = new URL(stationUrl);
+  await page.goto(`${stationPath.pathname}${stationPath.search}`);
+  await expect(page.getByRole("combobox", { name: "Station" })).toHaveValue("Camden Town");
+  await expect(page.getByRole("list", { name: "Platform 1 · Northbound departures" })).toBeVisible();
+
+  await page.goto(JOURNEY_URL);
+  await expect(page.getByRole("region", { name: "Selected journey" })).toContainText("Camden Town → Edgware");
+  await page.getByRole("button", { name: "Share Camden Town to Edgware journey" }).click();
+  await expect.poll(() => page.locator("html").getAttribute("data-shared-url")).toBe(new URL(JOURNEY_URL, baseURL).toString());
+  const journeyUrl = await page.locator("html").getAttribute("data-shared-url");
+  if (!journeyUrl) throw new Error("Native sharing did not receive the journey URL");
+
+  await page.evaluate(() => localStorage.clear());
+  const journeyPath = new URL(journeyUrl);
+  await page.goto(`${journeyPath.pathname}${journeyPath.search}`);
+  await expect(page.getByRole("region", { name: "Selected journey" })).toContainText("Camden Town → Edgware");
+  await expect(page.getByRole("heading", { name: "Next trains" })).toBeVisible();
 });
 
 for (const view of ["departures", "journey"] as const) {
