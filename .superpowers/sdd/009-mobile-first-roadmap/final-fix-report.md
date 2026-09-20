@@ -146,3 +146,21 @@ Result: exit 0; no whitespace errors.
 
 - The only outstanding verification is the real-browser suite, which was prevented from starting by sandbox port-binding policy. Rerun `npm run test:e2e` in an environment permitted to listen on `127.0.0.1:3100`.
 - Because the server never started, the existing mobile Chromium/WebKit accessibility and 320px/390px overflow checks did not execute in this wave. Unit/component coverage and the successful production build do not replace that browser evidence.
+
+## Controller browser verification
+
+The controller reran the unchanged committed tree with approved local-server
+access:
+
+```text
+npm run test:e2e
+
+Running 40 tests using 2 workers
+40 passed (16.7s)
+Exit 0
+```
+
+This completed the mobile Chromium and mobile WebKit gates, including the
+320px/390px overflow and automated accessibility checks. The runner emitted the
+pre-existing `NO_COLOR`/`FORCE_COLOR` warning; no test or application assertion
+failed.
