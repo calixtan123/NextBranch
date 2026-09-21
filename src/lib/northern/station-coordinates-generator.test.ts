@@ -33,6 +33,8 @@ describe("Northern coordinate generator", () => {
   // Break: a malformed input produces an unchecked runtime coordinate artifact.
   it.each([
     ["station-points-missing.csv", "Missing coordinate"],
+    ["station-points-blank-latitude.csv", "Missing coordinate value"],
+    ["station-points-blank-longitude.csv", "Missing coordinate value"],
     ["station-points-duplicate.csv", "Duplicate coordinate"],
     ["station-points-non-finite.csv", "Invalid coordinate"],
     ["station-points-out-of-range.csv", "Invalid coordinate"],

@@ -13,6 +13,21 @@ type Proposal = Readonly<{ station: Station; distanceMetres: number; reason: "ac
 const POOR_ACCURACY_METRES = 250;
 const CLOSE_STATION_DIFFERENCE_METRES = 150;
 
+/** Identifies browser-supplied location evidence that is unsafe to rank. */
+class InvalidBrowserLocationError extends Error {}
+
+/** Rejects malformed browser coordinates and accuracy before station ranking. */
+function validateBrowserLocation(coords: GeolocationCoordinates): void {
+  const validCoordinates = Number.isFinite(coords.latitude)
+    && coords.latitude >= -90
+    && coords.latitude <= 90
+    && Number.isFinite(coords.longitude)
+    && coords.longitude >= -180
+    && coords.longitude <= 180;
+  const validAccuracy = Number.isFinite(coords.accuracy) && coords.accuracy >= 0;
+  if (!validCoordinates || !validAccuracy) throw new InvalidBrowserLocationError();
+}
+
 const errorMessage = (error: GeolocationPositionError): string => {
   if (error.code === 1) return "Location permission was denied.";
   if (error.code === 2) return "Your location is currently unavailable.";
@@ -47,21 +62,28 @@ export default function NearestStationControl({ onStation }: Props) {
     setProposal(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const ranked = findNearestStations(position.coords, northernStationCoordinates);
-        const station = byId.get(ranked.nearest.id);
-        if (!station) {
-          setMessage("Nearest station is unavailable. Choose a station manually.");
-          return;
-        }
-        const closeResult = ranked.secondNearestDistanceMetres !== null
-          && ranked.secondNearestDistanceMetres - ranked.nearestDistanceMetres <= CLOSE_STATION_DIFFERENCE_METRES;
-        if (position.coords.accuracy > POOR_ACCURACY_METRES || closeResult) {
-          setProposal({ station, distanceMetres: ranked.nearestDistanceMetres, reason: position.coords.accuracy > POOR_ACCURACY_METRES ? "accuracy" : "close" });
+        try {
+          validateBrowserLocation(position.coords);
+          const ranked = findNearestStations(position.coords, northernStationCoordinates);
+          const station = byId.get(ranked.nearest.id);
+          if (!station) {
+            setMessage("Nearest station is unavailable. Choose a station manually.");
+            return;
+          }
+          const closeResult = ranked.secondNearestDistanceMetres !== null
+            && ranked.secondNearestDistanceMetres - ranked.nearestDistanceMetres <= CLOSE_STATION_DIFFERENCE_METRES;
+          if (position.coords.accuracy > POOR_ACCURACY_METRES || closeResult) {
+            setProposal({ station, distanceMetres: ranked.nearestDistanceMetres, reason: position.coords.accuracy > POOR_ACCURACY_METRES ? "accuracy" : "close" });
+            setMessage(null);
+            return;
+          }
           setMessage(null);
-          return;
+          onStation(station);
+        } catch (error) {
+          if (!(error instanceof InvalidBrowserLocationError)) throw error;
+          setProposal(null);
+          setMessage("We couldn’t use that location. Choose a station manually.");
         }
-        setMessage(null);
-        onStation(station);
       },
       (error) => {
         setProposal(null);

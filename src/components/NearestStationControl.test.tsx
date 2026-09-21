@@ -58,6 +58,23 @@ describe("NearestStationControl", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Choose a station manually.");
   });
 
+  // Break: malformed browser location evidence silently selects a real station.
+  it.each([
+    ["non-finite latitude", Number.NaN, -0.1427, 20],
+    ["out-of-range longitude", 51.5393, 181, 20],
+    ["non-finite accuracy", 51.5393, -0.1427, Number.NaN],
+    ["negative accuracy", 51.5393, -0.1427, -1],
+  ])("rejects %s and keeps manual selection available", (_case, latitude, longitude, accuracy) => {
+    getCurrentPosition.mockImplementation((success) => success(position(latitude, longitude, accuracy)));
+    setGeolocation({ getCurrentPosition } as unknown as Geolocation);
+    const onStation = renderControl();
+
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t use that location. Choose a station manually.");
+    expect(onStation).not.toHaveBeenCalled();
+  });
+
   // Break: low-accuracy browser readings silently choose a potentially wrong station.
   it("requires confirmation when browser accuracy is worse than 250 metres", () => {
     getCurrentPosition.mockImplementation((success) => success(position(51.5393, -0.1427, 251)));

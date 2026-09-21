@@ -47,8 +47,8 @@ function parseCsv(text) {
     return {
       id: values[stationIndex] ?? "",
       area: values[areaIndex] ?? "",
-      latitude: Number(values[latitudeIndex]),
-      longitude: Number(values[longitudeIndex]),
+      latitude: values[latitudeIndex]?.trim() ?? "",
+      longitude: values[longitudeIndex]?.trim() ?? "",
     };
   });
 }
@@ -69,8 +69,12 @@ const grouped = new Map(ids.map((id) => [id, []]));
 for (const point of parseCsv(readFileSync(inputPath, "utf8"))) {
   const canonicalId = canonicalIdBySourceId.get(point.id);
   if (!canonicalId) continue;
-  validateCoordinate(canonicalId, point.latitude, point.longitude);
-  grouped.get(canonicalId)?.push(point);
+  const missingCoordinate = !point.latitude ? "latitude" : !point.longitude ? "longitude" : null;
+  if (missingCoordinate) throw new Error(`Missing coordinate value (${missingCoordinate}) for ${canonicalId}`);
+  const latitude = Number(point.latitude);
+  const longitude = Number(point.longitude);
+  validateCoordinate(canonicalId, latitude, longitude);
+  grouped.get(canonicalId)?.push({ ...point, latitude, longitude });
 }
 
 const coordinates = ids.map((id) => {
