@@ -8,6 +8,15 @@ Recorded 16 September 2026 in `/Users/calixtan/personal-projects/tfl-tracker`.
 - `npm --version` → `11.11.0` (exit 0)
 - `TFL_API_KEY` is set → `no` (value was not printed)
 
+## Current verification guidance
+
+Use Node 24.x (`nvm install && nvm use`) before a clean install. Before a
+release, run `npm run verify:release`; it runs the normal type, lint, and test
+checks and then fails only if the reviewed topology capture is more than 30
+days old. `npm run check:topology-age` is non-mutating and starts warning at 23
+days, so the warning is a prompt to refresh and human-review the generated
+route changes rather than an automatic publication step.
+
 ## Automated commands
 
 | Command | Result |

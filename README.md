@@ -22,8 +22,9 @@ are read only on the server.
 
 ## Prerequisites and local run
 
-Use Node 20.9 or newer and npm. The repository records the intended version in
-`.nvmrc`.
+Use Node 24.x and npm. The repository records this version in `.nvmrc`, the
+package engine declaration, and continuous integration (the automated checks
+run on every push and pull request).
 
 ```bash
 nvm install
@@ -126,6 +127,25 @@ npm run verify
 npm run build
 npm start
 ```
+
+## Reviewed topology maintenance
+
+The bundled route fallback is a reviewed Northern-line snapshot, not a live
+claim. Its structured source is `data/northern-topology-capture.json`. After a
+sanitized TfL capture has been independently reviewed, run:
+
+```bash
+npm run generate:topology
+npm run check:topology-age
+npm run verify:release
+```
+
+The generator schema-validates the capture, writes both the server fallback
+and browser direct-destination map in one command, stamps both with the same
+capture time, and prints a short change summary. It does not commit, publish,
+or deploy anything: inspect the generated diff before committing. The routine
+age check begins warning at 23 days. `verify:release` fails only after 30 full
+days, leaving a one-week maintenance window to refresh and review the data.
 
 The optional discovery tool requires a key for live sampling and never prints
 it. It can instead inspect a deliberately supplied fixture path:

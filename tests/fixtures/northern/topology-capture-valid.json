@@ -1,0 +1,29 @@
+{
+  "capturedAt": "2026-09-15T21:53:00.000Z",
+  "topology": [
+    {
+      "lineId": "northern",
+      "direction": "inbound",
+      "orderedLineRoutes": [
+        {
+          "name": "Camden Town to Morden",
+          "naptanIds": ["940GZZLUCTN", "940GZZLUMDN"],
+          "serviceType": "Regular"
+        }
+      ],
+      "stopPointSequences": []
+    },
+    {
+      "lineId": "northern",
+      "direction": "outbound",
+      "orderedLineRoutes": [
+        {
+          "name": "Morden to Camden Town",
+          "naptanIds": ["940GZZLUMDN", "940GZZLUCTN"],
+          "serviceType": "Regular"
+        }
+      ],
+      "stopPointSequences": []
+    }
+  ]
+}
