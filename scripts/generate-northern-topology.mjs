@@ -63,10 +63,12 @@ function replaceTogether(outputs) {
     throw new Error("Northern topology artifacts require two distinct output paths");
   }
   for (const output of resolvedOutputs) {
+    output.hasOriginal = false;
     try {
       if (!lstatSync(output.resolved).isFile()) {
         throw new Error(`Northern topology output is not a regular file: ${output.path}`);
       }
+      output.hasOriginal = true;
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
     }
@@ -74,17 +76,66 @@ function replaceTogether(outputs) {
 
   const staged = [];
   try {
-    for (const output of resolvedOutputs) staged.push(stageReplacement(output.resolved, output.contents));
-    for (const output of staged) renameSync(output.temporary, output.resolved);
+    for (const output of resolvedOutputs) {
+      staged.push({
+        ...output,
+        ...stageReplacement(output.resolved, output.contents),
+        backedUp: false,
+        backup: null,
+        replaced: false,
+      });
+    }
+    for (const output of staged) {
+      if (!output.hasOriginal) continue;
+      output.backup = output.temporary.replace(/\.tmp$/, ".backup");
+      renameSync(output.resolved, output.backup);
+      output.backedUp = true;
+    }
+    for (const output of staged) {
+      renameSync(output.temporary, output.resolved);
+      output.replaced = true;
+    }
   } catch (error) {
+    const rollbackErrors = [];
+    for (const output of [...staged].reverse()) {
+      if (!output.replaced) continue;
+      try {
+        unlinkSync(output.resolved);
+      } catch (rollbackError) {
+        if (rollbackError?.code !== "ENOENT") rollbackErrors.push(rollbackError);
+      }
+    }
+    for (const output of staged) {
+      if (!output.backedUp) continue;
+      try {
+        renameSync(output.backup, output.resolved);
+        output.backedUp = false;
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+    }
     for (const output of staged) {
       try {
         unlinkSync(output.temporary);
-      } catch (cleanupError) {
-        if (cleanupError?.code !== "ENOENT") throw cleanupError;
+      } catch (rollbackError) {
+        if (rollbackError?.code !== "ENOENT") rollbackErrors.push(rollbackError);
       }
     }
+    if (rollbackErrors.length > 0) {
+      const details = rollbackErrors.map((rollbackError) => rollbackError instanceof Error
+        ? rollbackError.message
+        : "unknown rollback error").join("; ");
+      throw new AggregateError(
+        [error, ...rollbackErrors],
+        `Northern topology replacement failed and rollback was incomplete: ${details}`,
+        { cause: error },
+      );
+    }
     throw error;
+  }
+
+  for (const output of staged) {
+    if (output.backedUp) unlinkSync(output.backup);
   }
 }
 

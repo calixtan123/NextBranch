@@ -1,9 +1,10 @@
 /** Verifies that one validated capture produces the Northern server and browser topology artifacts. */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { afterEach, describe, expect, it } from "vitest";
 import { bundledTopology } from "./bundledTopology";
@@ -22,11 +23,47 @@ function generate(input: string) {
     destinations,
     outputDirectory,
     topology,
-    run: (destinationsPath = destinations) => execFileSync(
+    run: (destinationsPath = destinations, environment: Record<string, string | undefined> = {}) => execFileSync(
       process.execPath,
       ["scripts/generate-northern-topology.mjs", input, topology, destinationsPath],
-      { cwd: root, encoding: "utf8", stdio: "pipe" },
+      { cwd: root, encoding: "utf8", env: { ...process.env, ...environment }, stdio: "pipe" },
     ),
+  };
+}
+
+function renameFaultEnvironment(
+  outputDirectory: string,
+  replacementFailureTarget: string,
+  rollbackFailureTarget?: string,
+): Record<string, string | undefined> {
+  const loader = join(outputDirectory, "rename-fault-loader.mjs");
+  writeFileSync(loader, `
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+
+const renameSync = fs.renameSync.bind(fs);
+let replacementFailed = false;
+fs.renameSync = (source, destination) => {
+  if (!replacementFailed && source.endsWith(".tmp") && destination === process.env.TEST_REPLACEMENT_FAILURE_TARGET) {
+    replacementFailed = true;
+    const error = new Error("injected second rename EACCES");
+    error.code = "EACCES";
+    throw error;
+  }
+  if (replacementFailed && source.endsWith(".backup") && destination === process.env.TEST_ROLLBACK_FAILURE_TARGET) {
+    const error = new Error("injected rollback EACCES");
+    error.code = "EACCES";
+    throw error;
+  }
+  return renameSync(source, destination);
+};
+syncBuiltinESMExports();
+`, "utf8");
+
+  return {
+    NODE_OPTIONS: `--import=${pathToFileURL(loader).href}`,
+    TEST_REPLACEMENT_FAILURE_TARGET: replacementFailureTarget,
+    ...(rollbackFailureTarget ? { TEST_ROLLBACK_FAILURE_TARGET: rollbackFailureTarget } : {}),
   };
 }
 
@@ -96,6 +133,41 @@ describe("Northern topology generator", () => {
     expect(() => command.run(command.outputDirectory)).toThrow();
     expect(existsSync(command.topology)).toBe(false);
     expect(existsSync(command.destinations)).toBe(false);
+  });
+
+  // Production defect: a failed second replacement could leave the server and browser snapshots inconsistent.
+  it("restores both existing artifacts when the second replacement rename fails", () => {
+    const command = generate(fixture("topology-capture-valid.json"));
+    const originalTopology = "original server topology\n";
+    const originalDestinations = "original browser destinations\n";
+    writeFileSync(command.topology, originalTopology, "utf8");
+    writeFileSync(command.destinations, originalDestinations, "utf8");
+
+    const environment = renameFaultEnvironment(
+      command.outputDirectory,
+      command.destinations,
+    );
+
+    expect(() => command.run(command.destinations, environment)).toThrow("injected second rename EACCES");
+    expect(readFileSync(command.topology, "utf8")).toBe(originalTopology);
+    expect(readFileSync(command.destinations, "utf8")).toBe(originalDestinations);
+  });
+
+  // Production defect: a failed restore could be hidden behind the original replacement error.
+  it("reports an incomplete rollback when an original artifact cannot be restored", () => {
+    const command = generate(fixture("topology-capture-valid.json"));
+    writeFileSync(command.topology, "original server topology\n", "utf8");
+    writeFileSync(command.destinations, "original browser destinations\n", "utf8");
+
+    const environment = renameFaultEnvironment(
+      command.outputDirectory,
+      command.destinations,
+      command.topology,
+    );
+
+    expect(() => command.run(command.destinations, environment)).toThrow(
+      "Northern topology replacement failed and rollback was incomplete",
+    );
   });
 
   // Production defect: server topology and browser direct destinations could be generated from separate snapshots.
