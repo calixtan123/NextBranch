@@ -221,3 +221,72 @@ npm run test:e2e
 - The server adapter remains intentionally allow-all by default; a distributed
   hosting/middleware limiter remains a production integration requirement.
 - The unrelated pre-existing `.gitignore` change remains unstaged.
+
+## Fix Round 2 — Real 429 rendered integration coverage
+
+### Change
+
+- Added `src/components/Home.rate-limit.integration.test.tsx`, a separate test
+  module that mocks only Next navigation. It renders the real `Home`,
+  `useDeparturesRequest`, and `useLiveRequest` chain, supplies a valid departure
+  response followed by the exact 429 JSON response, and clicks the real Refresh
+  control. It verifies the alert role and exact guidance, two stale-data labels
+  (the alert and board status), disabled Retry during the validated 30-second
+  window, and enabled Retry after expiry.
+- The test temporarily marks the browser offline while advancing time so the normal
+  polling interval cannot replace the 429 state; its cleanup restores the browser
+  globals so existing polling tests remain isolated.
+
+### RED evidence
+
+Command:
+
+```sh
+npm test -- src/components/Home.rate-limit.integration.test.tsx
+```
+
+Relevant initial output:
+
+```text
+Home rate-limit integration ... expect(element).toBeDisabled()
+Received element is not disabled: <button />
+```
+
+The real request lifecycle had reached the 429 alert, but the test had not yet
+flushed Home's deferred live-clock effect that supplies the clock value used by
+the existing disabled-control condition. Advancing fake timers by zero after the
+429 completes that real lifecycle; no production behavior was changed.
+
+### GREEN coverage and commands
+
+```sh
+npm test -- src/components/Home.rate-limit.integration.test.tsx src/components/useDeparturesRequest.test.ts src/components/useLiveRequest.test.ts src/components/Home.test.tsx
+# 4 passed files, 75 passed tests
+
+npm run typecheck
+# exit 0
+
+npm run lint
+# exit 0
+
+npm test
+# 31 passed files, 226 passed tests
+
+npm run build
+# Next.js production build completed; both API routes remain dynamic
+
+npm run test:e2e
+# 40 passed tests across mobile Chromium and WebKit
+```
+
+### Self-review
+
+- The new test has no request-hook mocks: its only mock is Next navigation, which
+  supplies the selected station URL needed by `Home`.
+- The response fixtures are complete enough for the real departure boundary parser;
+  the rate-limit response uses `{ "error": "RATE_LIMITED", "retryAfterSeconds": 30 }`
+  and `Retry-After: 30`.
+- The test cleanup restores `navigator.onLine` and `document.visibilityState`; a
+  full-suite failure identified this required isolation and the focused plus full
+  suites confirm the correction.
+- The unrelated pre-existing `.gitignore` change remains unstaged.
