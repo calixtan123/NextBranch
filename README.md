@@ -155,6 +155,23 @@ node scripts/tfl-discovery.mjs
 node scripts/tfl-discovery.mjs --fixture tests/fixtures/tfl/camden-arrivals.json
 ```
 
+## Station-accessibility data audit
+
+The ignored detailed station export has a repeatable Northern-only audit, not a
+runtime integration. The current evidence gate failed, so the app deliberately
+does not display a station-accessibility card. See
+[`docs/NORTHERN_STATION_ACCESSIBILITY.md`](docs/NORTHERN_STATION_ACCESSIBILITY.md)
+for the provenance, join, null, and scope findings. To regenerate the sanitized
+report, supply the source directory explicitly:
+
+```bash
+node scripts/analyze-northern-station-accessibility.mjs \
+  /absolute/path/to/tfl-stationdata-detailed \
+  data/northern-station-accessibility-report.json
+```
+
+The raw CSV export remains ignored and must not be committed.
+
 ## Project map
 
 - `src/app/page.tsx`, `src/components/`: App Router page and accessible UI.

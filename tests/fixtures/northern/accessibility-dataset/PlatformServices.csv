@@ -1,0 +1,4 @@
+PlatformUniqueId,StopAreaNaptanCode,Line,MinGap,MaxGap,AverageGap,MinStep,MaxStep,AverageStep,DesignatedLevelAccessPoint,LocationOfLevelAccess,LevelAccessByManualRamp,AdditionalAccessibilityInformation
+angel-platform,940GZZLUAGL,northern,,,,,,,False,,False,
+balham-platform,940GZZLUBLM,northern,0,85,,0,50,,TRUE,"Door 2, coach 5",False,"Published note, deliberately excluded"
+other-platform,940GZZLUXXX,victoria,0,85,,0,50,,TRUE,,False,"Non-Northern note, deliberately excluded"
