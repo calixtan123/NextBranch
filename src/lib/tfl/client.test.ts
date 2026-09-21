@@ -46,6 +46,45 @@ describe("TfL arrivals boundary", () => {
     expect(fetcher.mock.calls[2]?.[1]).toMatchObject({ next: { revalidate: 43_200 } });
   });
 
+  // Break: simultaneous station boards each create their own uncached TfL request,
+  // and a settled request is incorrectly retained for later live refreshes.
+  it("coalesces only overlapping arrivals requests for the same station", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    let resolve!: (value: { ok: boolean; json: () => Promise<typeof arrival> }) => void;
+    const fetcher = vi.fn()
+      .mockImplementationOnce(() => new Promise((done) => { resolve = done; }))
+      .mockResolvedValue({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+
+    const first = getArrivals("940GZZLUCTN");
+    const second = getArrivals("940GZZLUCTN");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolve({ ok: true, json: async () => arrival });
+    await expect(Promise.all([first, second])).resolves.toEqual([arrival, arrival]);
+
+    await expect(getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  // Break: a rejected coalesced request remains in the overlap registry and makes
+  // every later live refresh fail without contacting TfL again.
+  it("removes a failed arrivals request from the overlap registry", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+
+    const first = getArrivals("940GZZLUCTN");
+    const second = getArrivals("940GZZLUCTN");
+    await expect(Promise.all([first, second])).rejects.toMatchObject({ code: "upstream" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    await expect(getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   // Break: a hung fetch never aborts, leaving every endpoint waiting indefinitely.
   it.each([
     ["arrivals", () => getArrivals("940GZZLUCTN")],

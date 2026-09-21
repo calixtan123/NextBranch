@@ -129,4 +129,21 @@ describe("live request deadlines", () => {
     expect(result.current.issue).toBe("offline");
     expect(result.current.loading).toBe(false);
   });
+
+  // Break: the documented 429 response is treated as malformed data, leaving the
+  // user without the server-provided delay before it is appropriate to retry.
+  it("presents server rate-limit retry guidance", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: "RATE_LIMITED", retryAfterSeconds: 30 }), {
+        status: 429,
+        headers: { "Retry-After": "30" },
+      }),
+    );
+    const { result } = renderHook(() => useLiveRequest(options));
+
+    await act(async () => { await result.current.fetchLive(); });
+
+    expect(result.current.issue).toBe("rate_limited");
+    expect(result.current.retryAfterSeconds).toBe(30);
+  });
 });

@@ -27,6 +27,24 @@ describe("departures API", () => {
     expect(arrivals).not.toHaveBeenCalled();
   });
 
+  // Break: a hosting-level limiter denies a request but the public boundary still
+  // calls TfL or returns a generic error instead of the documented retry contract.
+  it("returns the public rate-limit contract before validating or fetching departures", async () => {
+    const arrivals = vi.fn();
+    const get = createDeparturesHandler({
+      arrivals,
+      now: () => now,
+      rateLimit: async () => ({ allowed: false }),
+    });
+
+    const result = await get(request(`?station=${station}`));
+    expect(result.status).toBe(429);
+    expect(result.headers.get("Retry-After")).toBe("30");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "RATE_LIMITED", retryAfterSeconds: 30 });
+    expect(arrivals).not.toHaveBeenCalled();
+  });
+
   it("returns every current station-bound Northern prediction in natural platform order", async () => {
     const get = createDeparturesHandler({
       now: () => now,

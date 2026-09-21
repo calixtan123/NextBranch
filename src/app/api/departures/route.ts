@@ -4,15 +4,17 @@ import { byId } from "@/lib/northern/stations";
 import { normalizePredictions, type Train } from "@/lib/northern/predictions";
 import type { Arrival } from "@/lib/northern/schemas";
 import { getArrivals, TflError } from "@/lib/tfl/client";
+import { allowAllRateLimit, RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS, type RateLimitAdapter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export type DeparturesDependencies = {
   arrivals: (station: string) => Promise<Arrival[]>;
   now: () => Date;
+  rateLimit?: RateLimitAdapter;
 };
 const live: DeparturesDependencies = { arrivals: getArrivals, now: () => new Date() };
 const headers = { "Cache-Control": "no-store" };
-const response = (body: object, status = 200) => NextResponse.json(body, { status, headers });
+const response = (body: object, status = 200, additionalHeaders: Record<string, string> = {}) => NextResponse.json(body, { status, headers: { ...headers, ...additionalHeaders } });
 
 function requestedStation(request: Request): string | null {
   const params = new URL(request.url).searchParams;
@@ -37,6 +39,9 @@ function toDeparture(train: Train): Departure {
 /** Creates a cache-free departure handler; dependencies are injectable for deterministic tests. */
 export function createDeparturesHandler(deps: DeparturesDependencies = live) {
   return async (request: Request): Promise<NextResponse> => {
+    const rateLimit = deps.rateLimit ?? allowAllRateLimit;
+    if (!(await rateLimit(request)).allowed)
+      return response(RATE_LIMIT_RESPONSE, 429, { "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS) });
     const stationId = requestedStation(request);
     if (!stationId) return response({ error: "INVALID_STATION" }, 400);
     const station = byId.get(stationId);

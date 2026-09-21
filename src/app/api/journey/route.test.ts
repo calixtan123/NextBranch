@@ -28,6 +28,28 @@ describe("journey API", () => {
     expect(arrivals).not.toHaveBeenCalled();
     expect(timetable).not.toHaveBeenCalled();
   });
+  // Break: a hosting-level limiter denies a request but the public boundary still
+  // starts topology, arrival, or timetable work instead of returning retry guidance.
+  it("returns the public rate-limit contract before validating or fetching a journey", async () => {
+    const arrivals = vi.fn();
+    const routes = vi.fn();
+    const timetable = vi.fn();
+    const get = createJourneyHandler({
+      ...base,
+      arrivals,
+      routes,
+      timetable,
+      rateLimit: async () => ({ allowed: false }),
+    });
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(429);
+    expect(result.headers.get("Retry-After")).toBe("30");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "RATE_LIMITED", retryAfterSeconds: 30 });
+    expect(arrivals).not.toHaveBeenCalled();
+    expect(routes).not.toHaveBeenCalled();
+    expect(timetable).not.toHaveBeenCalled();
+  });
   it("rejects equal, unknown, and indirect pairs before arrivals or timetable", async () => {
     const arrivals = vi.fn();
     const timetable = vi.fn();

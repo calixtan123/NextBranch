@@ -2,8 +2,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isRateLimitResponse } from "@/lib/rate-limit";
 
-export type RequestIssue = "offline" | "upstream" | "invalid" | null;
+export type RequestIssue = "offline" | "upstream" | "invalid" | "rate_limited" | null;
 // Journey requests can use two sequential eight-second server stages; leave response overhead.
 const LIVE_REQUEST_TIMEOUT_MS = 20_000;
 type InFlight = { key: string; controller: AbortController; promise: Promise<void> };
@@ -13,6 +14,12 @@ type Options<T> = {
   url: () => string;
   parse: (value: unknown) => T | null;
 };
+
+class RateLimitError extends Error {
+  constructor(public readonly retryAfterSeconds: number) {
+    super("rate limited");
+  }
+}
 
 /** Shares cancellation, polling, stale retention, and retry handling between live views. */
 export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
@@ -24,18 +31,21 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
   const [issueKey, setIssueKey] = useState("");
   const inFlight = useRef<InFlight | null>(null);
   const cooldown = useRef(0);
+  const serverRetryUntil = useRef(0);
   const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const fetchLive = useCallback(async (manual = false) => {
     if (!active || !key) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setIssueKey(key); setIssue("offline"); return;
     }
+    if (Date.now() < serverRetryUntil.current) return;
+    const existing = inFlight.current;
     if (manual) {
       if (Date.now() < cooldown.current) return;
       cooldown.current = Date.now() + 10_000;
       setCooldownUntil(cooldown.current);
     }
-    const existing = inFlight.current;
     if (existing?.key === key) return existing.promise;
     existing?.controller.abort();
     const controller = new AbortController();
@@ -58,6 +68,10 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
         const parsed = await Promise.race([(async () => {
           const result = await fetch(url(), { cache: "no-store", signal: controller.signal });
           let value: T | null = null;
+          if (result.status === 429) {
+            const body = await result.json().catch(() => null);
+            if (isRateLimitResponse(body)) throw new RateLimitError(body.retryAfterSeconds);
+          }
           if (result.ok) {
             try { value = parse(await result.json()); } catch { throw new Error("invalid"); }
           }
@@ -65,12 +79,21 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
           return value;
         })(), aborted]);
         if (!controller.signal.aborted) {
-          setDataKey(key); setData(parsed); setIssueKey(""); setIssue(null);
+          setDataKey(key); setData(parsed); setIssueKey(""); setIssue(null); setRetryAfterSeconds(null);
         }
       } catch (error) {
         if (inFlight.current?.controller === controller && (!controller.signal.aborted || timedOut)) {
           setIssueKey(key);
-          setIssue(!timedOut && error instanceof Error && error.message === "invalid" ? "invalid" : "upstream");
+          if (error instanceof RateLimitError) {
+            const retryUntil = Date.now() + error.retryAfterSeconds * 1_000;
+            serverRetryUntil.current = Math.max(serverRetryUntil.current, retryUntil);
+            setCooldownUntil(Math.max(cooldown.current, serverRetryUntil.current));
+            setRetryAfterSeconds(error.retryAfterSeconds);
+            setIssue("rate_limited");
+          } else {
+            setRetryAfterSeconds(null);
+            setIssue(!timedOut && error instanceof Error && error.message === "invalid" ? "invalid" : "upstream");
+          }
         }
       } finally {
         window.clearTimeout(timer);
@@ -110,5 +133,6 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     issue: issueKey === key ? issue : null,
     fetchLive,
     cooldownUntil,
+    retryAfterSeconds,
   };
 }
