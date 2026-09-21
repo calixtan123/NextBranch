@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isRateLimitResponse } from "@/lib/rate-limit";
+import { isRateLimitResponse } from "@/lib/rate-limit-contract";
 
 export type RequestIssue = "offline" | "upstream" | "invalid" | "rate_limited" | null;
 // Journey requests can use two sequential eight-second server stages; leave response overhead.
@@ -15,6 +15,7 @@ type Options<T> = {
   parse: (value: unknown) => T | null;
 };
 
+/** Carries validated server retry guidance internally without exposing raw response data. */
 class RateLimitError extends Error {
   constructor(public readonly retryAfterSeconds: number) {
     super("rate limited");
@@ -39,7 +40,12 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setIssueKey(key); setIssue("offline"); return;
     }
-    if (Date.now() < serverRetryUntil.current) return;
+    if (Date.now() < serverRetryUntil.current) {
+      const remainingSeconds = Math.max(1, Math.ceil((serverRetryUntil.current - Date.now()) / 1_000));
+      setIssueKey(key); setIssue("rate_limited"); setRetryAfterSeconds(remainingSeconds);
+      setCooldownUntil(Math.max(cooldown.current, serverRetryUntil.current));
+      return;
+    }
     const existing = inFlight.current;
     if (manual) {
       if (Date.now() < cooldown.current) return;

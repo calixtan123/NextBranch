@@ -180,6 +180,22 @@ describe("journey API", () => {
       ).toBe(503);
     }
   });
+  // Break: a rejected or unusable live topology falls back safely but emits a
+  // misleading success diagnostic, hiding why the bundled topology was used.
+  it("records the normalized live-topology failure when bundled topology is used", async () => {
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const get = createJourneyHandler({
+      ...base,
+      arrivals: async () => [],
+      routes: async () => { throw new TflError("topology", "secret upstream URL"); },
+    });
+
+    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(200);
+    expect(diagnostic).toHaveBeenCalledWith("tfl_diagnostic", expect.objectContaining({
+      operation: "journey_topology", errorCategory: "topology", topologyFallbackUsed: true,
+    }));
+    diagnostic.mockRestore();
+  });
   it("does not use a timetable for a different departure station", async () => {
     const origin = arrivalSchema.parse({
       id: "origin",

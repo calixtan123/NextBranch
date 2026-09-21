@@ -5,10 +5,10 @@ import { STATIONS_STORAGE_KEY } from "@/lib/storage/stations";
 
 const fetchJourney = vi.hoisted(() => vi.fn());
 const requestedJourneys = vi.hoisted(() => [] as Array<{ from: string; to: string } | null>);
-const requestState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, dataKey: null as string | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
+const requestState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, dataKey: null as string | null, loading: false, issue: null as string | null, cooldownUntil: 0, retryAfterSeconds: null as number | null }));
 const fetchDepartures = vi.hoisted(() => vi.fn());
 const requestedDepartures = vi.hoisted(() => [] as Array<{ station: string | null; active: boolean }>);
-const departureState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
+const departureState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, loading: false, issue: null as string | null, cooldownUntil: 0, retryAfterSeconds: null as number | null }));
 const searchParams = vi.hoisted(() => new URLSearchParams());
 const routerPush = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
@@ -60,11 +60,13 @@ describe("Home", () => {
     departureState.loading = false;
     departureState.issue = null;
     departureState.cooldownUntil = 0;
+    departureState.retryAfterSeconds = null;
     requestState.data = null;
     requestState.dataKey = null;
     requestState.loading = false;
     requestState.issue = null;
     requestState.cooldownUntil = 0;
+    requestState.retryAfterSeconds = null;
     searchParams.delete("from");
     searchParams.delete("to");
     searchParams.delete("station");
@@ -143,6 +145,31 @@ describe("Home", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // Break: a 429 leaves a stale board without exact retry guidance, an alert, or
+  // an accessible disabled control until the server-provided retry window ends.
+  it("presents a rate-limited stale departure board and re-enables Retry after thirty seconds", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    searchParams.set("station", saved.from);
+    departureState.data = {
+      station: { id: saved.from, name: saved.fromName }, observedAt: "2026-09-16T12:00:00.000Z",
+      newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToStation: 120, towards: null }] }],
+    };
+    departureState.issue = "rate_limited";
+    departureState.retryAfterSeconds = 30;
+    departureState.cooldownUntil = Date.now() + 30_000;
+
+    render(<Home />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Too many live requests. Try again in 30 seconds.");
+    expect(screen.getAllByText("Last prediction — information may be stale.")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
   });
 
   it("renders the same first screen before storage hydration and then shows saved-first returning state", async () => {

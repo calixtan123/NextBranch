@@ -4,7 +4,8 @@ import { byId } from "@/lib/northern/stations";
 import { normalizePredictions, type Train } from "@/lib/northern/predictions";
 import type { Arrival } from "@/lib/northern/schemas";
 import { getArrivals, TflError } from "@/lib/tfl/client";
-import { allowAllRateLimit, RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS, type RateLimitAdapter } from "@/lib/rate-limit";
+import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
+import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 
 export const dynamic = "force-dynamic";
 export type DeparturesDependencies = {

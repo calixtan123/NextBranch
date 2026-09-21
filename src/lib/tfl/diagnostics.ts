@@ -1,9 +1,11 @@
 /** Creates small, redacted diagnostics for server-side TfL request operations. */
 
 type ErrorLike = { code?: unknown; upstreamStatus?: unknown };
+const diagnosticOperations = ["arrivals", "topology", "timetable", "journey_topology", "unknown"] as const;
+export type DiagnosticOperation = (typeof diagnosticOperations)[number];
 
 export type Diagnostic = {
-  operation: string;
+  operation: DiagnosticOperation;
   durationMs: number;
   errorCategory: "none" | "configuration" | "upstream" | "topology" | "timetable" | "unknown";
   upstreamStatus: number | null;
@@ -11,11 +13,17 @@ export type Diagnostic = {
 };
 
 type DiagnosticInput = {
-  operation: string;
+  operation: unknown;
   durationMs: number;
   error?: unknown;
   topologyFallbackUsed?: boolean;
 };
+
+function normalizeOperation(operation: unknown): DiagnosticOperation {
+  return typeof operation === "string" && diagnosticOperations.includes(operation as DiagnosticOperation)
+    ? operation as DiagnosticOperation
+    : "unknown";
+}
 
 function normalizeError(error: unknown): Pick<Diagnostic, "errorCategory" | "upstreamStatus"> {
   if (!error) return { errorCategory: "none", upstreamStatus: null };
@@ -53,7 +61,7 @@ function normalizeError(error: unknown): Pick<Diagnostic, "errorCategory" | "ups
  */
 export function createDiagnostic(input: DiagnosticInput): Diagnostic {
   return {
-    operation: input.operation,
+    operation: normalizeOperation(input.operation),
     durationMs: Math.max(0, Math.trunc(input.durationMs)),
     ...normalizeError(input.error),
     topologyFallbackUsed: input.topologyFallbackUsed ?? false,

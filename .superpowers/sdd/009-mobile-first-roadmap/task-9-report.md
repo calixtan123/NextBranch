@@ -132,3 +132,92 @@ same required command was rerun with approved local-port permission and passed.
 - Server diagnostics are intentionally concise and do not contain payload-level
   troubleshooting data. This is the security trade-off required to prevent secrets
   and location data from entering logs.
+
+## Fix Round 1 — Review findings
+
+### Changes
+
+- Moved diagnostics around the complete TfL fetch-and-validation operation. A
+  malformed successful response now logs its normalized `upstream`, `topology`, or
+  `timetable` failure rather than a false success. Journey topology fallback now
+  retains a sanitized failure solely for its `journey_topology` diagnostic.
+- Restricted diagnostic operations to a closed allowlist. Unknown values, including
+  credential-bearing strings, normalize to `unknown` before logging.
+- Split rate limiting into `rate-limit-contract.ts` (browser-safe constants and
+  parser) and `rate-limit-server.ts` (the `server-only` adapter and allow-all
+  default). Route handlers import the server adapter; browser code imports only the
+  public contract.
+- Re-keyed the active rate-limit issue during the server retry window. A newly
+  selected station or journey now receives the remaining retry guidance and can
+  fetch immediately after the window expires. Added documentation to the internal
+  `RateLimitError` class.
+- Added rendered Home coverage for the alert role, exact 429 guidance, stale-data
+  labels, disabled Retry during the window, and its re-enablement at 30 seconds.
+
+### RED evidence
+
+Command:
+
+```sh
+npm test -- src/lib/tfl/client.test.ts src/lib/tfl/diagnostics.test.ts src/lib/rate-limit-contract.test.ts src/app/api/journey/route.test.ts src/components/useLiveRequest.test.ts src/components/Home.test.tsx
+```
+
+Relevant expected failures before implementation:
+
+```text
+rate-limit-contract.test.ts: Failed to resolve import "./rate-limit-contract"
+diagnostics.test.ts: expected operation "unknown", received credential-bearing URL
+client.test.ts: expected errorCategory "upstream", received "none"
+journey/route.test.ts: expected errorCategory "topology", received "none"
+useLiveRequest.test.ts: expected "rate_limited", received null after key change
+```
+
+The new rendered Home test initially found two intentional stale labels (the alert
+and the board status); its assertion was corrected to require both labels. This was
+a test-selector correction, not a production behavior change.
+
+### GREEN coverage and commands
+
+Focused command:
+
+```sh
+npm test -- src/lib/tfl/client.test.ts src/lib/tfl/diagnostics.test.ts src/lib/rate-limit-contract.test.ts src/app/api/journey/route.test.ts src/components/useLiveRequest.test.ts src/components/Home.test.tsx
+# 6 passed files, 111 passed tests
+```
+
+Covering files:
+
+- `src/lib/tfl/client.test.ts` — malformed validated payload diagnostics.
+- `src/lib/tfl/diagnostics.test.ts` — URL, credential, headers, location, payload,
+  and arbitrary-string redaction.
+- `src/lib/rate-limit-contract.test.ts` — browser-safe exact JSON contract.
+- `src/app/api/journey/route.test.ts` — rejected live topology fallback diagnostic.
+- `src/components/useLiveRequest.test.ts` — 429 parser and re-keyed retry window.
+- `src/components/Home.test.tsx` — rendered alert and Retry accessibility behavior.
+
+### Full verification
+
+```sh
+npm run typecheck
+# exit 0
+
+npm run lint
+# exit 0
+
+npm test
+# 30 passed files, 225 passed tests
+
+npm run build
+# Next.js production build completed; both API routes remain dynamic
+
+npm run test:e2e
+# 40 passed tests across mobile Chromium and WebKit
+```
+
+### Review notes
+
+- `git diff --check` passed. No `NEXT_PUBLIC_*` key, upstream URL, request header,
+  credential, raw location, or payload is accepted into a diagnostic record.
+- The server adapter remains intentionally allow-all by default; a distributed
+  hosting/middleware limiter remains a production integration requirement.
+- The unrelated pre-existing `.gitignore` change remains unstaged.

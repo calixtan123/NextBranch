@@ -27,7 +27,8 @@ import {
   getTimetable,
   TflError,
 } from "@/lib/tfl/client";
-import { allowAllRateLimit, RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS, type RateLimitAdapter } from "@/lib/rate-limit";
+import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
+import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 import { recordServerDiagnostic } from "@/lib/tfl/diagnostics";
 export const dynamic = "force-dynamic";
 export type JourneyDependencies = {
@@ -93,9 +94,17 @@ export function createJourneyHandler(deps: JourneyDependencies = live) {
       return response({ error: "INVALID_JOURNEY" }, 400);
     const { from, to } = parsed.data;
     const now = deps.now();
-    const liveTopology = await Promise.resolve()
-      .then(() => deps.routes())
-      .then((value) => usableTopology(value), () => null);
+    let liveTopology: Topology[] | null = null;
+    let topologyError: unknown;
+    try {
+      liveTopology = usableTopology(await deps.routes());
+      if (!liveTopology)
+        topologyError = new TflError("topology", "TfL route topology was unusable");
+    } catch (error) {
+      topologyError = error instanceof TflError
+        ? error
+        : new TflError("topology", "TfL route topology was unavailable");
+    }
     const source =
       liveTopology ??
       (deps.bundled && topologyFresh(deps.bundled, now)
@@ -104,6 +113,7 @@ export function createJourneyHandler(deps: JourneyDependencies = live) {
     recordServerDiagnostic({
       operation: "journey_topology",
       durationMs: Date.now() - topologyStartedAt,
+      error: topologyError,
       topologyFallbackUsed: liveTopology === null && source !== null,
     });
     if (!source) return response({ error: "TFL_UNAVAILABLE" }, 503);

@@ -146,4 +146,27 @@ describe("live request deadlines", () => {
     expect(result.current.issue).toBe("rate_limited");
     expect(result.current.retryAfterSeconds).toBe(30);
   });
+
+  // Break: changing station or journey during a server retry window hides the
+  // rate-limit explanation and leaves the newly selected live view blank.
+  it("rekeys rate-limit guidance and retries the newly selected live request after expiry", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "RATE_LIMITED", retryAfterSeconds: 30 }), { status: 429 }))
+      .mockResolvedValueOnce(response(2));
+    const { result, rerender } = renderHook((props) => useLiveRequest(props), { initialProps: options });
+
+    await act(async () => { await result.current.fetchLive(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    rerender({ ...options, key: "b", url: () => "/api/departures?station=b" });
+    await act(async () => { await result.current.fetchLive(); });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.issue).toBe("rate_limited");
+    expect(result.current.retryAfterSeconds).toBe(20);
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    await act(async () => { await result.current.fetchLive(); });
+    expect(result.current.data).toEqual({ version: 2 });
+  });
 });

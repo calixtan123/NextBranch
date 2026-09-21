@@ -261,6 +261,21 @@ describe("TfL arrivals boundary", () => {
     });
   });
 
+  // Break: a malformed successful HTTP response is reported as a successful
+  // transport operation, leaving production diagnostics unable to find the cause.
+  it("records malformed arrivals payloads as normalized upstream failures", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: "bad" }] }));
+
+    await expect(getArrivals("940GZZLUCTN")).rejects.toMatchObject({ code: "upstream" });
+
+    expect(diagnostic).toHaveBeenCalledWith("tfl_diagnostic", expect.objectContaining({
+      operation: "arrivals", errorCategory: "upstream", upstreamStatus: null,
+    }));
+    diagnostic.mockRestore();
+  });
+
   it("rejects a timetable whose departure stop differs from the request", async () => {
     process.env.TFL_API_KEY = "test-key";
     vi.stubGlobal(

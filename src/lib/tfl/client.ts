@@ -9,7 +9,7 @@ import {
   type Timetable,
   type Topology,
 } from "@/lib/northern/schemas";
-import { recordServerDiagnostic } from "./diagnostics";
+import { recordServerDiagnostic, type DiagnosticOperation } from "./diagnostics";
 
 /** Classifies safe, public failures without including credential-bearing URLs. */
 export class TflError extends Error {
@@ -34,15 +34,9 @@ async function get(
   path: string,
   cache: "live" | "topology" = "topology",
   callerSignal?: AbortSignal,
-  operation = "unknown",
 ): Promise<unknown> {
-  const startedAt = Date.now();
   const key = process.env.TFL_API_KEY;
-  if (!key) {
-    const error = new TflError("config", "TfL configuration is unavailable");
-    recordServerDiagnostic({ operation, durationMs: Date.now() - startedAt, error });
-    throw error;
-  }
+  if (!key) throw new TflError("config", "TfL configuration is unavailable");
 
   const separator = path.includes("?") ? "&" : "?";
   const url = `${BASE_URL}${path}${separator}app_key=${encodeURIComponent(key)}`;
@@ -53,7 +47,6 @@ async function get(
   // An owned timer can be cleared on completion; AbortSignal.timeout cannot.
   const timer = setTimeout(() => deadline.abort(), TFL_REQUEST_TIMEOUT_MS);
   let onAbort: (() => void) | undefined;
-  let diagnosticError: unknown;
   try {
     signal.throwIfAborted();
     const aborted = new Promise<never>((_resolve, reject) => {
@@ -76,26 +69,41 @@ async function get(
     })();
     return await Promise.race([payload, aborted]);
   } catch (error) {
-    diagnosticError = signal.aborted || ((error instanceof DOMException || error instanceof Error) && ["AbortError", "TimeoutError"].includes(error.name))
+    const normalized = signal.aborted || ((error instanceof DOMException || error instanceof Error) && ["AbortError", "TimeoutError"].includes(error.name))
       ? new TflError("upstream", "TfL request was interrupted")
       : error;
-    throw diagnosticError;
+    throw normalized;
   } finally {
     clearTimeout(timer);
     if (onAbort) signal.removeEventListener("abort", onAbort);
-    recordServerDiagnostic({ operation, durationMs: Date.now() - startedAt, error: diagnosticError });
+  }
+}
+
+/** Records the complete fetch-and-validation outcome without retaining raw data. */
+async function diagnose<T>(operation: DiagnosticOperation, work: () => Promise<T>): Promise<T> {
+  const startedAt = Date.now();
+  let error: unknown;
+  try {
+    return await work();
+  } catch (caught) {
+    error = caught;
+    throw caught;
+  } finally {
+    recordServerDiagnostic({ operation, durationMs: Date.now() - startedAt, error });
   }
 }
 
 async function fetchArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]> {
-  try {
-    return parseArrivals(
-      await get(`/Line/northern/Arrivals/${encodeURIComponent(id)}`, "live", signal, "arrivals"),
-    ).filter((arrival) => arrival.naptanId === id);
-  } catch (error) {
-    if (error instanceof TflError) throw error;
-    throw new TflError("upstream", "TfL arrivals payload invalid");
-  }
+  return diagnose("arrivals", async () => {
+    try {
+      return parseArrivals(
+        await get(`/Line/northern/Arrivals/${encodeURIComponent(id)}`, "live", signal),
+      ).filter((arrival) => arrival.naptanId === id);
+    } catch (error) {
+      if (error instanceof TflError) throw error;
+      throw new TflError("upstream", "TfL arrivals payload invalid");
+    }
+  });
 }
 
 /**
@@ -133,14 +141,16 @@ export function getArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]
 
 /** Fetches the route sequence using Next's bounded server cache. */
 export async function getRoutes(signal?: AbortSignal): Promise<Topology[]> {
-  try {
-    const raw = await get("/Line/northern/Route/Sequence/all", "topology", signal, "topology");
-    const values = Array.isArray(raw) ? raw : [raw];
-    return values.map((value) => topologySchema.parse(value));
-  } catch (error) {
-    if (error instanceof TflError) throw error;
-    throw new TflError("topology", "TfL route payload invalid");
-  }
+  return diagnose("topology", async () => {
+    try {
+      const raw = await get("/Line/northern/Route/Sequence/all", "topology", signal);
+      const values = Array.isArray(raw) ? raw : [raw];
+      return values.map((value) => topologySchema.parse(value));
+    } catch (error) {
+      if (error instanceof TflError) throw error;
+      throw new TflError("topology", "TfL route payload invalid");
+    }
+  });
 }
 
 /** Fetches the selected pair's timetable using the bounded server cache. */
@@ -149,23 +159,24 @@ export async function getTimetable(
   to: string,
   signal?: AbortSignal,
 ): Promise<Timetable> {
-  try {
-    const timetable = timetableSchema.parse(
-      await get(
-        `/Line/northern/Timetable/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`,
-        "topology",
-        signal,
-        "timetable",
-      ),
-    );
-    if (timetable.timetable.departureStopId !== from)
-      throw new TflError(
-        "timetable",
-        "TfL timetable departure stop does not match the request",
+  return diagnose("timetable", async () => {
+    try {
+      const timetable = timetableSchema.parse(
+        await get(
+          `/Line/northern/Timetable/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`,
+          "topology",
+          signal,
+        ),
       );
-    return timetable;
-  } catch (error) {
-    if (error instanceof TflError) throw error;
-    throw new TflError("timetable", "TfL timetable payload invalid");
-  }
+      if (timetable.timetable.departureStopId !== from)
+        throw new TflError(
+          "timetable",
+          "TfL timetable departure stop does not match the request",
+        );
+      return timetable;
+    } catch (error) {
+      if (error instanceof TflError) throw error;
+      throw new TflError("timetable", "TfL timetable payload invalid");
+    }
+  });
 }

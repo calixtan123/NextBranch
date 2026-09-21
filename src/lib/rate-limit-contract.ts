@@ -1,34 +1,10 @@
-/** Defines the small public rate-limit contract used by live API route handlers. */
+/** Defines the browser-safe public JSON contract for rate-limited API responses. */
 
 export const RATE_LIMIT_RETRY_AFTER_SECONDS = 30;
 export const RATE_LIMIT_RESPONSE = {
   error: "RATE_LIMITED",
   retryAfterSeconds: RATE_LIMIT_RETRY_AFTER_SECONDS,
 } as const;
-
-export type RateLimitDecision = { allowed: boolean };
-export type RateLimitAdapter = (request: Request) => RateLimitDecision | Promise<RateLimitDecision>;
-
-/**
- * Allows every request when no distributed limiter is provided by the host.
- *
- * Production deployments must replace this adapter at their hosting or middleware
- * boundary with a distributed implementation; process memory cannot coordinate
- * limits across server instances.
- *
- * Parameters
- * ----------
- * _request : Request
- *     The incoming public request.
-
- * Returns
- * -------
- * RateLimitDecision
- *     An allow decision.
- */
-export function allowAllRateLimit(_request: Request): RateLimitDecision {
-  return { allowed: true };
-}
 
 /**
  * Identifies the documented JSON payload returned for a limited request.
