@@ -9,6 +9,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const [datasetDirectory, outputPath, ...requestedIds] = process.argv.slice(2);
+const canonicalStationIdPattern = /^940GZZ[A-Z0-9]+$/;
+const unknownSourceValue = "Unknown";
 
 if (!datasetDirectory || !outputPath) {
   throw new Error(
@@ -161,9 +163,58 @@ function canonicalStationIds() {
   const uniqueIds = [...new Set(ids)].sort();
   if (!uniqueIds.length) throw new Error("At least one canonical Northern station ID is required");
   if (uniqueIds.length !== ids.length) throw new Error("Duplicate canonical Northern station ID requested");
-  const invalidId = uniqueIds.find((id) => !/^940GZZ[A-Z0-9]+$/.test(id));
+  const invalidId = uniqueIds.find((id) => !canonicalStationIdPattern.test(id));
   if (invalidId) throw new Error(`Invalid canonical Northern station ID: ${invalidId}`);
   return uniqueIds;
+}
+
+/** Return a canonical station ID only when it belongs to the requested app set. */
+function safeCanonicalStationId(rows, canonicalIdSet) {
+  return rows
+    .map((row) => row.StopAreaNaptanCode)
+    .filter((id) => canonicalStationIdPattern.test(id) && canonicalIdSet.has(id))
+    .sort()[0];
+}
+
+/** Normalize the small, allowlisted metadata surface that may enter the artifact. */
+function normalizeSourceMetadata(feed) {
+  const metadataIssueCodes = [];
+  const publisherName = feed.FeedPublisherName.trim() === "Transport for London"
+    ? "Transport for London"
+    : unknownSourceValue;
+  if (publisherName === unknownSourceValue) metadataIssueCodes.push("invalid-publisher-name");
+
+  let publisherUrl = unknownSourceValue;
+  try {
+    const candidate = new URL(feed.FeedPublisherUrl.trim());
+    const allowedHostnames = new Set(["tfl.gov.uk", "api.tfl.gov.uk"]);
+    const safe =
+      candidate.protocol === "https:" &&
+      allowedHostnames.has(candidate.hostname) &&
+      candidate.port === "" &&
+      candidate.username === "" &&
+      candidate.password === "" &&
+      candidate.pathname === "/" &&
+      candidate.search === "" &&
+      candidate.hash === "";
+    if (safe) publisherUrl = `https://${candidate.hostname}`;
+  } catch {
+    // Invalid URLs are represented by a fixed value and issue code below.
+  }
+  if (publisherUrl === unknownSourceValue) metadataIssueCodes.push("unsafe-publisher-url");
+
+  const language = feed.FeedLang.trim().toLowerCase() === "en" ? "en" : unknownSourceValue;
+  if (language === unknownSourceValue) metadataIssueCodes.push("unsupported-language");
+
+  const rawDate = feed.FeedStartDate.trim();
+  const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+  const parsedDate = timestampPattern.test(rawDate) ? new Date(rawDate) : null;
+  const feedStartDate = parsedDate && Number.isFinite(parsedDate.getTime())
+    ? parsedDate.toISOString()
+    : unknownSourceValue;
+  if (feedStartDate === unknownSourceValue) metadataIssueCodes.push("invalid-feed-start-date");
+
+  return { publisherName, publisherUrl, language, feedStartDate, metadataIssueCodes };
 }
 
 /** Group records without discarding duplicates needed for contradiction checks. */
@@ -202,10 +253,14 @@ const stationRowsById = groupBy(tables["Stations.csv"], "UniqueId");
 const northernStationIds = [...new Set(northernServices.map((row) => row.StopAreaNaptanCode))].sort();
 const missingCanonicalStationIds = canonicalIds.filter((id) => !northernStationIds.includes(id));
 const unexpectedNorthernStationIds = northernStationIds.filter((id) => !canonicalIdSet.has(id));
+const malformedNorthernStationIdCount = northernStationIds.filter(
+  (id) => !canonicalStationIdPattern.test(id),
+).length;
 let missingPlatformJoinCount = 0;
 let missingStationJoinCount = 0;
 const sourceStationToCanonicalIds = new Map();
 const referencedPlatformIds = new Set();
+const ambiguousPlatformIds = new Set();
 
 for (const service of northernServices) {
   const platformRows = platformRowsById.get(service.PlatformUniqueId) ?? [];
@@ -214,7 +269,12 @@ for (const service of northernServices) {
     continue;
   }
   referencedPlatformIds.add(service.PlatformUniqueId);
-  const sourceStationId = platformRows[0].StationUniqueId;
+  const stationOwners = new Set(platformRows.map((row) => row.StationUniqueId));
+  if (stationOwners.size !== 1) {
+    ambiguousPlatformIds.add(service.PlatformUniqueId);
+    continue;
+  }
+  const [sourceStationId] = stationOwners;
   if (!(stationRowsById.get(sourceStationId) ?? []).length) missingStationJoinCount += 1;
   const ids = sourceStationToCanonicalIds.get(sourceStationId) ?? new Set();
   ids.add(service.StopAreaNaptanCode);
@@ -248,35 +308,38 @@ for (const services of serviceGroups.values()) {
     (field) => new Set(services.map((service) => service[field].trim())).size > 1,
   );
   if (conflictingFields.length) {
+    const canonicalStationId = safeCanonicalStationId(services, canonicalIdSet);
     contradictions.push({
       kind: "conflicting-platform-service-record",
-      canonicalStationId: services[0].StopAreaNaptanCode,
+      ...(canonicalStationId ? { canonicalStationId } : {}),
       fields: conflictingFields,
     });
   }
 }
 
+for (const platformId of [...ambiguousPlatformIds].sort()) {
+  const services = northernServices.filter((service) => service.PlatformUniqueId === platformId);
+  const canonicalStationId = safeCanonicalStationId(services, canonicalIdSet);
+  contradictions.push({
+    kind: "conflicting-platform-station-ownership",
+    ...(canonicalStationId ? { canonicalStationId } : {}),
+    fields: ["StationUniqueId"],
+  });
+}
+contradictions.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+
 const feedRows = tables["FeedInfo.csv"];
 if (feedRows.length !== 1) throw new Error("FeedInfo.csv must contain exactly one data row");
 const feed = feedRows[0];
-const publisherUrl = (() => {
-  try {
-    return new URL(feed.FeedPublisherUrl);
-  } catch {
-    return null;
-  }
-})();
-const attributionReliable =
-  feed.FeedPublisherName === "Transport for London" &&
-  publisherUrl?.protocol === "https:" &&
-  (publisherUrl.hostname === "tfl.gov.uk" || publisherUrl.hostname.endsWith(".tfl.gov.uk")) &&
-  Number.isFinite(Date.parse(feed.FeedStartDate));
+const sourceMetadata = normalizeSourceMetadata(feed);
+const attributionReliable = sourceMetadata.metadataIssueCodes.length === 0;
 
 const joinsReliable =
   missingCanonicalStationIds.length === 0 &&
   unexpectedNorthernStationIds.length === 0 &&
   missingPlatformJoinCount === 0 &&
   missingStationJoinCount === 0 &&
+  ambiguousPlatformIds.size === 0 &&
   ambiguousSourceMappings.length === 0 &&
   unmatchedLiftRowCount === 0 &&
   unmatchedToiletRowCount === 0;
@@ -299,10 +362,7 @@ const report = {
   schemaVersion: 1,
   scope: "Northern line only",
   source: {
-    publisherName: feed.FeedPublisherName,
-    publisherUrl: feed.FeedPublisherUrl,
-    language: feed.FeedLang,
-    feedStartDate: feed.FeedStartDate,
+    ...sourceMetadata,
     attributionReliable,
     freshnessReliable: false,
     dateLimitation:
@@ -313,10 +373,12 @@ const report = {
     northernServiceStationCount: northernStationIds.length,
     matchedStationCount: canonicalIds.filter((id) => northernStationIds.includes(id)).length,
     missingCanonicalStationIds,
-    unexpectedNorthernStationIds,
+    unexpectedNorthernStationIdCount: unexpectedNorthernStationIds.length,
+    malformedNorthernStationIdCount,
     northernPlatformServiceRowCount: northernServices.length,
     missingPlatformJoinCount,
     missingStationJoinCount,
+    ambiguousPlatformOwnershipCount: ambiguousPlatformIds.size,
     ambiguousSourceStationMappingCount: ambiguousSourceMappings.length,
     unmatchedLiftRowCount,
     unmatchedToiletRowCount,

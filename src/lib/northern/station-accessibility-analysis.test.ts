@@ -16,20 +16,24 @@ type AnalysisReport = {
   source: {
     publisherName: string;
     publisherUrl: string;
+    language: string;
     feedStartDate: string;
     freshnessReliable: boolean;
+    metadataIssueCodes: string[];
   };
   joins: {
     canonicalStationCount: number;
     northernServiceStationCount: number;
     matchedStationCount: number;
     missingCanonicalStationIds: string[];
-    unexpectedNorthernStationIds: string[];
+    unexpectedNorthernStationIdCount: number;
+    malformedNorthernStationIdCount: number;
     missingPlatformJoinCount: number;
     missingStationJoinCount: number;
+    ambiguousPlatformOwnershipCount: number;
   };
   nullPatterns: Record<string, { rowCount: number; fields: Record<string, number> }>;
-  contradictions: Array<{ kind: string; canonicalStationId: string; fields: string[] }>;
+  contradictions: Array<{ kind: string; canonicalStationId?: string; fields: string[] }>;
   evidenceGate: { outcome: string; reasons: string[] };
   trustedForDisplay: string[];
   prohibitedClaims: string[];
@@ -69,8 +73,10 @@ describe("Northern station-accessibility analysis", () => {
     expect(report.source).toMatchObject({
       publisherName: "Transport for London",
       publisherUrl: "https://tfl.gov.uk",
-      feedStartDate: "2026-08-03T09:14+00:00",
+      language: "en",
+      feedStartDate: "2026-08-03T09:14:00.000Z",
       freshnessReliable: false,
+      metadataIssueCodes: [],
     });
     expect(serialized).not.toContain("Elsewhere");
     expect(serialized).not.toContain("deliberately excluded");
@@ -87,10 +93,12 @@ describe("Northern station-accessibility analysis", () => {
       northernServiceStationCount: 2,
       matchedStationCount: 2,
       missingCanonicalStationIds: [],
-      unexpectedNorthernStationIds: [],
+      unexpectedNorthernStationIdCount: 0,
+      malformedNorthernStationIdCount: 0,
       northernPlatformServiceRowCount: 2,
       missingPlatformJoinCount: 0,
       missingStationJoinCount: 0,
+      ambiguousPlatformOwnershipCount: 0,
       ambiguousSourceStationMappingCount: 0,
       unmatchedLiftRowCount: 0,
       unmatchedToiletRowCount: 0,
@@ -157,6 +165,84 @@ describe("Northern station-accessibility analysis", () => {
       canonicalStationId: "940GZZLUAGL",
       fields: ["StopAreaNaptanCode"],
     });
+  });
+
+  // Break: malformed metadata and identifiers cross the artifact boundary as credentials or arbitrary text.
+  it("allows only normalized source strings into the serialized report", () => {
+    const paths = createDataset();
+    writeFileSync(
+      join(paths.datasetDirectory, "FeedInfo.csv"),
+      "FeedPublisherName,FeedPublisherUrl,FeedLang,FeedStartDate\n" +
+        "synthetic-publisher-free-text,https://user:synthetic-password@tfl.gov.uk/synthetic-path?token=synthetic-secret#synthetic-fragment,synthetic-language,synthetic-location\n",
+    );
+    const servicesPath = join(paths.datasetDirectory, "PlatformServices.csv");
+    writeFileSync(
+      servicesPath,
+      readFileSync(servicesPath, "utf8").replace("940GZZLUAGL,northern", "synthetic-private-note,northern"),
+    );
+
+    const report = analyze(paths.datasetDirectory, paths.outputPath);
+    const serialized = JSON.stringify(report);
+
+    for (const marker of [
+      "synthetic-publisher-free-text",
+      "synthetic-password",
+      "synthetic-secret",
+      "synthetic-path",
+      "synthetic-fragment",
+      "synthetic-language",
+      "synthetic-location",
+      "synthetic-private-note",
+      "Published note, deliberately excluded",
+      "Ticket hall, beside gate",
+    ]) {
+      expect(serialized).not.toContain(marker);
+    }
+    expect(report.source).toMatchObject({
+      publisherName: "Unknown",
+      publisherUrl: "Unknown",
+      language: "Unknown",
+      feedStartDate: "Unknown",
+      metadataIssueCodes: [
+        "invalid-publisher-name",
+        "unsafe-publisher-url",
+        "unsupported-language",
+        "invalid-feed-start-date",
+      ],
+    });
+    expect(report.joins).toMatchObject({
+      unexpectedNorthernStationIdCount: 1,
+      malformedNorthernStationIdCount: 1,
+    });
+  });
+
+  // Break: duplicate platform records silently choose station ownership according to CSV row order.
+  it("reports conflicting platform ownership deterministically and makes joins unreliable", () => {
+    const first = createDataset();
+    const second = createDataset();
+    const header = "UniqueId,StationUniqueId,AccessibleEntranceName,HasStepFreeRouteInformation";
+    const angel = "angel-platform,940GZZLUAGL,,TRUE";
+    const conflict = "angel-platform,HUBBAL,,TRUE";
+    const remaining = [
+      "balham-platform,HUBBAL,North entrance,TRUE",
+      "other-platform,940GZZLUXXX,,FALSE",
+    ];
+    writeFileSync(join(first.datasetDirectory, "Platforms.csv"), [header, angel, conflict, ...remaining, ""].join("\n"));
+    writeFileSync(join(second.datasetDirectory, "Platforms.csv"), [header, conflict, angel, ...remaining, ""].join("\n"));
+
+    const firstReport = analyze(first.datasetDirectory, first.outputPath);
+    const reversedReport = analyze(second.datasetDirectory, second.outputPath);
+
+    expect(firstReport).toEqual(reversedReport);
+    expect(firstReport.joins.ambiguousPlatformOwnershipCount).toBe(1);
+    expect(firstReport.contradictions).toContainEqual({
+      kind: "conflicting-platform-station-ownership",
+      canonicalStationId: "940GZZLUAGL",
+      fields: ["StationUniqueId"],
+    });
+    expect(firstReport.evidenceGate.reasons).toContain(
+      "Northern identifier joins are incomplete or ambiguous.",
+    );
   });
 
   // Break: an incomplete export produces a partial report instead of a clear file error.

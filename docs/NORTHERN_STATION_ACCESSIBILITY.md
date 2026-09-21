@@ -33,6 +33,14 @@ date, download identifier, or refresh cadence. `FeedStartDate` is therefore
 recorded under its source name and is not relabelled as “last updated” or used
 to assert that the facts are current.
 
+The generated artifact normalizes that valid timestamp to
+`2026-08-03T09:14:00.000Z`. Its metadata boundary accepts only the exact TfL
+publisher name, English language code, a strict timestamp, and an HTTPS TfL
+publisher origin with no username, password, port, path, query, or fragment.
+Anything else becomes the fixed value `Unknown` plus a fixed issue code; the
+source text is not copied. Unexpected or malformed station identifiers are
+reported as counts, never echoed into the artifact.
+
 ## Findings
 
 The join path is:
@@ -50,6 +58,13 @@ and station, no source station maps to multiple canonical IDs, and the audit
 found no conflicting duplicate Northern platform-service records. This makes
 the identifier relationship trustworthy for analysis, but it does not make
 every accessibility field complete or current.
+
+The audit also checks every `Platforms.csv` record sharing a platform ID before
+establishing station ownership. Identical ownership duplicates do not change
+the join. Conflicting station identifiers produce a fixed contradiction type,
+increment the ambiguous-platform count, make the join unreliable, and exclude
+that platform from station/facility attribution. This interpretation is
+independent of CSV row order.
 
 Important null patterns in the sanitized report include:
 
@@ -108,6 +123,7 @@ node scripts/analyze-northern-station-accessibility.mjs \
 
 The command fails when a required file or column is absent. Its output is
 Northern-only and excludes raw free-text notes, non-Northern records, input
-paths, credentials, and location data. Review the generated diff before
+paths, credentials, URL paths/queries/fragments, malformed identifiers, and
+location data. Review the generated diff before
 committing because a successful command does not change the evidence-gate
 decision automatically.

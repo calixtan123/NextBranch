@@ -5,7 +5,8 @@
     "publisherName": "Transport for London",
     "publisherUrl": "https://tfl.gov.uk",
     "language": "en",
-    "feedStartDate": "2026-08-03T09:14+00:00",
+    "feedStartDate": "2026-08-03T09:14:00.000Z",
+    "metadataIssueCodes": [],
     "attributionReliable": true,
     "freshnessReliable": false,
     "dateLimitation": "FeedStartDate is publisher supplied but is not asserted to be a last-updated or verified-current timestamp."
@@ -15,10 +16,12 @@
     "northernServiceStationCount": 52,
     "matchedStationCount": 52,
     "missingCanonicalStationIds": [],
-    "unexpectedNorthernStationIds": [],
+    "unexpectedNorthernStationIdCount": 0,
+    "malformedNorthernStationIdCount": 0,
     "northernPlatformServiceRowCount": 120,
     "missingPlatformJoinCount": 0,
     "missingStationJoinCount": 0,
+    "ambiguousPlatformOwnershipCount": 0,
     "ambiguousSourceStationMappingCount": 0,
     "unmatchedLiftRowCount": 0,
     "unmatchedToiletRowCount": 0
