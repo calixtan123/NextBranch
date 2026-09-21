@@ -10,9 +10,10 @@ const fetchDepartures = vi.hoisted(() => vi.fn());
 const requestedDepartures = vi.hoisted(() => [] as Array<{ station: string | null; active: boolean }>);
 const departureState = vi.hoisted(() => ({ data: null as Record<string, unknown> | null, loading: false, issue: null as string | null, cooldownUntil: 0 }));
 const searchParams = vi.hoisted(() => new URLSearchParams());
+const routerPush = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: routerPush }),
 }));
 vi.mock("./useJourneyRequest", () => ({
   useJourneyRequest: (journey: { from: string; to: string } | null) => { requestedJourneys.push(journey); return { ...requestState, data: journey && requestState.dataKey === `${journey.from}:${journey.to}` ? requestState.data : null, fetchJourney }; },
@@ -27,6 +28,7 @@ const recentStation = { id: "940GZZLUAGL", name: "Angel", lastUsedAt: 100 };
 const stationSelectionAt = 1_789_819_200_000;
 const defaultUserAgent = navigator.userAgent;
 const defaultVendor = navigator.vendor;
+const defaultGeolocation = navigator.geolocation;
 
 describe("Home", () => {
   afterEach(() => {
@@ -52,6 +54,7 @@ describe("Home", () => {
     fetchJourney.mockReset();
     requestedJourneys.length = 0;
     fetchDepartures.mockReset();
+    routerPush.mockReset();
     requestedDepartures.length = 0;
     departureState.data = null;
     departureState.loading = false;
@@ -68,6 +71,7 @@ describe("Home", () => {
     Object.defineProperty(window, "matchMedia", { configurable: true, value: undefined });
     Object.defineProperty(navigator, "userAgent", { configurable: true, value: defaultUserAgent });
     Object.defineProperty(navigator, "vendor", { configurable: true, value: defaultVendor });
+    Object.defineProperty(navigator, "geolocation", { configurable: true, value: defaultGeolocation });
   });
 
   // Break: an unconditional clock wakes once per second on empty and search screens.
@@ -728,6 +732,27 @@ describe("Home", () => {
     expect(fetchDepartures).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     expect(requestedDepartures.at(-1)).toEqual({ station: saved.from, active: false });
+  });
+
+  // Break: nearest-station location data is persisted or added to a navigation URL instead of staying browser-local.
+  it("opens the canonical nearest-station view and records only the station choice", async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) => success({
+      coords: { latitude: 51.5393, longitude: -0.1427, accuracy: 20 },
+    } as GeolocationPosition));
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: { getCurrentPosition },
+    });
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/?station=940GZZLUCTN"));
+    expect(requestedDepartures.at(-1)).toEqual({ station: "940GZZLUCTN", active: true });
+    const stored = localStorage.getItem(STATIONS_STORAGE_KEY) ?? "";
+    expect(stored).toContain('"id":"940GZZLUCTN"');
+    expect(stored).not.toContain("latitude");
+    expect(stored).not.toContain("longitude");
   });
 
   it("clears a journey URL when history moves to root and leaves no live request active", async () => {

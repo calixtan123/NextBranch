@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Combobox from "./Combobox";
 import DepartureBoard from "./DepartureBoard";
 import InstallHint from "./InstallHint";
+import NearestStationControl from "./NearestStationControl";
 import ShareControl from "./ShareControl";
 import TrainCard from "./TrainCard";
 import { useDeparturesRequest } from "./useDeparturesRequest";
@@ -289,6 +290,7 @@ export default function Home() {
         </ul>
       </section>}
       <Combobox label="Station" value={boardStation} onChange={selectBoardStation} />
+      <NearestStationControl onStation={selectBoardStation} />
       {!boardStation && <p className="empty">Choose a station to see live Northern line departures.</p>}
       {boardStation && departuresLoading && !departures && <p role="status" className="status">Checking live Northern line departures…</p>}
       {boardStation && departuresIssue && <div role="alert" className="warning">{departureProblem}{departures && <><br /><strong>Last prediction — information may be stale.</strong></>} <button onClick={() => void fetchDepartures(true)}>Retry</button></div>}
