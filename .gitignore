@@ -4,6 +4,8 @@ next-env.d.ts
 .env*
 !.env.example
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 .vercel/
 npm-debug.log*
@@ -15,3 +17,10 @@ tfl-stationdata-detailed
 # Agents.md
 AGENTS.md
 CLAUDE.md
+
+# Local agent skill tooling
+.agents/
+skills-lock.json
+
+# Isolated feature worktrees created by local development tooling
+.worktrees/

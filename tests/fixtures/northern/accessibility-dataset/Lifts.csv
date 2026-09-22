@@ -1,0 +1,3 @@
+StationUniqueId,LiftUniqueId,LimitedCapacityLift,LiftNotes
+HUBBAL,balham-lift-1,False,"Published note, deliberately excluded"
+940GZZLUXXX,other-lift-1,False,"Non-Northern note, deliberately excluded"

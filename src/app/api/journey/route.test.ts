@@ -28,6 +28,28 @@ describe("journey API", () => {
     expect(arrivals).not.toHaveBeenCalled();
     expect(timetable).not.toHaveBeenCalled();
   });
+  // Break: a hosting-level limiter denies a request but the public boundary still
+  // starts topology, arrival, or timetable work instead of returning retry guidance.
+  it("returns the public rate-limit contract before validating or fetching a journey", async () => {
+    const arrivals = vi.fn();
+    const routes = vi.fn();
+    const timetable = vi.fn();
+    const get = createJourneyHandler({
+      ...base,
+      arrivals,
+      routes,
+      timetable,
+      rateLimit: async () => ({ allowed: false }),
+    });
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(429);
+    expect(result.headers.get("Retry-After")).toBe("30");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "RATE_LIMITED", retryAfterSeconds: 30 });
+    expect(arrivals).not.toHaveBeenCalled();
+    expect(routes).not.toHaveBeenCalled();
+    expect(timetable).not.toHaveBeenCalled();
+  });
   it("rejects equal, unknown, and indirect pairs before arrivals or timetable", async () => {
     const arrivals = vi.fn();
     const timetable = vi.fn();
@@ -51,14 +73,16 @@ describe("journey API", () => {
     expect(body.trains).toEqual([]);
     expect(body).toHaveProperty("minutesSaved", null);
   });
-  it("maps origin failure to 503", async () => {
+  it("maps a malformed origin arrivals payload to the public 503 response", async () => {
     const get = createJourneyHandler({
       ...base,
       arrivals: async () => {
-        throw Error("down");
+        throw new TflError("upstream", "TfL arrivals payload invalid");
       },
     });
-    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(503);
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(503);
+    expect(await result.json()).toEqual({ error: "TFL_UNAVAILABLE" });
   });
   it("maps configuration failure to 500 and keeps no-store on failures", async () => {
     const get = createJourneyHandler({
@@ -155,6 +179,22 @@ describe("journey API", () => {
         (await futureOrInvalid(request("940GZZLUCTN", "940GZZLUEGW"))).status,
       ).toBe(503);
     }
+  });
+  // Break: a rejected or unusable live topology falls back safely but emits a
+  // misleading success diagnostic, hiding why the bundled topology was used.
+  it("records the normalized live-topology failure when bundled topology is used", async () => {
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const get = createJourneyHandler({
+      ...base,
+      arrivals: async () => [],
+      routes: async () => { throw new TflError("topology", "secret upstream URL"); },
+    });
+
+    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(200);
+    expect(diagnostic).toHaveBeenCalledWith("tfl_diagnostic", expect.objectContaining({
+      operation: "journey_topology", errorCategory: "topology", topologyFallbackUsed: true,
+    }));
+    diagnostic.mockRestore();
   });
   it("does not use a timetable for a different departure station", async () => {
     const origin = arrivalSchema.parse({

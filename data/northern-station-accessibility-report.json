@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "scope": "Northern line only",
+  "source": {
+    "publisherName": "Transport for London",
+    "publisherUrl": "https://tfl.gov.uk",
+    "language": "en",
+    "feedStartDate": "2026-08-03T09:14:00.000Z",
+    "metadataIssueCodes": [],
+    "attributionReliable": true,
+    "freshnessReliable": false,
+    "dateLimitation": "FeedStartDate is publisher supplied but is not asserted to be a last-updated or verified-current timestamp."
+  },
+  "joins": {
+    "canonicalStationCount": 52,
+    "northernServiceStationCount": 52,
+    "matchedStationCount": 52,
+    "missingCanonicalStationIds": [],
+    "unexpectedNorthernStationIdCount": 0,
+    "malformedNorthernStationIdCount": 0,
+    "northernPlatformServiceRowCount": 120,
+    "missingPlatformJoinCount": 0,
+    "missingStationJoinCount": 0,
+    "ambiguousPlatformOwnershipCount": 0,
+    "ambiguousSourceStationMappingCount": 0,
+    "unmatchedLiftRowCount": 0,
+    "unmatchedToiletRowCount": 0
+  },
+  "nullPatterns": {
+    "stations": {
+      "rowCount": 52,
+      "fields": {
+        "FareZones": 0,
+        "Wifi": 0,
+        "BlueBadgeCarParking": 0,
+        "BlueBadgeCarParkSpaces": 49
+      }
+    },
+    "platforms": {
+      "rowCount": 120,
+      "fields": {
+        "AccessibleEntranceName": 116,
+        "HasStepFreeRouteInformation": 0
+      }
+    },
+    "platformServices": {
+      "rowCount": 120,
+      "fields": {
+        "MinGap": 70,
+        "MaxGap": 70,
+        "AverageGap": 119,
+        "MinStep": 70,
+        "MaxStep": 70,
+        "AverageStep": 119,
+        "DesignatedLevelAccessPoint": 0,
+        "LocationOfLevelAccess": 106,
+        "LevelAccessByManualRamp": 0,
+        "AdditionalAccessibilityInformation": 113
+      }
+    },
+    "lifts": {
+      "rowCount": 66,
+      "fields": {
+        "LimitedCapacityLift": 0,
+        "LiftNotes": 65
+      }
+    },
+    "toilets": {
+      "rowCount": 32,
+      "fields": {
+        "IsAccessible": 0,
+        "Location": 2,
+        "OpeningHours": 32
+      }
+    }
+  },
+  "contradictions": [],
+  "evidenceGate": {
+    "outcome": "fail",
+    "reasons": [
+      "FeedInfo.csv has no explicit last-updated timestamp, feed version, or refresh cadence.",
+      "Station-complex lift/toilet rows cannot be attributed to Northern platforms at interchange hubs."
+    ]
+  },
+  "trustedForDisplay": [],
+  "prohibitedClaims": [
+    "live lift availability",
+    "whole-journey step-free status",
+    "a step-free route",
+    "accessibility confidence"
+  ],
+  "sanitization": {
+    "excludesNonNorthernRows": true,
+    "excludesFreeTextFields": [
+      "AdditionalAccessibilityInformation",
+      "LiftNotes",
+      "Location"
+    ],
+    "excludesSourcePaths": true
+  }
+}

@@ -19,7 +19,9 @@ describe("train card", () => {
     render(<TrainCard train={train} fresh minutesSaved={3} />);
     expect(screen.getByText(/Estimated/)).toBeInTheDocument();
     expect(screen.getByText("Arrives 3 min earlier")).toBeInTheDocument();
-    expect(screen.getByLabelText("Destination ETA: Estimated")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Destination ETA: ~11:25 · Estimated"),
+    ).toBeInTheDocument();
   });
   it("mutes stale countdowns and names unavailable destination ETAs", () => {
     render(<TrainCard train={{ ...train, destinationArrival: null, evidence: "unavailable" }} fresh={false} />);

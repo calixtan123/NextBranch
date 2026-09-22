@@ -27,6 +27,24 @@ describe("departures API", () => {
     expect(arrivals).not.toHaveBeenCalled();
   });
 
+  // Break: a hosting-level limiter denies a request but the public boundary still
+  // calls TfL or returns a generic error instead of the documented retry contract.
+  it("returns the public rate-limit contract before validating or fetching departures", async () => {
+    const arrivals = vi.fn();
+    const get = createDeparturesHandler({
+      arrivals,
+      now: () => now,
+      rateLimit: async () => ({ allowed: false }),
+    });
+
+    const result = await get(request(`?station=${station}`));
+    expect(result.status).toBe(429);
+    expect(result.headers.get("Retry-After")).toBe("30");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "RATE_LIMITED", retryAfterSeconds: 30 });
+    expect(arrivals).not.toHaveBeenCalled();
+  });
+
   it("returns every current station-bound Northern prediction in natural platform order", async () => {
     const get = createDeparturesHandler({
       now: () => now,
@@ -55,9 +73,9 @@ describe("departures API", () => {
     });
   });
 
-  it("maps TfL configuration and upstream failures to explicit no-store responses", async () => {
+  it("maps TfL configuration and malformed-arrivals upstream failures to explicit no-store responses", async () => {
     const configuration = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("config", "missing"); } });
-    const upstream = createDeparturesHandler({ now: () => now, arrivals: async () => { throw Error("down"); } });
+    const upstream = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("upstream", "TfL arrivals payload invalid"); } });
     expect(await (await configuration(request(`?station=${station}`))).json()).toEqual({ error: "CONFIGURATION_ERROR" });
     expect((await configuration(request(`?station=${station}`))).status).toBe(500);
     expect((await upstream(request(`?station=${station}`))).status).toBe(503);

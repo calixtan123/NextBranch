@@ -22,8 +22,9 @@ are read only on the server.
 
 ## Prerequisites and local run
 
-Use Node 20.9 or newer and npm. The repository records the intended version in
-`.nvmrc`.
+Use Node 24.x and npm. The repository records this version in `.nvmrc`, the
+package engine declaration, and continuous integration (the automated checks
+run on every push and pull request).
 
 ```bash
 nvm install
@@ -36,6 +37,82 @@ npm run dev
 
 Open <http://localhost:3000>. Never put the key in a `NEXT_PUBLIC_*` variable,
 browser code, fixtures, or a committed file. `.env.local` is ignored by git.
+
+## Phone and simulator workflows
+
+The normal `localhost` address is reachable only from the Mac running Next.js.
+For a physical phone, start the development server on the Mac's network
+interfaces:
+
+```bash
+npm run dev -- --hostname 0.0.0.0
+```
+
+`--hostname` is a Next.js command-line option. `0.0.0.0` tells the development
+server to listen for connections on the Mac's network interfaces. LAN means
+“local area network”: in this workflow it is the trusted Wi-Fi network shared
+by the Mac and the phone. Find the Mac's Wi-Fi/LAN IP address in the macOS
+network settings, then use that address on the phone:
+
+```text
+http://<Mac-LAN-IP>:3000
+```
+
+The physical phone must be on the same trusted Wi-Fi. The TfL request still
+passes through the Mac's Next.js server, so keep `TFL_API_KEY` in the Mac's
+`.env.local` only. Do not copy the key to the phone, put it in a URL, or create
+a `NEXT_PUBLIC_TFL_API_KEY` variable. If the phone cannot connect, check the
+Mac firewall and whether the Wi-Fi network blocks device-to-device traffic;
+never solve this by exposing the key or development server to an untrusted
+network.
+
+An iOS Simulator is a virtual iPhone running on the Mac; an Android Emulator
+is a virtual Android device. They are useful for repeatable browser checks but
+are not physical-device evidence (for example, they do not reproduce every
+radio, safe-area, keyboard, or OS integration detail). Use these addresses:
+
+| Target | Browser | Address |
+| --- | --- | --- |
+| Physical phone on the same Wi-Fi | Safari or Chrome | `http://<Mac-LAN-IP>:3000` |
+| iOS Simulator | Safari | `http://localhost:3000` |
+| Standard Android Emulator | Chrome | `http://10.0.2.2:3000` |
+
+`10.0.2.2` is the standard Android Emulator alias for the host computer's
+`localhost`; it is not the address to use on a physical Android phone.
+
+Local HTTP is enough to check responsive layout, interaction, keyboard/focus
+behaviour, and the application's ordinary live/stale/error handling. An
+HTTPS Preview is a deployed preview URL served over encrypted HTTPS. Use an
+HTTPS Preview for production-like PWA installation and geolocation checks:
+modern browsers restrict sensitive APIs such as geolocation to a secure
+context, and install behaviour differs between HTTP development pages and a
+deployed origin. A local HTTP check must not be recorded as geolocation or
+production-like installation evidence.
+
+PWA means “Progressive Web App”: a website that can advertise install metadata
+to the browser and, when the browser supports it, open from a home-screen icon
+like an app. This project has a web manifest, standalone metadata, and owned
+icons, but deliberately has no service worker or offline live-data cache. An
+installed icon therefore does not make live TfL data available offline.
+
+### Install from a physical browser
+
+Use the HTTPS Preview on a physical device when collecting release evidence.
+The browser may offer slightly different wording, and the app does not promise
+a guaranteed install prompt.
+
+- **iOS Safari:** open the HTTPS Preview, tap **Share**, choose **Add to Home
+  Screen**, review the name, and tap **Add**. Launch the new home-screen icon
+  and check that the app opens in its standalone presentation.
+- **Android Chrome:** open the HTTPS Preview, tap the three-dot menu, choose
+  **Install app** or **Add to Home screen** (the available label depends on
+  Chrome), confirm, and launch the new icon.
+
+Simulator/emulator installation can be a useful supplementary check of browser
+menus and manifest metadata, but it does not replace a physical iPhone or
+Android phone check. Record physical-device installation, safe-area, and
+network results separately in the release checklist in
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 ## Tests and build
 
@@ -51,6 +128,25 @@ npm run build
 npm start
 ```
 
+## Reviewed topology maintenance
+
+The bundled route fallback is a reviewed Northern-line snapshot, not a live
+claim. Its structured source is `data/northern-topology-capture.json`. After a
+sanitized TfL capture has been independently reviewed, run:
+
+```bash
+npm run generate:topology
+npm run check:topology-age
+npm run verify:release
+```
+
+The generator schema-validates the capture, writes both the server fallback
+and browser direct-destination map in one command, stamps both with the same
+capture time, and prints a short change summary. It does not commit, publish,
+or deploy anything: inspect the generated diff before committing. The routine
+age check begins warning at 23 days. `verify:release` fails only after 30 full
+days, leaving a one-week maintenance window to refresh and review the data.
+
 The optional discovery tool requires a key for live sampling and never prints
 it. It can instead inspect a deliberately supplied fixture path:
 
@@ -58,6 +154,23 @@ it. It can instead inspect a deliberately supplied fixture path:
 node scripts/tfl-discovery.mjs
 node scripts/tfl-discovery.mjs --fixture tests/fixtures/tfl/camden-arrivals.json
 ```
+
+## Station-accessibility data audit
+
+The ignored detailed station export has a repeatable Northern-only audit, not a
+runtime integration. The current evidence gate failed, so the app deliberately
+does not display a station-accessibility card. See
+[`docs/NORTHERN_STATION_ACCESSIBILITY.md`](docs/NORTHERN_STATION_ACCESSIBILITY.md)
+for the provenance, join, null, and scope findings. To regenerate the sanitized
+report, supply the source directory explicitly:
+
+```bash
+node scripts/analyze-northern-station-accessibility.mjs \
+  /absolute/path/to/tfl-stationdata-detailed \
+  data/northern-station-accessibility-report.json
+```
+
+The raw CSV export remains ignored and must not be committed.
 
 ## Project map
 

@@ -23,12 +23,41 @@ export const arrivalSchema = z
   .strip();
 export const arrivalsSchema = z.array(z.unknown());
 export type Arrival = z.infer<typeof arrivalSchema>;
+
+/**
+ * Parses a TfL arrivals snapshot while retaining usable individual records.
+ *
+ * Parameters
+ * ----------
+ * value : unknown
+ *     Untrusted upstream JSON payload.
+ *
+ * Returns
+ * -------
+ * Arrival[]
+ *     Validated arrivals. An empty upstream array remains a valid empty snapshot.
+ *
+ * Raises
+ * ------
+ * ZodError
+ *     If the payload is not an array, or if a non-empty array contains no valid
+ *     arrival records.
+ */
 export function parseArrivals(value: unknown): Arrival[] {
   const list = arrivalsSchema.parse(value);
-  return list.flatMap((item) => {
+  const arrivals = list.flatMap((item) => {
     const parsed = arrivalSchema.safeParse(item);
     return parsed.success ? [parsed.data] : [];
   });
+  if (list.length > 0 && arrivals.length === 0)
+    throw new z.ZodError([
+      {
+        code: "custom",
+        message: "TfL arrivals payload contains no valid records",
+        path: [],
+      },
+    ]);
+  return arrivals;
 }
 const stop = z
   .object({ id: z.string().optional(), stationId: z.string().optional() })

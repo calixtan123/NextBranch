@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-09-15T21:53:00.000Z",
+  "topology": [
+    {
+      "lineId": "central",
+      "orderedLineRoutes": [
+        {
+          "name": "Unsafe non-Northern route",
+          "naptanIds": ["940GZZLUCTN", "940GZZLUMDN"],
+          "serviceType": "Regular"
+        }
+      ],
+      "stopPointSequences": []
+    }
+  ]
+}

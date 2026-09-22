@@ -1,0 +1,4 @@
+UniqueId,StationUniqueId,AccessibleEntranceName,HasStepFreeRouteInformation
+angel-platform,940GZZLUAGL,,TRUE
+balham-platform,HUBBAL,North entrance,TRUE
+other-platform,940GZZLUXXX,,FALSE

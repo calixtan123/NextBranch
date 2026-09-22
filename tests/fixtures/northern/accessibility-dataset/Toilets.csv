@@ -1,0 +1,3 @@
+StationUniqueId,Id,IsAccessible,Location,OpeningHours
+HUBBAL,1,TRUE,"Ticket hall, beside gate",
+940GZZLUXXX,1,FALSE,"Non-Northern location",24 hours
