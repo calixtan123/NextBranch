@@ -207,8 +207,17 @@ function normalizeSourceMetadata(feed) {
   if (language === unknownSourceValue) metadataIssueCodes.push("unsupported-language");
 
   const rawDate = feed.FeedStartDate.trim();
-  const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
-  const parsedDate = timestampPattern.test(rawDate) ? new Date(rawDate) : null;
+  const timestampPattern = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+  const dateParts = timestampPattern.exec(rawDate);
+  let parsedDate = null;
+  if (dateParts) {
+    const [, year, month, day] = dateParts.map(Number);
+    const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    // Validate the supplied calendar date before Date can roll it into another month.
+    // Do this before UTC conversion, which may legitimately change the calendar day.
+    if (day >= 1 && day <= (daysInMonth[month - 1] ?? 0)) parsedDate = new Date(rawDate);
+  }
   const feedStartDate = parsedDate && Number.isFinite(parsedDate.getTime())
     ? parsedDate.toISOString()
     : unknownSourceValue;

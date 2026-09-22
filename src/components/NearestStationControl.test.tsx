@@ -1,6 +1,6 @@
 /** Verifies opt-in location errors, confirmation boundaries, selection, and privacy. */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import NearestStationControl from "./NearestStationControl";
 
@@ -32,6 +32,38 @@ afterEach(() => {
 });
 
 describe("NearestStationControl", () => {
+  // Break: a browser callback can select a station after its control has gone away.
+  it("ignores a delayed result after unmount", () => {
+    let complete!: PositionCallback;
+    getCurrentPosition.mockImplementation((success: PositionCallback) => { complete = success; });
+    setGeolocation({ getCurrentPosition } as unknown as Geolocation);
+    const onStation = vi.fn();
+    const { unmount } = render(<NearestStationControl onStation={onStation} />);
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+
+    unmount();
+    act(() => complete(position(51.5393, -0.1427, 20)));
+
+    expect(onStation).not.toHaveBeenCalled();
+  });
+
+  // Break: a previous lookup's failure erases the current lookup's confirmation.
+  it("ignores an older error while the current result awaits confirmation", () => {
+    const callbacks: Array<{ success: PositionCallback; failure: PositionErrorCallback }> = [];
+    getCurrentPosition.mockImplementation((success: PositionCallback, failure: PositionErrorCallback) => { callbacks.push({ success, failure }); });
+    setGeolocation({ getCurrentPosition } as unknown as Geolocation);
+    const onStation = renderControl();
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+
+    act(() => callbacks[1].success(position(51.5393, -0.1427, 251)));
+    act(() => callbacks[0].failure(error(3)));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Use Camden Town" }));
+    expect(onStation).toHaveBeenCalledWith(expect.objectContaining({ id: "940GZZLUCTN" }));
+  });
+
   // Break: a browser without location support tries to use an unavailable API or hides manual selection guidance.
   it("keeps manual selection available when geolocation is unsupported", () => {
     setGeolocation(undefined);

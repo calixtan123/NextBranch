@@ -63,6 +63,33 @@ afterEach(() => {
 });
 
 describe("Northern station-accessibility analysis", () => {
+  // Break: Date silently rolls impossible February dates into March and presents invented source metadata.
+  it.each(["2026-02-30T09:14:00Z", "2026-02-29T09:14:00Z", "2100-02-29T09:14:00+01:00"])("rejects impossible calendar date %s", (date) => {
+    const paths = createDataset();
+    writeFileSync(join(paths.datasetDirectory, "FeedInfo.csv"),
+      `FeedPublisherName,FeedPublisherUrl,FeedLang,FeedStartDate\nTransport for London,https://tfl.gov.uk,en,${date}\n`);
+
+    const report = analyze(paths.datasetDirectory, paths.outputPath);
+
+    expect(report.source.feedStartDate).toBe("Unknown");
+    expect(report.source.metadataIssueCodes).toEqual(["invalid-feed-start-date"]);
+  });
+
+  // Break: calendar validation rejects real leap days or compares UTC components with a local offset date.
+  it.each([
+    ["2024-02-29T09:14:00Z", "2024-02-29T09:14:00.000Z"],
+    ["2000-02-29T00:14:00+01:00", "2000-02-28T23:14:00.000Z"],
+  ])("preserves valid leap date %s", (date, expected) => {
+    const paths = createDataset();
+    writeFileSync(join(paths.datasetDirectory, "FeedInfo.csv"),
+      `FeedPublisherName,FeedPublisherUrl,FeedLang,FeedStartDate\nTransport for London,https://tfl.gov.uk,en,${date}\n`);
+
+    const report = analyze(paths.datasetDirectory, paths.outputPath);
+
+    expect(report.source.feedStartDate).toBe(expected);
+    expect(report.source.metadataIssueCodes).toEqual([]);
+  });
+
   // Break: CSV quoting or line filtering leaks raw/non-Northern records into the committed report.
   it("parses quoted CSV and emits a sanitized Northern-only report", () => {
     const paths = createDataset();

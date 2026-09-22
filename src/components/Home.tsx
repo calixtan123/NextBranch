@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Combobox from "./Combobox";
 import DepartureBoard from "./DepartureBoard";
 import InstallHint from "./InstallHint";
-import NearestStationControl from "./NearestStationControl";
+import NearestStationControl, { type NearestStationControlHandle } from "./NearestStationControl";
 import ShareControl from "./ShareControl";
 import TrainCard from "./TrainCard";
 import { useDeparturesRequest } from "./useDeparturesRequest";
@@ -67,6 +67,7 @@ export default function Home() {
   const stationCollectionRef = useRef<StationCollection>({ saved: [], recent: [] });
   const stationStorageInitialized = useRef(false);
   const stationUndoSequence = useRef(0);
+  const nearestStationControl = useRef<NearestStationControlHandle>(null);
   const journey = useMemo(() => from && to ? { from: from.id, to: to.id, fromName: from.name, toName: to.name } : null, [from, to]);
   const activeJourney = useMemo(() => activated && journey && activated.from === journey.from && activated.to === journey.to ? journey : null, [activated, journey]);
   const stationRows = useMemo(() => displayStations(stationCollection), [stationCollection]);
@@ -80,6 +81,10 @@ export default function Home() {
   const expiredRefresh = useRef("");
   const clearJourneyUndo = useCallback(() => setJourneyUndo(null), []);
   const clearStationUndo = useCallback(() => setStationUndo(null), []);
+
+  // URL changes can preserve this view and its control. Revoke location intent
+  // at commit, before a delayed browser callback can replace the new URL choice.
+  useLayoutEffect(() => { nearestStationControl.current?.cancel(); }, [urlKey]);
 
   useEffect(() => {
     latestUrlSelection.current = { hasStation: Boolean(urlStation), hasJourney: validUrlJourney };
@@ -161,7 +166,7 @@ export default function Home() {
     const timer = window.setTimeout(() => setSuccesses((count) => count + 1), 0);
     return () => window.clearTimeout(timer);
   }, [data, issue]);
-  const navigateView = (next: View) => { viewTouched.current = true; setView(next); };
+  const navigateView = (next: View) => { nearestStationControl.current?.cancel(); viewTouched.current = true; setView(next); };
   const showDepartures = () => navigateView("departures");
   const showJourneys = () => navigateView(saved.length ? "journeys" : "search");
   const activate = (next: Journey) => { explicitPending.current = true; setFrom(byId.get(next.from) ?? null); setTo(byId.get(next.to) ?? null); setActivated({ from: next.from, to: next.to }); navigateView("results"); router.push(`/?from=${next.from}&to=${next.to}`); };
@@ -180,6 +185,7 @@ export default function Home() {
     setStationUndo({ id: stationUndoSequence.current, station, membership, displaced, message });
   }, []);
   const selectBoardStation = useCallback((station: Station | null) => {
+    nearestStationControl.current?.cancel();
     setBoardStation(station);
     if (!station) return;
     updateStationCollection((current) => recordRecentStation(current, station.id, Date.now()));
@@ -290,7 +296,7 @@ export default function Home() {
         </ul>
       </section>}
       <Combobox label="Station" value={boardStation} onChange={selectBoardStation} />
-      <NearestStationControl onStation={selectBoardStation} />
+      <NearestStationControl ref={nearestStationControl} onStation={selectBoardStation} />
       {!boardStation && <p className="empty">Choose a station to see live Northern line departures.</p>}
       {boardStation && departuresLoading && !departures && <p role="status" className="status">Checking live Northern line departures…</p>}
       {boardStation && departuresIssue && <div role="alert" className="warning">{departureProblem}{departures && <><br /><strong>Last prediction — information may be stale.</strong></>} <button disabled={now !== null && now < departuresCooldown} onClick={() => void fetchDepartures(true)}>Retry</button></div>}

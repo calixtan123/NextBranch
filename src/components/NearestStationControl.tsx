@@ -2,12 +2,14 @@
 
 /** Keeps opt-in browser geolocation, confirmation, and recovery UI browser-local. */
 
-import { useState } from "react";
+import { useCallback, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { findNearestStations } from "@/lib/northern/nearest-station";
 import { northernStationCoordinates } from "@/lib/northern/station-coordinates";
 import { byId, type Station } from "@/lib/northern/stations";
 
-type Props = Readonly<{ onStation: (station: Station) => void }>;
+/** Allows the owning view to revoke location intent without remounting the control. */
+export type NearestStationControlHandle = Readonly<{ cancel: () => void }>;
+type Props = Readonly<{ onStation: (station: Station) => void; ref?: Ref<NearestStationControlHandle> }>;
 type Proposal = Readonly<{ station: Station; distanceMetres: number; reason: "accuracy" | "close" }>;
 
 const POOR_ACCURACY_METRES = 250;
@@ -42,17 +44,29 @@ const errorMessage = (error: GeolocationPositionError): string => {
  * ----------
  * onStation : (station: Station) => void
  *     Receives the accepted canonical station without raw browser coordinates.
+ * ref : Ref<NearestStationControlHandle>, optional
+ *     Cancels pending results and confirmation when the owner changes selection or navigates.
  *
  * Returns
  * -------
  * React.ReactNode
  *     An opt-in nearest-station control with accessible status and confirmation UI.
  */
-export default function NearestStationControl({ onStation }: Props) {
+export default function NearestStationControl({ onStation, ref }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  const lookupSequence = useRef(0);
+  const cancel = useCallback(() => {
+    lookupSequence.current += 1;
+    setMessage(null);
+    setProposal(null);
+  }, []);
+  useImperativeHandle(ref, () => ({ cancel }), [cancel]);
+  // getCurrentPosition has no abort API. Revoke callback ownership on cleanup.
+  useLayoutEffect(() => () => { lookupSequence.current += 1; }, []);
 
   const selectNearest = () => {
+    const requestId = ++lookupSequence.current;
     if (!navigator.geolocation) {
       setProposal(null);
       setMessage("Your browser does not support location. Choose a station manually.");
@@ -62,6 +76,8 @@ export default function NearestStationControl({ onStation }: Props) {
     setProposal(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (requestId !== lookupSequence.current) return;
+        lookupSequence.current += 1;
         try {
           validateBrowserLocation(position.coords);
           const ranked = findNearestStations(position.coords, northernStationCoordinates);
@@ -86,6 +102,8 @@ export default function NearestStationControl({ onStation }: Props) {
         }
       },
       (error) => {
+        if (requestId !== lookupSequence.current) return;
+        lookupSequence.current += 1;
         setProposal(null);
         setMessage(`${errorMessage(error)} Choose a station manually.`);
       },
@@ -107,7 +125,7 @@ export default function NearestStationControl({ onStation }: Props) {
     {message && <p className="status" role={message.includes("Choose a station manually") ? "alert" : "status"}>{message}</p>}
     {proposal && <div className="nearest-station-proposal" role="status">
       <p>{proposal.reason === "accuracy" ? "Location accuracy is low. " : "The nearest result is close to another station. "}Nearest station: <strong>{proposal.station.name}</strong>, about {distance}.</p>
-      <div className="form-actions"><button type="button" onClick={() => { setProposal(null); }}>Choose manually</button><button className="primary" type="button" onClick={confirmProposal}>Use {proposal.station.name}</button></div>
+      <div className="form-actions"><button type="button" onClick={cancel}>Choose manually</button><button className="primary" type="button" onClick={confirmProposal}>Use {proposal.station.name}</button></div>
     </div>}
   </div>;
 }

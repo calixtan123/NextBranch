@@ -30,6 +30,25 @@ const defaultUserAgent = navigator.userAgent;
 const defaultVendor = navigator.vendor;
 const defaultGeolocation = navigator.geolocation;
 
+/** Captures browser callbacks so tests can deliver results after newer passenger actions. */
+function delayLocationResults() {
+  const results: PositionCallback[] = [];
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: { getCurrentPosition: (success: PositionCallback) => { results.push(success); } },
+  });
+  return results;
+}
+
+/** Supplies a complete browser position without invoking the real location service. */
+function locationPosition(latitude: number, longitude: number, accuracy = 20): GeolocationPosition {
+  return {
+    coords: { latitude, longitude, accuracy, altitude: null, altitudeAccuracy: null, heading: null, speed: null, toJSON: () => ({}) },
+    timestamp: stationSelectionAt,
+    toJSON: () => ({}),
+  };
+}
+
 describe("Home", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -780,6 +799,101 @@ describe("Home", () => {
     expect(stored).toContain('"id":"940GZZLUCTN"');
     expect(stored).not.toContain("latitude");
     expect(stored).not.toContain("longitude");
+  });
+
+  // Break: an old location overrides a manual station choice, including reselecting the active station.
+  it.each(["search", "saved station"])("keeps a newer %s selection when an obsolete location arrives", async (method) => {
+    searchParams.set("station", recentStation.id);
+    localStorage.setItem(STATIONS_STORAGE_KEY, JSON.stringify({ saved: [recentStation], recent: [] }));
+    const results = delayLocationResults();
+    render(<Home />);
+    await screen.findByRole("button", { name: "Angel" });
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+    if (method === "search") {
+      const stationBox = screen.getByRole("combobox", { name: "Station" });
+      fireEvent.focus(stationBox);
+      fireEvent.change(stationBox, { target: { value: "ang" } });
+      fireEvent.click(screen.getByRole("option", { name: "Angel" }));
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: "Angel" }));
+    }
+    const stored = localStorage.getItem(STATIONS_STORAGE_KEY);
+
+    act(() => results[0](locationPosition(51.5393, -0.1427)));
+
+    expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Angel");
+    expect(requestedDepartures.at(-1)).toEqual({ station: recentStation.id, active: true });
+    expect(routerPush.mock.calls).toEqual([["/?station=940GZZLUAGL"]]);
+    expect(localStorage.getItem(STATIONS_STORAGE_KEY)).toBe(stored);
+  });
+
+  // Break: same-page URL navigation leaves an older lookup able to rewrite URL, history, and active station.
+  it("invalidates location on URL navigation while the nearest control remains mounted", async () => {
+    searchParams.set("station", savedStation.id);
+    const results = delayLocationResults();
+    const { rerender } = render(<Home />);
+    const nearestButton = screen.getByRole("button", { name: "Use nearest station" });
+    fireEvent.click(nearestButton);
+    searchParams.set("station", recentStation.id);
+    rerender(<Home />);
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Angel"));
+    expect(screen.getByRole("button", { name: "Use nearest station" })).toBe(nearestButton);
+    const stored = localStorage.getItem(STATIONS_STORAGE_KEY);
+
+    act(() => results[0](locationPosition(51.5393, -0.1427)));
+
+    expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Angel");
+    expect(requestedDepartures.at(-1)).toEqual({ station: recentStation.id, active: true });
+    expect(searchParams.toString()).toBe("station=940GZZLUAGL");
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STATIONS_STORAGE_KEY)).toBe(stored);
+  });
+
+  // Break: leaving departures or unmounting Home does not revoke a pending lookup's storage/navigation effects.
+  it.each(["journeys", "unmount"])("ignores a delayed location after %s navigation", (navigation) => {
+    searchParams.set("station", recentStation.id);
+    const results = delayLocationResults();
+    const { unmount } = render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+    if (navigation === "journeys") fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
+    else unmount();
+    const stored = localStorage.getItem(STATIONS_STORAGE_KEY);
+    const active = requestedDepartures.at(-1);
+
+    act(() => results[0](locationPosition(51.5393, -0.1427)));
+
+    expect(requestedDepartures.at(-1)).toEqual(active);
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(searchParams.toString()).toBe("station=940GZZLUAGL");
+    expect(localStorage.getItem(STATIONS_STORAGE_KEY)).toBe(stored);
+    if (navigation === "journeys") expect(screen.getByRole("heading", { name: "Plan a journey" })).toBeInTheDocument();
+  });
+
+  // Break: out-of-order success callbacks let an older result replace the latest selection or confirmation.
+  it.each([20, 251])("accepts only the latest overlapping lookup with accuracy %s", (accuracy) => {
+    const results = delayLocationResults();
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use nearest station" }));
+
+    act(() => results[1](locationPosition(51.531774, -0.105977, accuracy)));
+    const stored = localStorage.getItem(STATIONS_STORAGE_KEY);
+    const navigations = [...routerPush.mock.calls];
+    act(() => results[0](locationPosition(51.5393, -0.1427)));
+
+    expect(localStorage.getItem(STATIONS_STORAGE_KEY)).toBe(stored);
+    expect(routerPush.mock.calls).toEqual(navigations);
+    if (accuracy > 250) {
+      expect(requestedDepartures.at(-1)).toEqual({ station: null, active: false });
+      expect(routerPush).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Use Angel" }));
+    }
+    expect(screen.getByRole("combobox", { name: "Station" })).toHaveValue("Angel");
+    expect(requestedDepartures.at(-1)).toEqual({ station: recentStation.id, active: true });
+    expect(routerPush.mock.calls).toEqual([["/?station=940GZZLUAGL"]]);
+    const collection = JSON.parse(localStorage.getItem(STATIONS_STORAGE_KEY)!);
+    expect(collection.saved).toEqual([]);
+    expect(collection.recent.map((station: { id: string }) => station.id)).toEqual(["940GZZLUAGL"]);
   });
 
   it("clears a journey URL when history moves to root and leaves no live request active", async () => {

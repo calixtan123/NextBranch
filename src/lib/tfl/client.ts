@@ -25,7 +25,9 @@ export class TflError extends Error {
 
 const BASE_URL = "https://api.tfl.gov.uk";
 const TOPOLOGY_REVALIDATE_SECONDS = 43_200;
-// Leave room for the browser's twelve-second deadline to receive our response.
+// The browser has a 20-second overall budget. A journey may first fetch topology,
+// then arrivals/timetable in parallel: two sequential eight-second stages leave
+// room for processing and delivering the response within that browser budget.
 const TFL_REQUEST_TIMEOUT_MS = 8_000;
 const inFlightArrivals = new Map<string, Promise<Arrival[]>>();
 
