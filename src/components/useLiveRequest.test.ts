@@ -18,7 +18,12 @@ describe("live request deadlines", () => {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
   });
-  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    // singleFork shares the document across files; remove our visibility override.
+    Reflect.deleteProperty(document, "visibilityState");
+  });
 
   // Break: the browser deadline expires during the journey route's second legal server phase.
   it("accepts a valid response after delayed route lookup and failed optional destination work", async () => {
