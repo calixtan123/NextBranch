@@ -49,8 +49,8 @@ it("supports all eleven official Underground feeds and only observed unique plat
     expect(undergroundFeeds(match[0]!.station)).toContainEqual({ lineId: line, stopAreaId: match[0]!.service.stop_area_naptan_code });
   }
   const kew = catalogue.stationsById.get("HUBKWG")!;
-  expect(undergroundFeeds(kew)).toEqual([{ lineId: "district", stopAreaId: "940GZZLUKWG" }]);
-  expect(serviceCapability(kew, kew.platforms[0]!, kew.platforms[0]!.services.find(s => s.line_id === "mildmay")!)).toMatchObject({ feed: "unverified", mapping: "unverified" });
+  expect(undergroundFeeds(kew)).toEqual([{ lineId: "district", stopAreaId: "940GZZLUKWG" }, { lineId: "mildmay", stopAreaId: "910GKEWGRDN" }]);
+  expect(serviceCapability(kew, kew.platforms[0]!, kew.platforms[0]!.services.find(s => s.line_id === "mildmay")!)).toMatchObject({ feed: "supported", mapping: "supported" });
 });
 
 it("requires matching line and service stop area before assigning a same-number physical platform", () => {
@@ -95,8 +95,39 @@ it("reviews 99 of 101 DLR platform/service pairs without expanding other modes a
   expect(dlr.filter(c => c.mapping === "supported")).toHaveLength(99);
   expect(dlr.every(c => c.feed === "supported")).toBe(true);
   expect(departureFeeds({ ...colindale, platforms: [] })).toEqual([]);
-  for (const lineId of ["elizabeth", "mildmay", "tram", "london-cable-car"]) {
+  for (const lineId of ["elizabeth", "tram", "london-cable-car"]) {
     const platform = colindale.platforms[0];
     expect(serviceCapability(colindale, platform, { ...platform.services[0], line_id: lineId })).toMatchObject({ feed: "unverified", mapping: "unverified" });
   }
+});
+
+it.each([
+  ['liberty', 4, 2], ['lioness', 41, 33], ['mildmay', 58, 56],
+  ['suffragette', 26, 8], ['weaver', 57, 54], ['windrush', 59, 57],
+])('reviews exact current %s service mappings, retaining unobserved and ambiguous pairs', (line, total, verified) => {
+  const pairs = catalogue.stations.flatMap(station => station.platforms.flatMap(platform => platform.services
+    .filter(service => service.line_id === line).map(service => serviceCapability(station, platform, service))));
+  expect(pairs).toHaveLength(total as number);
+  expect(pairs.filter(c => c.mapping === 'supported')).toHaveLength(verified as number);
+  expect(pairs.every(c => c.feed === 'supported')).toBe(true);
+});
+
+it('leaves the two Emerson Park physical records unassigned despite the observed Liberty Platform 1 label', () => {
+  const station = catalogue.stationsById.get('910GEMRSPKH')!;
+  expect(station.platforms).toHaveLength(2);
+  for (const platform of station.platforms) expect(serviceCapability(station, platform, platform.services[0]!)).toMatchObject({ feed: 'supported', mapping: 'unverified' });
+  expect(physicalPlatformForTrain(station, { lineId: 'liberty', stopAreaId: station.station_id, platformConfirmed: true, platform: '1', direction: null })).toBeNull();
+});
+
+it('matches current service identity beneath historical Overground IDs while preserving shared National Rail coverage', () => {
+  const station = catalogue.stationsById.get('HUBEUS')!;
+  const platform = station.platforms.find(p => p.platform_number === '9')!;
+  expect(platform.platform_id).toContain('london-overground');
+  expect(physicalPlatformForTrain(station, { lineId: 'lioness', stopAreaId: '910GEUSTON', platformConfirmed: true, platform: '9', direction: null })).toBe(platform.platform_id);
+  for (const extra of [{ lineId: 'london-overground' }, { lineId: 'weaver' }, { stopAreaId: 'HUBEUS' }, { stopAreaId: undefined }, { direction: 'Southbound' as const }]) {
+    expect(physicalPlatformForTrain(station, { lineId: 'lioness', stopAreaId: '910GEUSTON', platformConfirmed: true, platform: '9', direction: null, ...extra })).toBeNull();
+  }
+  const metadata = catalogueMetadata(station, 'empty');
+  expect(metadata.platforms.find(p => p.platformNumber === '9')!.services.map(s => [s.lineId, s.capability.feed])).toEqual([['lioness', 'supported'], ['national-rail', 'unsupported']]);
+  expect(metadata.platforms).toEqual(catalogueMetadata(station, 'unavailable').platforms);
 });

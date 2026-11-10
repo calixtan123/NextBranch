@@ -15,7 +15,7 @@ it.each([undefined, "", "Canary Wharf", "Platform 2/3", "940GZZDLCAN-Plat03", "N
 });
 it("preserves Underground confidence and refuses unverified modes", () => {
   expect(railPlatformInfo("central", "Eastbound - Platform 1")).toEqual({ platform: "1", direction: "Eastbound", confirmed: true });
-  expect(railPlatformInfo("mildmay", "Platform 1").confirmed).toBe(false);
+  expect(railPlatformInfo("elizabeth", "Platform 1").confirmed).toBe(false);
 });
 it("keeps blank DLR fields, exact feed identity, unknown direction and distinct platform suffixes", () => {
   const values = [arrival({ destinationName: "", towards: "" }), arrival({ naptanId: "other-stop" }), arrival({ id: "suffix", platformName: "4a" })];
@@ -40,4 +40,18 @@ it("retains every distinct official DLR prediction despite reused upstream IDs a
   expect(trains).toHaveLength(18);
   expect(new Set(trains.map(t => t.id)).size).toBe(18);
   expect(new Set(trains.map(t => t.platform))).toEqual(new Set(["1", "2", "3", "4", "5", "6"]));
+});
+
+it.each(['liberty', 'lioness', 'mildmay', 'suffragette', 'weaver', 'windrush'])("normalizes current Overground %s with explicit numbers and no inferred cardinal direction", lineId => {
+  const trains = normalizeRailPredictions([arrival({ lineId, platformName: 'Platform 1' })], now);
+  expect(trains).toHaveLength(1);
+  expect(trains[0]).toMatchObject({ lineId, platform: '1', direction: null, platformConfirmed: true });
+  for (const platformName of ['Platform Unknown', 'Platform 1/2', 'Northbound - Platform 1', undefined]) {
+    expect(railPlatformInfo(lineId, platformName)).toEqual({ platform: null, direction: null, confirmed: false });
+  }
+  expect(normalizeRailPredictions([arrival({ lineId, timestamp: '2026-11-10T11:00:00Z' })], now)).toEqual([]);
+});
+
+it("reads the official Windrush New Cross single-letter label", () => {
+  expect(railPlatformInfo("windrush", "D")).toEqual({ platform: "D", direction: null, confirmed: true });
 });

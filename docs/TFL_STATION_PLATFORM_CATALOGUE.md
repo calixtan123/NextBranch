@@ -155,6 +155,32 @@ TfL reused one upstream prediction ID across Canary Wharf's 18 records. DLR norm
 
 Automated native screen walkthroughs exercise Canary Wharf platforms 3/4 and Stratford 4A/4B through Search → Picker → Departures → Save → persisted reload → Home → reopened Departures during available, successful empty and outage snapshots. Separate rendered-board checks preserve blank direction/towards wording and distinguish temporary failure from empty departures. These tests mock native view boundaries. Simulator/device appearance, gestures and native accessibility remain separate acceptance work.
 
+## NB-10 London Overground departures and reviewed platform coverage
+
+The existing server-only rail transport now supports Liberty, Lioness, Mildmay, Suffragette, Weaver and Windrush using their current service line IDs. Each request resolves the canonical station to the exact published service stop area. Examples include Euston → `lioness` / `910GEUSTON`, Liverpool Street → `weaver` / `910GLIVST`, and Kew Gardens → separate District `940GZZLUKWG` and Mildmay `910GKEWGRDN` feeds. Historical `london-overground` text remains in physical-platform IDs and never establishes line membership.
+
+Official network and representative station endpoint responses were captured on 10 November 2026. `data/tfl-overground-evidence.json` retains the URLs, original response SHA-256 hashes, prediction counts and distinct exact labels. `data/tfl-overground-fixtures.json` preserves all arrival-schema fields for the 82 network-capture records at six representative service stops, including source blanks and unknown labels. The fixture's frozen clock is `2026-11-10T19:27:00Z`.
+
+| Current line | Captured predictions | Distinct live labels | Published platform/service relationships | Verified relationships |
+| --- | ---: | ---: | ---: | ---: |
+| Liberty | 25 | 3 | 4 | 2 |
+| Lioness | 311 | 56 | 41 | 33 |
+| Mildmay | 869 | 87 | 58 | 56 |
+| Suffragette | 36 | 13 | 26 | 8 |
+| Weaver | 381 | 77 | 57 | 54 |
+| Windrush | 1,054 | 75 | 59 | 57 |
+| Total | 2,676 | 311 | 245 | 210 |
+
+A verified match requires an explicit numeric or single-letter live platform label, an exact current line and service stop area, and exactly one eligible physical platform with that published number for that service. Windrush New Cross platform `D` is supported. Unknown labels, wrong lines, wrong stop areas, historical line IDs and ambiguous numbers remain unassigned. Live cardinal direction stays unknown until the physical match, after which the API uses the catalogue's published direction. Destinations and API inbound/outbound wording never supply physical identity.
+
+All six line feeds are supported. Thirty-five platform/service relationships remain mapping-unverified and browsable. These include both Emerson Park physical records, which share Liberty platform number 1 despite different published directions. They cannot be distinguished from the observed number-only live label. Other gaps include Suffragette platforms absent from the reviewed capture, Bushey 1/2 and Watford Junction 1–4, Euston 10, Richmond 3, Willesden Junction 2, Chingford 3, Liverpool Street 4/5 and Norwood Junction 3/6. Published stop-area mismatches stay explicit and require additional official evidence before any alias can enable matching.
+
+Shared physical platforms retain all published services and descriptions once. Kew Gardens 1/2 permit saving through verified Mildmay mapping while District mapping still awaits verification. Anerley retains Windrush and National Rail descriptions with an explicit “TfL departures only” label on its Home card and expanded board, including the Home card's accessible name. National Rail-only platforms stay excluded by the existing catalogue filter. Per-line coverage text distinguishes supported departures, successful empty feeds, temporary failure, unsupported National Rail and matching awaiting verification. Save remains available during empty snapshots or outages when at least one service has supported, verified matching.
+
+Automated native walkthroughs exercise all six lines through Search → Picker → Departures → Save → persisted reload → Home → reopened Departures in available, successful empty and outage states. They include both Kew Gardens platforms, mixed Euston/Liverpool Street stations, shared Windrush/National Rail Anerley and New Cross `D`. Additional browse-only checks cover Emerson Park, Bushey, Watford Junction and Barking unverified platforms. The official six-line fixtures also pass through the real API handler, public native decoder and selected-platform row projection. These tests mock native view boundaries. Simulator/device appearance, gestures and VoiceOver remain separate acceptance work.
+
+The station catalogue refresh command remains `npm run refresh:catalogue -- --archive /path/to/tfl-stationdata-detailed.zip --sha256 <reviewed-sha256> --retrieved-on YYYY-MM-DD`. Refreshing the archive preserves the full source and regenerates JSON/CSV/XLSX together after validation. Live mapping evidence has a separate review step. Capture official line and representative service-stop responses, verify their hashes and exact labels, compare each label against the new catalogue, retain ambiguous pairs as unverified, update the evidence/fixtures and rerun capability, API and native flow regressions before enabling additional mappings.
+
 ## Repeatable validated refresh
 
 Use Node 24, the installed application dependencies from `npm ci`, and Python 3.12 or newer. Download the official archive to a local path and review its SHA-256 and source changes. Pass the reviewed checksum and actual retrieval date explicitly. The command performs the full extraction and regenerates all three review formats.

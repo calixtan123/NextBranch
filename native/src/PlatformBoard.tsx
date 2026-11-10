@@ -145,13 +145,16 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
   const platform = station?.platforms.find(item => item.platform_id === selection.physicalPlatformId);
   const lineNames = platform ? [...new Set(platform.services.map(service => service.line_name))].join(' · ') : 'Northern line';
+  const departureCoverage = platform?.services.some(service => service.line_id === 'national-rail')
+    ? 'TfL departures only' : 'TfL departures';
   const details = platform?.services.map(service => {
     const capability = serviceCapability(station!, platform, service);
     const feedState = state.snapshot?.catalogue?.feeds?.find(feed => feed.lineId === service.line_id && feed.stopAreaId === service.stop_area_naptan_code)?.liveState;
     const supportedCopy = feedState === 'unavailable' || state.error ? 'Live departures temporarily unavailable'
       : feedState === 'empty' ? 'No upcoming departures' : 'Live departures available';
     const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? supportedCopy :
-      capability.feed === 'unsupported' ? 'Live departures unsupported' : 'Live departures or platform matching await verification';
+      capability.feed === 'unsupported' ? 'Live departures unsupported' :
+        capability.feed === 'supported' ? 'Platform matching awaits verification' : 'Live departures or platform matching await verification';
     return `${service.line_name} · ${service.direction_towards ? 'Towards ' + service.direction_towards : 'Towards not published'} · ${coverage}`;
   }).join('\n');
   const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3);
@@ -207,7 +210,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       {expanded && state.snapshot && <Label size={10} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{count}</Label>}
     </View>
   </>;
-  const description = [name, platformName(selection), lineNames, details, ...rows.map((row, index) => rowLabel(row, index, false)),
+  const description = [name, platformName(selection), lineNames, departureCoverage, details, ...rows.map((row, index) => rowLabel(row, index, false)),
     !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean).join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
@@ -218,7 +221,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       {content}
     </Pressable> : content}
     {platform && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
-      {[platform.friendly_name || 'Platform description not published', details].join('\n')}
+      {[platform.friendly_name || 'Platform description not published', departureCoverage, details].join('\n')}
     </Label>}
     {unknown > 0 && <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next', paddingHorizontal: 11, paddingVertical: 6 }}>
       {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.

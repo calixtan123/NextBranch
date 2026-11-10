@@ -137,3 +137,32 @@ it.each(['empty', 'outage'] as const)('shows official DLR blank direction and to
   expect(copy).toContain(condition === 'empty' ? 'No upcoming departures' : 'Live departures temporarily unavailable');
   expect(copy).not.toContain('matching await verification');
 });
+
+it.each([
+  ['HUBKWG', '1', 'Mildmay', 'District', true], ['910GANERLEY', '1', 'Windrush', 'National Rail', true],
+  ['HUBKWG', '1', 'Mildmay', 'District', false], ['910GANERLEY', '1', 'Windrush', 'National Rail', false],
+] as const)('renders shared Overground %s coverage and every published description with expanded=%s', async (stationId, number, coveredLine, otherLine, expanded) => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(p => p.platform_number === number)!;
+  const tree = PlatformBoard({ selection: { stationId, platform: number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded,
+    state: { pending: false, error: null, snapshot: { station: { id: stationId, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
+    onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
+  });
+  const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
+  expect(copy).toContain(coveredLine);
+  expect(copy).toContain(otherLine);
+  expect(copy).toContain('TfL departures');
+  if (otherLine === 'National Rail') expect(copy).toContain('TfL departures only');
+  expect(copy).toContain('Live departures available');
+  expect(copy).toContain(otherLine === 'District' ? 'Platform matching awaits verification' : 'Live departures unsupported');
+  for (const service of platform.services) expect(copy).toContain(service.direction_towards || 'Towards not published');
+  if (!expanded) {
+    const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
+    const accessibleCopy = (button?.props as { accessibilityLabel?: string }).accessibilityLabel;
+    expect(accessibleCopy).toContain(otherLine === 'National Rail' ? 'TfL departures only' : 'TfL departures');
+    expect(accessibleCopy).toContain(coveredLine);
+    expect(accessibleCopy).toContain(otherLine);
+  }
+});

@@ -86,7 +86,7 @@ it('allows partial coverage but leaves wholly unverified platforms unsavable', (
   const partiallyVerified = createCanonicalCatalogue(shared, (_s, _p, service) => service.line_id === 'district'
     ? { feed: 'supported', mapping: 'supported', evidence: 'synthetic' }
     : { feed: 'unverified', mapping: 'unverified', evidence: 'synthetic' });
-  const unverified = createCanonicalCatalogue(shared);
+  const unverified = createCanonicalCatalogue(shared, () => ({ feed: 'supported', mapping: 'unverified', evidence: 'synthetic' }));
   expect(partiallyVerified.selection(station, platform)?.physicalPlatformId).toBe(platform.platform_id);
   expect(unverified.selection(station, platform)).toBeNull();
 });

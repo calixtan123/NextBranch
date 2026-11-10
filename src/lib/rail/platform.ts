@@ -1,7 +1,9 @@
 /** Verified rail feed coverage and explicit mode-specific platform labels. */
 import { undergroundLines, undergroundPlatformInfo, type CardinalDirection } from "../underground/platform";
 
-export const railLines = [...undergroundLines, "dlr"] as const;
+export const overgroundLines = ["liberty", "lioness", "mildmay", "suffragette", "weaver", "windrush"] as const;
+export const numberedRailLines = ["dlr", ...overgroundLines] as const;
+export const railLines = [...undergroundLines, ...numberedRailLines] as const;
 
 /**
  * Reads an explicit platform label using the reviewed feed's format.
@@ -11,7 +13,7 @@ export const railLines = [...undergroundLines, "dlr"] as const;
  * lineId : string
  *     Exact TfL service line. Other modes remain unverified.
  * label : string, optional
- *     Official live label. DLR publishes numbers without cardinal direction.
+ *     Official live label. DLR and Overground publish explicit numbers without cardinal direction.
  *
  * Returns
  * -------
@@ -23,6 +25,10 @@ export function railPlatformInfo(lineId: string, label?: string): { direction: C
   if (undergroundLines.some(line => line === lineId)) return undergroundPlatformInfo(label);
   if (lineId === "dlr") {
     const match = /^(?:Platform\s+)?([0-9]+[A-Za-z]?)$/i.exec(label?.trim() ?? "");
+    if (match) return { direction: null, platform: match[1]!.toUpperCase(), confirmed: true };
+  }
+  if (overgroundLines.some(line => line === lineId)) {
+    const match = /^(?:Platform\s+)?([0-9]+|[A-Za-z])$/i.exec(label?.trim() ?? "");
     if (match) return { direction: null, platform: match[1]!.toUpperCase(), confirmed: true };
   }
   return { direction: null, platform: null, confirmed: false };

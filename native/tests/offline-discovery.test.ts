@@ -114,14 +114,9 @@ it('lists Kew Gardens shared platforms once and opens canonical browse details w
   expect(text(tree)).toContain('Mildmay · Towards Stratford');
   rows[0].props.onPress();
   const [route, params] = nav.navigate.mock.lastCall!;
-  expect(route).toBe('PlatformDetails');
-  expect(params.stationId).toBe('HUBKWG');
-  expect(params.platformId).toBe(shared.catalogue.stationsById.get('HUBKWG')!.platforms[0].platform_id);
-  const detail = details(params.stationId, params.platformId);
-  expect(text(detail)).toContain('Live departures and saving are unavailable');
-  expect(text(detail)).toContain('District');
-  expect(text(detail)).toContain('Mildmay');
-  expect(nodes(detail).some(node => node.props.children === 'Save platform')).toBe(false);
+  expect(route).toBe('Departures');
+  expect(params.selection.stationId).toBe('HUBKWG');
+  expect(params.selection.physicalPlatformId).toBe(shared.catalogue.stationsById.get('HUBKWG')!.platforms[0].platform_id);
 });
 
 it('retains tram blank numbers and unknown fields and excludes National Rail-only platforms in native flow', () => {
@@ -220,6 +215,14 @@ const verifiedWalkthroughs = [
   { line: 'piccadilly', stationId: '940GZZLUACT', platformNumber: '1' },
   { line: 'victoria', stationId: 'HUBBHO', platformNumber: '1' },
   { line: 'waterloo-city', stationId: 'HUBBAN', platformNumber: '7' },
+  { line: 'liberty', stationId: 'HUBUPM', platformNumber: '6' },
+  { line: 'lioness', stationId: 'HUBEUS', platformNumber: '9' },
+  { line: 'mildmay', stationId: 'HUBKWG', platformNumber: '1' },
+  { line: 'mildmay', stationId: 'HUBKWG', platformNumber: '2' },
+  { line: 'suffragette', stationId: '910GCROUCHH', platformNumber: '1' },
+  { line: 'weaver', stationId: 'HUBLST', platformNumber: '6' },
+  { line: 'windrush', stationId: '910GANERLEY', platformNumber: '1' },
+  { line: 'windrush', stationId: 'HUBNWX', platformNumber: 'D' },
   { line: 'dlr', stationId: 'HUBCAW', platformNumber: '3' },
   { line: 'dlr', stationId: 'HUBCAW', platformNumber: '4' },
   { line: 'dlr', stationId: 'HUBSRA', platformNumber: '4A' },
@@ -229,7 +232,7 @@ const verifiedWalkthroughs = [
 it.each(verifiedWalkthroughs)('searches, saves, restores and reopens $line during $condition', async ({ line, stationId, platformNumber, condition }) => {
   const catalog = createCanonicalCatalogue(shared.catalogue);
   const station = shared.catalogue.stationsById.get(stationId)!;
-  const platform = station.platforms.find(candidate => candidate.platform_number === platformNumber)!;
+  const platform = station.platforms.find(candidate => candidate.platform_number === platformNumber && candidate.services.some(service => service.line_id === line))!;
   const service = platform.services.find(candidate => candidate.line_id === line)!;
   expect(serviceCapability(station, platform, service)).toMatchObject({ feed: 'supported', mapping: 'supported' });
   let raw: string | null = null;
@@ -278,5 +281,20 @@ it.each([['HUBLEW', '5'], ['HUBTOG', '1']])('keeps uncaptured DLR %s platform %s
   expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
   const tree = details(stationId, platform.platform_id);
   expect(text(tree)).toContain('DLR: Platform matching awaits verification');
+  expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
+});
+
+
+it.each([['910GEMRSPKH', '1'], ['HUBBSH', '1'], ['HUBWFJ', '1'], ['HUBBKG', '7']])('keeps unverified Overground %s/%s inspectable with every published service and no Save', (stationId, number) => {
+  const station = shared.catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(p => p.platform_number === number)!;
+  const catalog = createCanonicalCatalogue(shared.catalogue);
+  expect(catalog.selection(station, platform)).toBeNull();
+  const nav = navigation();
+  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number)!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
+  const tree = details(stationId, platform.platform_id);
+  expect(text(tree)).toContain('Platform matching awaits verification');
+  for (const service of platform.services) expect(text(tree)).toContain(service.line_name);
   expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
 });

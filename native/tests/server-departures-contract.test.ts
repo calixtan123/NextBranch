@@ -49,3 +49,27 @@ it("maps all official DLR fixture records and displays only each matched physica
   const selected = { stationId: "HUBCAW", physicalPlatformId: "HUBCAW-Plat03-dlr", platform: "3", direction: "" as const };
   expect(boardRows(body, selected, Date.parse(body.observedAt), 5)).toHaveLength(3);
 });
+
+it('carries all six official Overground fixture responses through the real native decoder and physical board projection', async () => {
+  const fixtures = (await import('../../data/tfl-overground-fixtures.json')).default;
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { physicalPlatformForTrain } = await import('../../src/lib/catalogue/capability');
+  const { normalizeRailPredictions } = await import('../../src/lib/rail/departures');
+  for (const feed of fixtures.feeds) {
+    const station = catalogue.stationsById.get(feed.stationId)!;
+    const predictions = parseArrivals(feed.predictions);
+    const now = new Date(feed.observedAt);
+    const get = createDeparturesHandler({ now: () => now, lineArrivals: async (lineId, stopAreaId) => lineId === feed.lineId && stopAreaId === feed.stopAreaId ? predictions : [] });
+    const response = await get(request('?station=' + feed.stationId));
+    const snapshot = decodeSnapshot(await response.json(), feed.stationId);
+    const expected = normalizeRailPredictions(predictions, now);
+    expect(snapshot.platforms.flatMap(p => p.departures), feed.lineId).toHaveLength(expected.length);
+    for (const platform of station.platforms.filter(p => p.services.some(s => s.line_id === feed.lineId))) {
+      const selection = { stationId: feed.stationId, physicalPlatformId: platform.platform_id, platform: platform.platform_number, direction: platform.cardinal_direction as 'Northbound' | 'Southbound' | 'Eastbound' | 'Westbound' | '' };
+      const rows = boardRows(snapshot, selection, now.getTime(), 5);
+      const matched = expected.filter(train => physicalPlatformForTrain(station, train) === platform.platform_id);
+      expect(rows, feed.lineId + '/' + platform.platform_number).toHaveLength(Math.min(matched.length, 5));
+      expect(rows.every(row => row.lineId === feed.lineId)).toBe(true);
+    }
+  }
+});

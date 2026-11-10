@@ -1,14 +1,15 @@
 /** Evidenced feed and physical-platform matching, independent of live availability. */
 import { z } from "zod";
 import type { RailDeparture } from "../rail/departures";
-import { railLines, railPlatformInfo } from "../rail/platform";
+import { numberedRailLines, overgroundLines, railLines, railPlatformInfo } from "../rail/platform";
 import evidence from "../../../data/tfl-underground-evidence.json";
 import dlrEvidence from "../../../data/tfl-dlr-evidence.json";
+import overgroundEvidence from "../../../data/tfl-overground-evidence.json";
 import type { AppStation } from "./index";
 import type { CataloguePlatform, CatalogueService } from "./schema";
 
 // The checked-in official labels establish static capability even during outages.
-const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
+const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
   const parsed = railPlatformInfo(label.lineId, label.platformName);
   return parsed.confirmed ? [JSON.stringify([label.lineId, label.stopAreaId, parsed.platform, parsed.direction])] : [];
 })));
@@ -42,7 +43,7 @@ export const catalogueResponseSchema = z.object({
  *     Canonical station containing eligible physical platforms.
  * platform : CataloguePlatform
  *     Platform whose published identity must be unique within the exact service.
- *     Underground uses number/cardinal pairs. DLR uses platform numbers.
+ *     Underground uses number/cardinal pairs. DLR and Overground require unique numbers.
  * service : CatalogueService
  *     Published line and stop-area relationship to assess.
  *
@@ -54,14 +55,23 @@ export const catalogueResponseSchema = z.object({
 export function serviceCapability(station: AppStation, platform: CataloguePlatform, service: CatalogueService): z.infer<typeof capabilitySchema> {
   if (service.line_id === "national-rail") return { feed: "unsupported", mapping: "unsupported", evidence: "National Rail live integration is outside this delivery." };
   if (!railLines.some(line => line === service.line_id) || !service.stop_area_naptan_code) return { feed: "unverified", mapping: "unverified", evidence: "Live feed and platform mapping require mode-specific verification." };
+  const numbered = numberedRailLines.some(line => line === service.line_id);
   const unique = station.platforms.filter(candidate =>
     candidate.platform_number === platform.platform_number &&
-    (service.line_id === "dlr" || candidate.cardinal_direction === platform.cardinal_direction) &&
+    (numbered || candidate.cardinal_direction === platform.cardinal_direction) &&
     candidate.services.some(s => s.line_id === service.line_id && s.stop_area_naptan_code === service.stop_area_naptan_code),
   ).length === 1;
-  const observed = observedMappings.has(JSON.stringify([service.line_id, service.stop_area_naptan_code, platform.platform_number, service.line_id === "dlr" ? null : platform.cardinal_direction]));
+  const observed = observedMappings.has(JSON.stringify([service.line_id, service.stop_area_naptan_code, platform.platform_number, numbered ? null : platform.cardinal_direction]));
   const retainedNorthern = service.line_id === "northern" && ["Northbound", "Southbound"].includes(platform.cardinal_direction);
   const verified = Boolean(platform.platform_number) && unique && (observed || retainedNorthern);
+  if (overgroundLines.some(line => line === service.line_id)) {
+    return {
+      feed: "supported", mapping: verified ? "supported" : "unverified",
+      evidence: verified
+        ? "Official station archive unique current Overground service line + stop area + platform number matched to explicit official live labels. Captured 2026-11-10 in data/tfl-overground-evidence.json. Published descriptions are preserved. Historical IDs, destinations and API inbound/outbound are not used for matching."
+        : "Overground arrivals supported, but this physical service/platform pair has no unique reviewed live label. Matching awaits verification.",
+    };
+  }
   if (service.line_id === "dlr") {
     return {
       feed: "supported", mapping: verified ? "supported" : "unverified",
@@ -94,9 +104,10 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
  *     Canonical physical ID when uniquely evidenced, otherwise null.
  */
 export function physicalPlatformForTrain(station: AppStation, train: Pick<RailDeparture, "platformConfirmed" | "platform" | "direction" | "lineId"> & { stopAreaId?: string }): string | null {
-  if (!train.platformConfirmed || (train.lineId === "dlr" && !train.stopAreaId)) return null;
+  const numbered = numberedRailLines.some(line => line === train.lineId);
+  if (!train.platformConfirmed || (numbered && !train.stopAreaId)) return null;
   const matches = station.platforms.filter(platform =>
-    platform.platform_number === train.platform && (train.lineId === "dlr" ? train.direction === null || platform.cardinal_direction === train.direction : platform.cardinal_direction === train.direction) &&
+    platform.platform_number === train.platform && (numbered ? train.direction === null || platform.cardinal_direction === train.direction : platform.cardinal_direction === train.direction) &&
     platform.services.some(service => service.line_id === train.lineId && (!train.stopAreaId || service.stop_area_naptan_code === train.stopAreaId) && serviceCapability(station, platform, service).mapping === "supported"),
   );
   return matches.length === 1 ? matches[0]!.platform_id : null;
