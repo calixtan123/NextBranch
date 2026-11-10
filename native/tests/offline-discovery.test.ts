@@ -80,9 +80,9 @@ it('shows empty, no-match, missing-catalogue and canonical recent names through 
   expect(text(render())).toContain('Station catalogue is unavailable');
 });
 
-it('offers an Underground platform from empty Home', () => {
+it('offers a TfL platform from empty Home', () => {
   hooks.runtime.mockReturnValue({ ...hooks.runtime(), stations: { isOnline: () => true, isRateLimited: () => false } });
-  expect(text(HomeScreen({ navigation: navigation() } as unknown as Screen<'Home'>))).toContain('Add an Underground platform');
+  expect(text(HomeScreen({ navigation: navigation() } as unknown as Screen<'Home'>))).toContain('Add a TfL platform');
 });
 
 it('persists non-Northern canonical recents and restores their names without altering saved selections', async () => {
@@ -208,7 +208,7 @@ it('retains recoverable recent IDs when canonical discovery is unavailable', asy
 });
 
 
-const undergroundWalkthroughs = [
+const verifiedWalkthroughs = [
   { line: 'bakerloo', stationId: '940GZZLUBST', platformNumber: '8' },
   { line: 'central', stationId: 'HUBBAN', platformNumber: '5' },
   { line: 'circle', stationId: '940GZZLUALD', platformNumber: '1' },
@@ -220,9 +220,13 @@ const undergroundWalkthroughs = [
   { line: 'piccadilly', stationId: '940GZZLUACT', platformNumber: '1' },
   { line: 'victoria', stationId: 'HUBBHO', platformNumber: '1' },
   { line: 'waterloo-city', stationId: 'HUBBAN', platformNumber: '7' },
-].flatMap(example => ['outage', 'empty'].map(condition => ({ ...example, condition })));
+  { line: 'dlr', stationId: 'HUBCAW', platformNumber: '3' },
+  { line: 'dlr', stationId: 'HUBCAW', platformNumber: '4' },
+  { line: 'dlr', stationId: 'HUBSRA', platformNumber: '4A' },
+  { line: 'dlr', stationId: 'HUBSRA', platformNumber: '4B' },
+].flatMap(example => ['outage', 'empty', 'available'].map(condition => ({ ...example, condition })));
 
-it.each(undergroundWalkthroughs)('searches, saves, restores and reopens $line during $condition', async ({ line, stationId, platformNumber, condition }) => {
+it.each(verifiedWalkthroughs)('searches, saves, restores and reopens $line during $condition', async ({ line, stationId, platformNumber, condition }) => {
   const catalog = createCanonicalCatalogue(shared.catalogue);
   const station = shared.catalogue.stationsById.get(stationId)!;
   const platform = station.platforms.find(candidate => candidate.platform_number === platformNumber)!;
@@ -232,7 +236,14 @@ it.each(undergroundWalkthroughs)('searches, saves, restores and reopens $line du
   const storage = { getItem: async () => raw, setItem: async (_key: string, value: string) => { raw = value; } };
   const preferences = createPreferences(storage, catalog, Date.now, 'test', [], id => shared.catalogue.stationsByAnyId.has(id));
   await preferences.load();
-  const snapshot = condition === 'empty' ? { station: { id: stationId, name: station.station_name }, observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } : undefined;
+  const snapshot = condition !== 'outage' ? { station: { id: stationId, name: station.station_name }, observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: condition === 'available' ? [{ physicalPlatformId: platform.platform_id, platform: platform.platform_number, direction: null, departures: [{ id: 'native-train', lineId: line, destinationName: '', towards: '', expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60 }] }] : [] } : undefined;
+  if (snapshot) {
+    const { decodeSnapshot } = await import('../src/api');
+    const { boardRows } = await import('../src/board-model');
+    const decoded = decodeSnapshot(snapshot, stationId);
+    const rows = boardRows(decoded, catalog.selection(station, platform)!, Date.parse(snapshot.observedAt), 5);
+    expect(rows.map(row => row.lineId)).toEqual(condition === 'available' ? [line] : []);
+  }
   const stations = { get: () => ({ pending: false, error: condition === 'outage' ? 'unavailable' : null, snapshot }), isOnline: () => true, isRateLimited: () => false };
   hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: catalog, synthetic: false, preferences, stations });
   hooks.preferences.mockImplementation(() => preferences.get());
@@ -255,4 +266,17 @@ it.each(undergroundWalkthroughs)('searches, saves, restores and reopens $line du
   expect(card.props.selection).toEqual(params.selection);
   card.props.onOpen();
   expect(nav.navigate).toHaveBeenLastCalledWith('Departures', params);
+});
+
+it.each([['HUBLEW', '5'], ['HUBTOG', '1']])('keeps uncaptured DLR %s platform %s inspectable with matching explanation and no Save', async (stationId, number) => {
+  const station = shared.catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(p => p.platform_number === number)!;
+  const catalog = createCanonicalCatalogue(shared.catalogue);
+  const nav = navigation();
+  expect(catalog.selection(station, platform)).toBeNull();
+  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number)!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
+  const tree = details(stationId, platform.platform_id);
+  expect(text(tree)).toContain('DLR: Platform matching awaits verification');
+  expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
 });

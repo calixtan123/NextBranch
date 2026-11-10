@@ -54,7 +54,7 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
         : <ReviewCard key={selectionKey(card)} stationId={card.stationId} platform={card.platform} onPress={review} />;
     })}
     {!cards.length && <Label tone="dim" style={{ marginBottom: 10 }}>
-      Add an Underground platform to see its next departures here.
+      Add a TfL platform to see its next departures here.
     </Label>}
     <View style={ui.wrap}>
       {cards.length < 3 && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}

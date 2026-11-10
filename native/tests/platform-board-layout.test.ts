@@ -117,3 +117,23 @@ it('shows temporary per-line failure separately from static verified support', a
   expect(copy).toContain('Piccadilly');
   expect(copy).toContain('Live departures available');
 });
+
+it.each(['empty', 'outage'] as const)('shows official DLR blank direction and towards with accurate %s coverage', async condition => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('HUBCAW')!;
+  const platform = station.platforms.find(p => p.platform_number === '3')!;
+  const tree = PlatformBoard({ selection: { stationId: station.station_id, platform: platform.platform_number,
+    direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, station,
+    style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded: true,
+    state: condition === 'outage' ? { pending: false, error: 'unavailable' } : { pending: false, error: null,
+      snapshot: { station: { id: station.station_id, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z',
+        newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [], catalogue: { stationId: station.station_id,
+          liveState: 'empty', platforms: [], feeds: [{ lineId: 'dlr', stopAreaId: '940GZZDLCAN', liveState: 'empty' }] } } },
+    onRetry: vi.fn(), onReview: vi.fn(),
+  });
+  const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
+  expect(copy).toContain('Direction unavailable · Platform 3');
+  expect(copy).toContain('DLR · Towards not published');
+  expect(copy).toContain(condition === 'empty' ? 'No upcoming departures' : 'Live departures temporarily unavailable');
+  expect(copy).not.toContain('matching await verification');
+});

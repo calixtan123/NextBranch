@@ -1,10 +1,10 @@
-/** Serves line-specific Underground departures and offline passenger-platform metadata. */
+/** Serves line-specific verified rail departures and offline passenger-platform metadata. */
 import { NextResponse } from "next/server";
 import { groupDepartures, type Departure } from "@/lib/departure-view";
 import { catalogue } from "@/lib/catalogue";
 import { byId } from "@/lib/northern/stations";
-import { catalogueMetadata, undergroundFeeds, physicalPlatformForTrain } from "@/lib/catalogue/capability";
-import { normalizeUndergroundPredictions, type UndergroundDeparture } from "@/lib/underground/departures";
+import { catalogueMetadata, departureFeeds, physicalPlatformForTrain } from "@/lib/catalogue/capability";
+import { normalizeRailPredictions, type RailDeparture } from "@/lib/rail/departures";
 import type { Arrival } from "@/lib/northern/schemas";
 import { getLineArrivals, TflError } from "@/lib/tfl/client";
 import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
@@ -29,7 +29,7 @@ function requestedStation(request: Request): string | null {
   return station && catalogue.stationsByAnyId.has(station) ? station : null;
 }
 
-function toDeparture(train: UndergroundDeparture, physicalPlatformId: string | null): Departure {
+function toDeparture(train: RailDeparture, physicalPlatformId: string | null): Departure {
   return {
     id: train.id,
     lineId: train.lineId,
@@ -66,11 +66,11 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
     const station = catalogue.stationsByAnyId.get(stationId);
     if (!station) return response({ error: "INVALID_STATION" }, 400);
     const now = deps.now();
-    const feeds = undergroundFeeds(station);
+    const feeds = departureFeeds(station);
     const transport = deps.lineArrivals ?? ((_line: string, stop: string) => deps.arrivals ? deps.arrivals(stop) : getLineArrivals(_line, stop));
     const results = await Promise.allSettled(feeds.map(feed => transport(feed.lineId, feed.stopAreaId)));
     const current = results.flatMap((result, index) => result.status === "fulfilled"
-      ? normalizeUndergroundPredictions(result.value.filter(arrival => arrival.lineId === feeds[index]!.lineId && arrival.naptanId === feeds[index]!.stopAreaId), now)
+      ? normalizeRailPredictions(result.value.filter(arrival => arrival.lineId === feeds[index]!.lineId && arrival.naptanId === feeds[index]!.stopAreaId), now)
       : []);
     const states = results.map((result, index) => ({
       ...feeds[index]!,
@@ -95,7 +95,12 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
       observedAt: now.toISOString(),
       newestPredictionGeneratedAt: timestamps[0] ?? null,
       refreshAfterSeconds: 30,
-      platforms: groupDepartures(current.map(train => toDeparture(train, physicalPlatformForTrain(station, train)))),
+      platforms: groupDepartures(current.map(train => {
+        const physicalPlatformId = physicalPlatformForTrain(station, train);
+        const platform = station.platforms.find(candidate => candidate.platform_id === physicalPlatformId);
+        // Published direction is display metadata only after exact physical matching.
+        return toDeparture({ ...train, direction: platform?.cardinal_direction || train.direction }, physicalPlatformId);
+      })),
     });
   };
 }

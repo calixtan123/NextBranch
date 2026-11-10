@@ -135,6 +135,26 @@ The additive `catalogue.feeds` array reports `available`, successful `empty` or 
 
 Automated native screen walkthroughs execute Search → Picker → Departures → Save → persisted reload → Home → reopened Departures with representative reviewed platforms for all eleven lines, each during an outage and successful empty snapshot. The walkthroughs cover Baker Street, Bank, Aldgate, Acton Town, Aldgate East, Colindale and Blackhorse Road. They exercise actual screen callbacks with mocked native view boundaries. They establish navigation/save behavior in tests. Simulator and physical-device visual/interaction sign-off remain outstanding.
 
+## NB-9 DLR departures and reviewed platform coverage
+
+DLR uses the existing server-only line/stop-area transport and canonical station search. A hub such as Canary Wharf resolves to DLR service stop area `940GZZDLCAN`, independently of its Jubilee service. Exact line and stop-area filtering occurs before normalization and physical-platform matching.
+
+Official TfL DLR responses were captured on 10 November 2026. The network response contained 266 predictions and 99 distinct line/stop-area/platform labels. The Canary Wharf station response contained 18 predictions covering all six DLR platforms. `data/tfl-dlr-evidence.json` records both source URLs, original SHA-256 hashes, counts and exact observed labels. `data/tfl-dlr-canary-wharf-fixture.json` retains the arrival-schema fields from all 18 station records with their original blanks. [Official network feed](https://api.tfl.gov.uk/Line/dlr/Arrivals), [official Canary Wharf feed](https://api.tfl.gov.uk/Line/dlr/Arrivals/940GZZDLCAN).
+
+A DLR physical-platform match requires an observed explicit platform number and exactly one published physical platform with that number, DLR line and service stop area. Stratford's `4a`/`4b` live labels normalize to published `4A`/`4B`. Destination, inbound/outbound wording and platform-ID text have no role in matching. DLR live labels omit cardinal direction. After the physical match, the API displays that platform's published cardinal direction where present. Canary Wharf platforms 3 and 4 retain null live-board direction and blank published direction/towards fields.
+
+| DLR service/platform coverage | Count |
+| --- | ---: |
+| Published eligible DLR relationships | 101 |
+| Supported feed and reviewed unique mapping | 99 |
+| Supported feed with mapping awaiting verification | 2 |
+
+Lewisham platform 5 and Tower Gateway platform 1 were absent from the reviewed captures. They remain inspectable with matching-awaiting-verification explanations and Save unavailable. Newly observed labels require review against the station archive before enabling these mappings. A successful empty snapshot or temporary failure preserves the static supported mapping and Save eligibility for the 99 verified relationships.
+
+TfL reused one upstream prediction ID across Canary Wharf's 18 records. DLR normalization therefore uses the existing composite identity helper, scoped by line and service stop area, to retain distinct arrival-time/platform predictions and remove identical repeated copies. The fixture regression verifies 18 distinct departures in six physical groups and three rows for the selected unknown-direction platform.
+
+Automated native screen walkthroughs exercise Canary Wharf platforms 3/4 and Stratford 4A/4B through Search → Picker → Departures → Save → persisted reload → Home → reopened Departures during available, successful empty and outage snapshots. Separate rendered-board checks preserve blank direction/towards wording and distinguish temporary failure from empty departures. These tests mock native view boundaries. Simulator/device appearance, gestures and native accessibility remain separate acceptance work.
+
 ## Repeatable validated refresh
 
 Use Node 24, the installed application dependencies from `npm ci`, and Python 3.12 or newer. Download the official archive to a local path and review its SHA-256 and source changes. Pass the reviewed checksum and actual retrieval date explicitly. The command performs the full extraction and regenerates all three review formats.

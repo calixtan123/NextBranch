@@ -13,7 +13,7 @@ export default function DepartureBoard({ data, now, stale }: Props) {
       (departure) => secondsToOrigin(departure.expectedArrival, new Date(now)) >= -DEPARTED_GRACE,
     ),
   })).filter((platform) => platform.departures.length > 0);
-  if (!platforms.length) return <p className="empty">No current Underground departures are predicted.</p>;
+  if (!platforms.length) return <p className="empty">No current TfL departures are predicted.</p>;
   return <div className={stale ? "departure-board stale" : "departure-board"}>
     {platforms.map((platform) => {
       const title = platform.platform

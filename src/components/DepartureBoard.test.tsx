@@ -50,13 +50,13 @@ describe("DepartureBoard", () => {
     expect(screen.getByText("Brixton").closest("section")).toBe(victoriaSection);
   });
 
-  it("describes an empty station board as Underground coverage", () => {
+  it("describes an empty station board as TfL coverage", () => {
     render(<DepartureBoard
       data={{ station: { id: "940GZZLUEUS", name: "Euston" }, observedAt: "2026-09-16T12:00:00.000Z", newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] }}
       now={new Date("2026-09-16T12:00:00.000Z").getTime()}
       stale={false}
     />);
-    expect(screen.getByText("No current Underground departures are predicted.")).toBeInTheDocument();
+    expect(screen.getByText("No current TfL departures are predicted.")).toBeInTheDocument();
   });
 
   it("renders compact platform sections, cleaned destinations, local time, and an unknown platform", () => {
