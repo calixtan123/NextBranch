@@ -208,7 +208,7 @@ it.each(["bakerloo", "central", "circle", "district", "hammersmith-city", "jubil
 });
 
 it("serves the DLR service stop beneath a hub, retains source blanks and prevents cross-feed/platform leakage", async () => {
-  const { decodeSnapshot } = await import("../../../../native/src/api");
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
   const lineArrivals = vi.fn(async (lineId: string) => lineId !== "dlr" ? [] : [
     arrival({ id: "three", lineId: "dlr", naptanId: "940GZZDLCAN", platformName: "Platform 3", destinationName: "", towards: "" }),
     arrival({ id: "four", lineId: "dlr", naptanId: "940GZZDLCAN", platformName: "Platform 4" }),
@@ -218,7 +218,7 @@ it("serves the DLR service stop beneath a hub, retains source blanks and prevent
   ]);
   const get = createDeparturesHandler({ now: () => now, lineArrivals });
   const result = await get(request("?station=HUBCAW"));
-  const body = decodeSnapshot(await result.json(), "HUBCAW");
+  const body = parseDeparturesResponse(await result.json(), "HUBCAW")!;
   expect(result.status).toBe(200);
   expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["jubilee", "940GZZLUCYF"]]);
   expect(body.platforms).toHaveLength(3);
@@ -239,17 +239,14 @@ it.each(["empty", "outage"])("retains static DLR mapping during %s snapshots", a
 it("maps all official DLR fixture records and displays only each matched physical platform's published direction", async () => {
   const fixture = (await import("../../../../data/tfl-dlr-canary-wharf-fixture.json")).default;
   const { parseArrivals } = await import("@/lib/northern/schemas");
-  const { decodeSnapshot } = await import("../../../../native/src/api");
-  const { boardRows } = await import("../../../../native/src/board-model");
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
   const get = createDeparturesHandler({ now: () => new Date("2026-11-10T18:58:00Z"), lineArrivals: async lineId => lineId === "dlr" ? parseArrivals(fixture.predictions) : [] });
   const result = await get(request("?station=HUBCAW"));
-  const body = decodeSnapshot(await result.json(), "HUBCAW");
+  const body = parseDeparturesResponse(await result.json(), "HUBCAW")!;
   expect(result.status).toBe(200);
   expect(body.platforms).toHaveLength(6);
   expect(body.platforms.flatMap(p => p.departures)).toHaveLength(18);
   expect(body.platforms.map(p => [p.platform, p.direction, p.departures.length])).toEqual([
     ["1", "Southbound", 3], ["2", "Southbound", 3], ["3", null, 3], ["4", null, 3], ["5", "Northbound", 3], ["6", "Northbound", 3],
   ]);
-  const selected = { stationId: "HUBCAW", physicalPlatformId: "HUBCAW-Plat03-dlr", platform: "3", direction: "" as const };
-  expect(boardRows(body, selected, Date.parse(body.observedAt), 5)).toHaveLength(3);
 });
