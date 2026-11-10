@@ -6,11 +6,12 @@ import evidence from "../../../data/tfl-underground-evidence.json";
 import dlrEvidence from "../../../data/tfl-dlr-evidence.json";
 import overgroundEvidence from "../../../data/tfl-overground-evidence.json";
 import elizabethEvidence from "../../../data/tfl-elizabeth-evidence.json";
+import tramCableEvidence from "../../../data/tfl-tram-cable-evidence.json";
 import type { AppStation } from "./index";
 import type { CataloguePlatform, CatalogueService } from "./schema";
 
 // The checked-in official labels establish static capability even during outages.
-const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds, ...elizabethEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
+const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds, ...elizabethEvidence.feeds, ...tramCableEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
   const parsed = railPlatformInfo(label.lineId, label.platformName);
   return parsed.confirmed ? [JSON.stringify([label.lineId, label.stopAreaId, parsed.platform, parsed.direction])] : [];
 })));
@@ -44,7 +45,7 @@ export const catalogueResponseSchema = z.object({
  *     Canonical station containing eligible physical platforms.
  * platform : CataloguePlatform
  *     Platform whose published identity must be unique within the exact service.
- *     Underground uses number/cardinal pairs. DLR, Elizabeth and Overground require unique numbers or letters.
+ *     Tram retains blank-number/cardinal pairs. Underground uses number/cardinal pairs. DLR, Elizabeth and Overground require unique numbers or letters.
  * service : CatalogueService
  *     Published line and stop-area relationship to assess.
  *
@@ -54,6 +55,10 @@ export const catalogueResponseSchema = z.object({
  *     Immutable feed/mapping capability and its evidence statement.
  */
 export function serviceCapability(station: AppStation, platform: CataloguePlatform, service: CatalogueService): z.infer<typeof capabilitySchema> {
+  if (service.line_id === "london-cable-car") return {
+    feed: "unverified", mapping: "unverified",
+    evidence: "Official London Cable Car line metadata and both physical platforms retained. Official line-wide and both stop arrivals were empty, which does not establish unsupported capability. Live feed and physical matching await verification. Captured 2026-11-10 in data/tfl-tram-cable-evidence.json.",
+  };
   if (service.line_id === "national-rail") return { feed: "unsupported", mapping: "unsupported", evidence: "National Rail live integration is outside this delivery." };
   if (!railLines.some(line => line === service.line_id) || !service.stop_area_naptan_code) return { feed: "unverified", mapping: "unverified", evidence: "Live feed and platform mapping require mode-specific verification." };
   const numbered = numberedRailLines.some(line => line === service.line_id);
@@ -64,7 +69,16 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
   ).length === 1;
   const observed = observedMappings.has(JSON.stringify([service.line_id, service.stop_area_naptan_code, platform.platform_number, numbered ? null : platform.cardinal_direction]));
   const retainedNorthern = service.line_id === "northern" && ["Northbound", "Southbound"].includes(platform.cardinal_direction);
-  const verified = Boolean(platform.platform_number) && unique && (observed || retainedNorthern);
+  const publishedIdentity = Boolean(platform.platform_number) || (service.line_id === "tram" && Boolean(platform.cardinal_direction));
+  const verified = publishedIdentity && unique && (observed || retainedNorthern);
+  if (service.line_id === "tram") {
+    return {
+      feed: "supported", mapping: verified ? "supported" : "unverified",
+      evidence: verified
+        ? "Official station archive unique Tram service stop area + published platform number (including blank) + explicit cardinal direction matched to reviewed official live labels. Captured 2026-11-10 in data/tfl-tram-cable-evidence.json. Blank numbers remain blank. Destinations, API inbound/outbound and historical IDs are not used."
+        : "Tram arrivals supported, but this physical service/platform pair has no unique exact reviewed live number/cardinal label. Blank and numbered platforms are kept distinct. Matching awaits verification.",
+    };
+  }
   if (overgroundLines.some(line => line === service.line_id)) {
     return {
       feed: "supported", mapping: verified ? "supported" : "unverified",
@@ -114,7 +128,7 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
  */
 export function physicalPlatformForTrain(station: AppStation, train: Pick<RailDeparture, "platformConfirmed" | "platform" | "direction" | "lineId"> & { stopAreaId?: string }): string | null {
   const numbered = numberedRailLines.some(line => line === train.lineId);
-  if (!train.platformConfirmed || (numbered && !train.stopAreaId)) return null;
+  if (!train.platformConfirmed || ((numbered || train.lineId === "tram") && !train.stopAreaId)) return null;
   const matches = station.platforms.filter(platform =>
     platform.platform_number === train.platform && (numbered ? train.direction === null || platform.cardinal_direction === train.direction : platform.cardinal_direction === train.direction) &&
     platform.services.some(service => service.line_id === train.lineId && (!train.stopAreaId || service.stop_area_naptan_code === train.stopAreaId) && serviceCapability(station, platform, service).mapping === "supported"),

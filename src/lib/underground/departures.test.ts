@@ -33,7 +33,7 @@ it("drops stale, departed, future-generated and non-Underground records", () => 
     arrival(), arrival({ id: "stale", timestamp: "2026-11-10T11:50:00Z" }),
     arrival({ id: "departed", expectedArrival: "2026-11-10T11:50:00Z" }),
     arrival({ id: "future", timestamp: "2026-11-10T12:10:00Z" }),
-    arrival({ id: "other-mode", lineId: "tram" }),
+    arrival({ id: "other-mode", lineId: "london-cable-car" }),
   ], now).map(v => v.id)).toEqual(["central:stop:train"]);
 });
 

@@ -108,3 +108,39 @@ it('projects ten official Elizabeth responses onto exact published platforms, re
     }
   }
 });
+
+it('projects eight official Tram responses to exact blank-number physical platforms and retains both cable-car empty observations browse-only', async () => {
+  const fixture = (await import('../../data/tfl-tram-cable-fixtures.json')).default;
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { createCanonicalCatalogue } = await import('../src/catalogue');
+  const canonical = createCanonicalCatalogue(catalogue);
+  const expectedDirections: Record<string, string[]> = {
+    '940GZZCRADD': ['Eastbound', 'Westbound'], '940GZZCRECR': [], '940GZZCRELM': [], '940GZZCRBEK': [],
+    '940GZZCRWMB': [], '940GZZCRNWA': [], '940GZZCRBIR': ['Eastbound'], '940GZZCRBRD': ['Eastbound'],
+    '940GZZALGWP': [], '940GZZALRDK': [],
+  };
+  for (const feed of fixture.feeds) {
+    const now = new Date(feed.observedAt);
+    const predictions = parseArrivals(feed.predictions);
+    const lineArrivals = vi.fn(async (lineId: string, stop: string) => lineId === feed.lineId && stop === feed.stopAreaId ? predictions : []);
+    const result = await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=' + feed.stationId));
+    const body = decodeSnapshot(await result.json(), feed.stationId);
+    expect(result.status).toBe(200);
+    const groups = body.platforms.filter(p => p.physicalPlatformId);
+    expect(groups.map(p => p.direction).sort(), feed.stopAreaId).toEqual(expectedDirections[feed.stopAreaId].slice().sort());
+    expect(body.platforms.flatMap(p => p.departures), feed.stopAreaId).toHaveLength(predictions.length);
+    const station = catalogue.stationsById.get(feed.stationId)!;
+    for (const group of groups) {
+      const platform = station.platforms.find(p => p.platform_id === group.physicalPlatformId)!;
+      expect(group.platform).toBe('');
+      const selection = canonical.selection(station, platform)!;
+      expect(selection.platform).toBe('');
+      expect(boardRows(body, selection, now.getTime(), 5)).toHaveLength(Math.min(group.departures.length, 5));
+    }
+    if (feed.lineId === 'london-cable-car') {
+      expect(lineArrivals).not.toHaveBeenCalled();
+      expect(body.catalogue!.liveState).toBe('unverified');
+      expect(canonical.selection(station, station.platforms[0]!)).toBeNull();
+    }
+  }
+});

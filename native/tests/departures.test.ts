@@ -199,3 +199,12 @@ it('uses exactly the documented GET URL and stops retrying an invalid station', 
   expect(request).toHaveBeenCalledTimes(1);
   owner.dispose();
 });
+
+it('preserves a published blank platform number while keeping whitespace and empty physical identities invalid', () => {
+  const group = { platform: '', direction: 'Eastbound', physicalPlatformId: '940GZZCRADD-EB-tram', departures: [] };
+  const value = { ...camden, platforms: [group] };
+  expect(decodeSnapshot(value, C).platforms[0].platform).toBe('');
+  for (const invalid of [{ platform: ' ' }, { platform: ' 1' }, { physicalPlatformId: '' }]) {
+    expect(() => decodeSnapshot({ ...value, platforms: [{ ...group, ...invalid }] }, C)).toThrow();
+  }
+});

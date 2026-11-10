@@ -20,7 +20,8 @@ const snapshot = z.object({
   catalogue: catalogueResponseSchema.optional(),
   platforms: z.array(z.object({
     physicalPlatformId: exactLabel.nullable().optional(),
-    platform: exactLabel.nullable(),
+    // A published platform number can be blank, while identities remain nonempty.
+    platform: z.string().refine(value => value === value.trim()).nullable(),
     direction: z.enum(['Northbound', 'Southbound', 'Eastbound', 'Westbound']).nullable(),
     departures: z.array(departure),
   })),

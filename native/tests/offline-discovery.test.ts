@@ -223,6 +223,8 @@ const verifiedWalkthroughs = [
   { line: 'weaver', stationId: 'HUBLST', platformNumber: '6' },
   { line: 'windrush', stationId: '910GANERLEY', platformNumber: '1' },
   { line: 'windrush', stationId: 'HUBNWX', platformNumber: 'D' },
+  { line: 'tram', stationId: '940GZZCRADD', platformNumber: '' },
+  { line: 'tram', stationId: '940GZZCRCTR', platformNumber: '' },
   { line: 'elizabeth', stationId: 'HUBPAD', platformNumber: 'A' },
   { line: 'elizabeth', stationId: 'HUBEAL', platformNumber: '3' },
   { line: 'elizabeth', stationId: '910GRDNGSTN', platformNumber: '14' },
@@ -258,7 +260,7 @@ it.each(verifiedWalkthroughs)('searches, saves, restores and reopens $line durin
   hooks.query = station.station_name;
   nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.props.title === station.station_name)!.props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
-  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + platformNumber)!.props.onPress();
+  nodes(picker(stationId, nav)).find(node => node.props.title === (platformNumber ? 'Platform ' + platformNumber : 'Platform number not published') && node.props.detail.includes(platform.friendly_name))!.props.onPress();
   const [route, params] = nav.navigate.mock.lastCall!;
   expect(route).toBe('Departures');
   expect(params.selection).toMatchObject({ stationId, physicalPlatformId: platform.platform_id, direction: platform.cardinal_direction });
@@ -316,4 +318,25 @@ it.each([['HUBPAD', '1'], ['HUBLST', '15'], ['HUBEAL', '1'], ['HUBHX5', '3']])('
   expect(text(tree)).toContain('Elizabeth line: Platform matching awaits verification');
   expect(text(tree)).toContain('National Rail');
   expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
+});
+
+
+it.each(['HUBECY', 'HUBELM', 'HUBBEK', '940GZZALGWP', '940GZZALRDK'])('keeps unverified Tram or cable-car %s searchable and browse-only with source labels', stationId => {
+  const station = shared.catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(p => p.services.some(s => ['tram', 'london-cable-car'].includes(s.line_id)))!;
+  const catalog = createCanonicalCatalogue(shared.catalogue);
+  expect(catalog.selection(station, platform)).toBeNull();
+  const nav = navigation();
+  hooks.query = station.station_name;
+  nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.props.title === station.station_name)!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
+  const tree = picker(stationId, nav);
+  const title = platform.platform_number ? 'Platform ' + platform.platform_number : 'Platform number not published';
+  nodes(tree).find(node => node.props.title === title && node.props.detail.includes(platform.friendly_name))!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
+  const detailTree = details(stationId, platform.platform_id);
+  expect(text(detailTree)).toContain(title);
+  expect(text(detailTree)).toContain(platform.cardinal_direction || 'Direction unavailable');
+  expect(text(detailTree)).toContain(stationId.startsWith('940GZZAL') ? 'Live feed and platform matching await verification' : 'Platform matching awaits verification');
+  expect(nodes(detailTree).some(node => node.props.children === 'Save platform')).toBe(false);
 });

@@ -95,7 +95,7 @@ it("reviews 99 of 101 DLR platform/service pairs without expanding other modes a
   expect(dlr.filter(c => c.mapping === "supported")).toHaveLength(99);
   expect(dlr.every(c => c.feed === "supported")).toBe(true);
   expect(departureFeeds({ ...colindale, platforms: [] })).toEqual([]);
-  for (const lineId of ["tram", "london-cable-car"]) {
+  for (const lineId of ["london-cable-car"]) {
     const platform = colindale.platforms[0];
     expect(serviceCapability(colindale, platform, { ...platform.services[0], line_id: lineId })).toMatchObject({ feed: "unverified", mapping: "unverified" });
   }
@@ -167,4 +167,57 @@ it('supports all 139 Elizabeth platform/service feeds while verifying exactly 80
   expect(pairs.every(pair => pair.feed === 'supported')).toBe(true);
   expect(pairs.filter(pair => pair.mapping === 'supported')).toHaveLength(80);
   expect(pairs.filter(pair => pair.mapping === 'unverified')).toHaveLength(59);
+});
+
+it('verifies exactly 60 of 68 Tram physical pairs across 39 stations while retaining all source blanks', () => {
+  const stations = catalogue.stations.filter(s => s.platforms.some(p => p.services.some(v => v.line_id === 'tram')));
+  const pairs = stations.flatMap(station => station.platforms.flatMap(platform => platform.services.filter(s => s.line_id === 'tram').map(service => ({ platform, capability: serviceCapability(station, platform, service) }))));
+  expect(stations).toHaveLength(39);
+  expect(pairs).toHaveLength(68);
+  expect(pairs.every(p => p.capability.feed === 'supported')).toBe(true);
+  expect(pairs.filter(p => p.capability.mapping === 'supported')).toHaveLength(60);
+  expect(pairs.filter(p => p.platform.platform_number === '')).toHaveLength(67);
+});
+it('requires unique exact Tram blank-number/cardinal/service identity without interpreting IDs or destinations', () => {
+  const station = catalogue.stationsById.get('940GZZCRADD')!;
+  const platform = station.platforms.find(p => p.cardinal_direction === 'Eastbound')!;
+  const service = platform.services[0]!;
+  const train = { lineId: 'tram', stopAreaId: service.stop_area_naptan_code, platform: '', direction: 'Eastbound' as const, platformConfirmed: true };
+  expect(serviceCapability(station, platform, service)).toMatchObject({ feed: 'supported', mapping: 'supported' });
+  expect(physicalPlatformForTrain(station, train)).toBe(platform.platform_id);
+  for (const extra of [{ platform: '1' }, { platform: null }, { direction: null }, { stopAreaId: undefined }, { stopAreaId: 'other' }, { lineId: 'dlr' }, { platformConfirmed: false }]) {
+    expect(physicalPlatformForTrain(station, { ...train, ...extra })).toBeNull();
+  }
+  const duplicate = { ...station, platforms: [...station.platforms, { ...platform, platform_id: 'duplicate' }] };
+  expect(serviceCapability(duplicate, platform, service).mapping).toBe('unverified');
+  expect(physicalPlatformForTrain(duplicate, train)).toBeNull();
+  const numbered = { ...platform, platform_number: '1' };
+  const changed = { ...station, platforms: [numbered] };
+  expect(serviceCapability(changed, numbered, service).mapping).toBe('unverified');
+  expect(physicalPlatformForTrain(changed, train)).toBeNull();
+  expect(departureFeeds(station)).toEqual([{ lineId: 'tram', stopAreaId: station.station_id }]);
+  expect(catalogueMetadata(station, 'empty').platforms).toEqual(catalogueMetadata(station, 'unavailable').platforms);
+});
+it.each([['HUBECY', '', 'Eastbound'], ['HUBECY', '', 'Westbound'], ['HUBWIM', '', 'Eastbound'], ['940GZZCRNWA', '', 'Westbound'], ['HUBELM', '1', 'Westbound'], ['HUBBEK', '', 'Westbound'], ['HUBBIR', '', 'Westbound'], ['940GZZCRBRD', '', 'Westbound']])('keeps unmatched Tram %s/%s/%s browse-only', (id, number, direction) => {
+  const station = catalogue.stationsById.get(id)!;
+  const platform = station.platforms.find(p => p.platform_number === number && p.cardinal_direction === direction && p.services.some(s => s.line_id === 'tram'))!;
+  expect(serviceCapability(station, platform, platform.services.find(s => s.line_id === 'tram')!)).toMatchObject({ feed: 'supported', mapping: 'unverified' });
+});
+it.each(['940GZZALGWP', '940GZZALRDK'])('retains official cable-car %s browse-only without classifying an empty response as unsupported', id => {
+  const station = catalogue.stationsById.get(id)!;
+  expect(station.platforms).toHaveLength(1);
+  const platform = station.platforms[0]!;
+  expect(platform.platform_number).toBe('');
+  expect(serviceCapability(station, platform, platform.services[0]!)).toMatchObject({ feed: 'unverified', mapping: 'unverified', evidence: expect.stringContaining('empty') });
+  expect(departureFeeds(station)).toEqual([]);
+  expect(physicalPlatformForTrain(station, { lineId: 'london-cable-car', stopAreaId: id, platform: '', direction: null, platformConfirmed: true })).toBeNull();
+});
+
+it('preserves an unknown Tram cardinal direction as unverified without deriving it from the published ID', () => {
+  const original = catalogue.stationsById.get('940GZZCRADD')!;
+  const platform = { ...original.platforms[0]!, cardinal_direction: '' as const };
+  const station = { ...original, platforms: [platform] };
+  expect(platform.platform_id).toContain('-EB-');
+  expect(serviceCapability(station, platform, platform.services[0]!)).toMatchObject({ feed: 'supported', mapping: 'unverified' });
+  expect(catalogueMetadata(station, 'empty').platforms[0]).toMatchObject({ platformNumber: '', direction: '' });
 });

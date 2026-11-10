@@ -168,3 +168,24 @@ it.each([
     expect(accessibleCopy).toContain(otherLine);
   }
 });
+
+it.each([true, false])('renders verified Tram blank numbers without inventing labels with expanded=%s', async expanded => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('940GZZCRADD')!;
+  const platform = station.platforms.find(p => p.cardinal_direction === 'Eastbound')!;
+  const tree = PlatformBoard({ selection: { stationId: station.station_id, platform: '', direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded,
+    state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name },
+      observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
+    onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
+  });
+  const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
+  expect(copy).toContain('Eastbound · Platform number not published');
+  expect(copy).toContain('Tram · Towards not published');
+  expect(copy).toContain('Live departures available');
+  expect(copy).not.toContain('Platform 1');
+  if (!expanded) {
+    const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
+    expect((button?.props as { accessibilityLabel?: string }).accessibilityLabel).toContain('Platform number not published');
+  }
+});

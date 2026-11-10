@@ -15,7 +15,7 @@ it.each([undefined, "", "Canary Wharf", "Platform 2/3", "940GZZDLCAN-Plat03", "N
 });
 it("preserves Underground confidence and refuses unverified modes", () => {
   expect(railPlatformInfo("central", "Eastbound - Platform 1")).toEqual({ platform: "1", direction: "Eastbound", confirmed: true });
-  expect(railPlatformInfo("tram", "Platform 1").confirmed).toBe(false);
+  expect(railPlatformInfo("london-cable-car", "Platform 1").confirmed).toBe(false);
 });
 it("keeps blank DLR fields, exact feed identity, unknown direction and distinct platform suffixes", () => {
   const values = [arrival({ destinationName: "", towards: "" }), arrival({ naptanId: "other-stop" }), arrival({ id: "suffix", platformName: "4a" })];
@@ -71,4 +71,21 @@ it('retains Elizabeth feed identities and source blanks while rejecting stale re
     { lineId: 'elizabeth', stopAreaId: '910GPADTON' },
   ]);
   expect(normalizeRailPredictions([{ ...train, timestamp: '2026-11-10T11:00:00Z' }], now)).toEqual([]);
+});
+
+it.each([['Eastbound Platform', '', 'Eastbound'], ['Westbound Platform', '', 'Westbound'], ['Eastbound - Platform 1', '1', 'Eastbound']])('retains exact Tram label %s and its published number availability', (label, platform, direction) => {
+  expect(railPlatformInfo('tram', label)).toEqual({ platform, direction, confirmed: true });
+  expect(normalizeRailPredictions([arrival({ lineId: 'tram', naptanId: '940GZZCRADD', platformName: label, destinationName: '', towards: '' })], now)).toMatchObject([
+    { lineId: 'tram', stopAreaId: '940GZZCRADD', platform, direction, platformConfirmed: true, destinationName: '', towards: '' },
+  ]);
+});
+it.each([undefined, '', 'Eastbound', 'Platform 1', 'Platform Unknown', 'Northbound Platform', 'Eastbound Platform 1/2', '940GZZCRADD-EB-tram'])('leaves unreviewed Tram label %s unconfirmed despite API direction or destination', platformName => {
+  expect(normalizeRailPredictions([arrival({ lineId: 'tram', platformName, destinationName: 'Wimbledon', direction: 'inbound' })], now)).toMatchObject([
+    { platform: null, direction: null, platformConfirmed: false },
+  ]);
+});
+it('applies existing Tram freshness and feed-scoped deduplication rules', () => {
+  const item = arrival({ lineId: 'tram', naptanId: '940GZZCRADD', platformName: 'Eastbound Platform' });
+  expect(normalizeRailPredictions([item, item, { ...item, naptanId: '940GZZCRADV' }], now)).toHaveLength(2);
+  expect(normalizeRailPredictions([{ ...item, timestamp: '2026-11-10T11:00:00Z' }], now)).toEqual([]);
 });

@@ -332,3 +332,44 @@ it('rejects wrong Elizabeth line/stop records and leaves missing labels unassign
   expect(body.platforms[1]).toMatchObject({ physicalPlatformId: null, platform: null, direction: null, departures: [{ lineId: 'elizabeth' }] });
   expect(body.catalogue.platforms).toHaveLength(2);
 });
+
+it.each(['empty', 'outage'])('retains verified blank-number Tram saving capability during %s', async condition => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => {
+    if (condition === 'outage') throw new TflError('upstream', 'temporary outage');
+    return [];
+  } });
+  const result = await get(request('?station=940GZZCRADD'));
+  const body = await result.json();
+  expect(result.status).toBe(condition === 'outage' ? 503 : 200);
+  expect(body.catalogue.liveState).toBe(condition === 'outage' ? 'unavailable' : 'empty');
+  expect(body.catalogue.platforms.map((p: { platformNumber: string; services: { capability: { feed: string; mapping: string } }[] }) => [p.platformNumber, p.services[0].capability.feed, p.services[0].capability.mapping])).toEqual([
+    ['', 'supported', 'supported'], ['', 'supported', 'supported'],
+  ]);
+});
+it('filters exact Tram feed records and keeps numbered or unknown labels unassigned to blank physical platforms', async () => {
+  const lineArrivals = vi.fn(async () => [
+    arrival({ id: 'blank', lineId: 'tram', naptanId: '940GZZCRADD', platformName: 'Eastbound Platform', destinationName: '', towards: '' }),
+    arrival({ id: 'numbered', lineId: 'tram', naptanId: '940GZZCRADD', platformName: 'Eastbound - Platform 1' }),
+    arrival({ id: 'unknown', lineId: 'tram', naptanId: '940GZZCRADD', platformName: undefined, direction: 'inbound', destinationName: 'Wimbledon' }),
+    arrival({ id: 'wrong-stop', lineId: 'tram', naptanId: '940GZZCRADV', platformName: 'Eastbound Platform' }),
+    arrival({ id: 'wrong-line', lineId: 'northern', naptanId: '940GZZCRADD', platformName: 'Eastbound Platform' }),
+  ]);
+  const body = await (await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=940GZZCRADD'))).json();
+  expect(lineArrivals.mock.calls).toHaveLength(1);
+  expect(lineArrivals).toHaveBeenCalledWith('tram', '940GZZCRADD');
+  expect(body.platforms.flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(3);
+  expect(body.platforms.find((p: { physicalPlatformId: string | null }) => p.physicalPlatformId)).toMatchObject({
+    platform: '', direction: 'Eastbound', physicalPlatformId: '940GZZCRADD-EB-tram', departures: [{ lineId: 'tram', destinationName: '', towards: '' }],
+  });
+  expect(body.platforms.filter((p: { physicalPlatformId: string | null }) => !p.physicalPlatformId)).toHaveLength(2);
+});
+it.each(['940GZZALGWP', '940GZZALRDK'])('returns browse-only metadata without requesting unverified cable-car %s feeds', async id => {
+  const lineArrivals = vi.fn(async () => []);
+  const result = await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=' + id));
+  const body = await result.json();
+  expect(result.status).toBe(200);
+  expect(body.catalogue.liveState).toBe('unverified');
+  expect(body.catalogue.platforms[0]).toMatchObject({ platformNumber: '', services: [{ capability: { feed: 'unverified', mapping: 'unverified' } }] });
+  expect(body.platforms).toEqual([]);
+  expect(lineArrivals).not.toHaveBeenCalled();
+});
