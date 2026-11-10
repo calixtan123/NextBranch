@@ -221,7 +221,7 @@ it("serves the DLR service stop beneath a hub, retains source blanks and prevent
   const result = await get(request("?station=HUBCAW"));
   const body = parseDeparturesResponse(await result.json(), "HUBCAW")!;
   expect(result.status).toBe(200);
-  expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["jubilee", "940GZZLUCYF"]]);
+  expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["elizabeth", "910GCANWHRF"], ["jubilee", "940GZZLUCYF"]]);
   expect(body.platforms).toHaveLength(3);
   expect(body.platforms[0]).toMatchObject({ physicalPlatformId: "HUBCAW-Plat03-dlr", platform: "3", direction: null, departures: [{ lineId: "dlr", destinationName: "", towards: "" }] });
   expect(body.platforms[1].physicalPlatformId).not.toBe(body.platforms[0].physicalPlatformId);
@@ -301,4 +301,34 @@ it('retains static Overground capability during empty and failed exact service f
     expect(emptyBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'empty' });
     expect(failedBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'unavailable' });
   }
+});
+
+it.each(['empty', 'outage'])('keeps Elizabeth verified, unverified and unsupported capability independent of %s live state', async condition => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => {
+    if (condition === 'outage') throw new TflError('upstream', 'temporary outage');
+    return [];
+  } });
+  const result = await get(request('?station=910GRDNGSTN'));
+  const body = await result.json();
+  expect(result.status).toBe(condition === 'outage' ? 503 : 200);
+  expect(body.catalogue.liveState).toBe(condition === 'outage' ? 'unavailable' : 'empty');
+  expect(body.catalogue.feeds).toEqual([{ lineId: 'elizabeth', stopAreaId: '910GRDNGSTN', liveState: condition === 'outage' ? 'unavailable' : 'empty' }]);
+  expect(body.catalogue.platforms).toHaveLength(1);
+  expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { feed: string, mapping: string } }) => [s.lineId, s.capability.feed, s.capability.mapping])).toEqual([
+    ['elizabeth', 'supported', 'supported'], ['national-rail', 'unsupported', 'unsupported'],
+  ]);
+});
+
+it('rejects wrong Elizabeth line/stop records and leaves missing labels unassigned despite destination and API direction', async () => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => [
+    arrival({ id: 'correct', lineId: 'elizabeth', naptanId: '910GABWDXR', platformName: 'Platform 3', destinationName: '', towards: '' }),
+    arrival({ id: 'unknown', lineId: 'elizabeth', naptanId: '910GABWDXR', platformName: 'Platform Unknown', direction: 'outbound', destinationName: 'Paddington' }),
+    arrival({ id: 'wrong-stop', lineId: 'elizabeth', naptanId: '910GABWD', platformName: 'Platform 3' }),
+    arrival({ id: 'wrong-line', lineId: 'national-rail', naptanId: '910GABWDXR', platformName: 'Platform 3' }),
+  ] });
+  const body = await (await get(request('?station=HUBABW'))).json();
+  expect(body.platforms).toHaveLength(2);
+  expect(body.platforms[0]).toMatchObject({ platform: '3', direction: 'Westbound', physicalPlatformId: 'HUBABW-Plat03-WB-elizabeth', departures: [{ lineId: 'elizabeth', destinationName: '', towards: '' }] });
+  expect(body.platforms[1]).toMatchObject({ physicalPlatformId: null, platform: null, direction: null, departures: [{ lineId: 'elizabeth' }] });
+  expect(body.catalogue.platforms).toHaveLength(2);
 });

@@ -15,7 +15,7 @@ it.each([undefined, "", "Canary Wharf", "Platform 2/3", "940GZZDLCAN-Plat03", "N
 });
 it("preserves Underground confidence and refuses unverified modes", () => {
   expect(railPlatformInfo("central", "Eastbound - Platform 1")).toEqual({ platform: "1", direction: "Eastbound", confirmed: true });
-  expect(railPlatformInfo("elizabeth", "Platform 1").confirmed).toBe(false);
+  expect(railPlatformInfo("tram", "Platform 1").confirmed).toBe(false);
 });
 it("keeps blank DLR fields, exact feed identity, unknown direction and distinct platform suffixes", () => {
   const values = [arrival({ destinationName: "", towards: "" }), arrival({ naptanId: "other-stop" }), arrival({ id: "suffix", platformName: "4a" })];
@@ -54,4 +54,21 @@ it.each(['liberty', 'lioness', 'mildmay', 'suffragette', 'weaver', 'windrush'])(
 
 it("reads the official Windrush New Cross single-letter label", () => {
   expect(railPlatformInfo("windrush", "D")).toEqual({ platform: "D", direction: null, confirmed: true });
+});
+
+it.each([['Platform 14', '14'], ['A', 'A'], ['B', 'B']])('reads official Elizabeth label %s without inferring a direction', (label, platform) => {
+  expect(railPlatformInfo('elizabeth', label)).toEqual({ platform, direction: null, confirmed: true });
+});
+it.each([undefined, '', 'Platform Unknown', 'Platform 1/2', 'Eastbound - Platform A', '910GPADTLL-PlatA'])('leaves unconfirmed Elizabeth label %s unassigned', platformName => {
+  const trains = normalizeRailPredictions([arrival({ lineId: 'elizabeth', naptanId: '910GPADTLL', platformName, destinationName: 'Reading', direction: 'outbound', towards: '' })], now);
+  expect(trains).toHaveLength(1);
+  expect(trains[0]).toMatchObject({ platform: null, direction: null, platformConfirmed: false, towards: '' });
+});
+it('retains Elizabeth feed identities and source blanks while rejecting stale records', () => {
+  const train = arrival({ lineId: 'elizabeth', naptanId: '910GPADTLL', platformName: 'A', destinationName: '', towards: '' });
+  expect(normalizeRailPredictions([train, train, { ...train, naptanId: '910GPADTON' }], now)).toMatchObject([
+    { lineId: 'elizabeth', stopAreaId: '910GPADTLL', destinationName: '', towards: '' },
+    { lineId: 'elizabeth', stopAreaId: '910GPADTON' },
+  ]);
+  expect(normalizeRailPredictions([{ ...train, timestamp: '2026-11-10T11:00:00Z' }], now)).toEqual([]);
 });

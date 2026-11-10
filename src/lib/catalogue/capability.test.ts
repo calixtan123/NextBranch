@@ -1,7 +1,7 @@
 /** Verify conservative mapping decisions independently of live snapshot state. */
 import { describe, expect, it } from "vitest";
 import { catalogue } from "./index";
-import { catalogueMetadata, northernStopAreas, physicalPlatformForTrain, serviceCapability } from "./capability";
+import { catalogueMetadata, departureFeeds, northernStopAreas, physicalPlatformForTrain, serviceCapability } from "./capability";
 import { normalizePredictions } from "../northern/predictions";
 
 const colindale = catalogue.stationsById.get("940GZZLUCND")!;
@@ -67,7 +67,7 @@ it("verifies DLR's exact unique service/platform number while preserving blank d
   expect(platform.cardinal_direction).toBe("");
   expect(service.direction_towards).toBe("");
   expect(serviceCapability(station, platform, service)).toMatchObject({ feed: "supported", mapping: "supported" });
-  expect(departureFeeds(station)).toEqual([{ lineId: "dlr", stopAreaId: "940GZZDLCAN" }, { lineId: "jubilee", stopAreaId: "940GZZLUCYF" }]);
+  expect(departureFeeds(station)).toEqual([{ lineId: "dlr", stopAreaId: "940GZZDLCAN" }, { lineId: "elizabeth", stopAreaId: "910GCANWHRF" }, { lineId: "jubilee", stopAreaId: "940GZZLUCYF" }]);
   const train = { platformConfirmed: true, platform: "3", direction: null, lineId: "dlr", stopAreaId: "940GZZDLCAN" };
   expect(physicalPlatformForTrain(station, train)).toBe(platform.platform_id);
   for (const wrong of [{ stopAreaId: "other" }, { stopAreaId: undefined }, { lineId: "mildmay" }, { platform: "99" }, { platformConfirmed: false }]) {
@@ -95,7 +95,7 @@ it("reviews 99 of 101 DLR platform/service pairs without expanding other modes a
   expect(dlr.filter(c => c.mapping === "supported")).toHaveLength(99);
   expect(dlr.every(c => c.feed === "supported")).toBe(true);
   expect(departureFeeds({ ...colindale, platforms: [] })).toEqual([]);
-  for (const lineId of ["elizabeth", "tram", "london-cable-car"]) {
+  for (const lineId of ["tram", "london-cable-car"]) {
     const platform = colindale.platforms[0];
     expect(serviceCapability(colindale, platform, { ...platform.services[0], line_id: lineId })).toMatchObject({ feed: "unverified", mapping: "unverified" });
   }
@@ -130,4 +130,41 @@ it('matches current service identity beneath historical Overground IDs while pre
   const metadata = catalogueMetadata(station, 'empty');
   expect(metadata.platforms.find(p => p.platformNumber === '9')!.services.map(s => [s.lineId, s.capability.feed])).toEqual([['lioness', 'supported'], ['national-rail', 'unsupported']]);
   expect(metadata.platforms).toEqual(catalogueMetadata(station, 'unavailable').platforms);
+});
+
+it('verifies Elizabeth numbered and letter platforms by exact service stop and preserves shared National Rail descriptions', () => {
+  const station = catalogue.stationsById.get('HUBEAL')!;
+  const platform = station.platforms.find(p => p.platform_number === '3')!;
+  const service = platform.services.find(s => s.line_id === 'elizabeth')!;
+  expect(serviceCapability(station, platform, service)).toMatchObject({ feed: 'supported', mapping: 'supported' });
+  const train = { lineId: 'elizabeth', stopAreaId: '910GEALINGB', platform: '3', direction: null, platformConfirmed: true };
+  expect(physicalPlatformForTrain(station, train)).toBe(platform.platform_id);
+  for (const extra of [{ stopAreaId: 'HUBEAL' }, { stopAreaId: undefined }, { lineId: 'national-rail' }, { platform: '1' }, { direction: 'Eastbound' as const }]) {
+    expect(physicalPlatformForTrain(station, { ...train, ...extra })).toBeNull();
+  }
+  const duplicate = { ...station, platforms: [...station.platforms, { ...platform, platform_id: 'duplicate', cardinal_direction: 'Eastbound' as const }] };
+  expect(serviceCapability(duplicate, platform, service).mapping).toBe('unverified');
+  expect(catalogueMetadata(station, 'empty').platforms.find(p => p.platformNumber === '3')!.services.map(s => [s.lineId, s.capability.feed])).toEqual([['elizabeth', 'supported'], ['national-rail', 'unsupported']]);
+  expect(catalogueMetadata(station, 'empty').platforms).toEqual(catalogueMetadata(station, 'unavailable').platforms);
+});
+
+it.each([['HUBPAD', '910GPADTLL', '910GPADTON'], ['HUBLST', '910GLIVSTLL', '910GLIVST']])('keeps %s central-section letters separate from numbered mainline platforms', (id, lowLevel, mainline) => {
+  const station = catalogue.stationsById.get(id)!;
+  const letter = station.platforms.find(p => p.platform_number === 'A')!;
+  expect(physicalPlatformForTrain(station, { lineId: 'elizabeth', stopAreaId: lowLevel, platform: 'A', direction: null, platformConfirmed: true })).toBe(letter.platform_id);
+  expect(physicalPlatformForTrain(station, { lineId: 'elizabeth', stopAreaId: mainline, platform: 'A', direction: null, platformConfirmed: true })).toBeNull();
+  expect(departureFeeds(station)).toContainEqual({ lineId: 'elizabeth', stopAreaId: mainline });
+  for (const platform of station.platforms.filter(p => p.services.some(s => s.line_id === 'elizabeth' && s.stop_area_naptan_code === mainline))) {
+    expect(serviceCapability(station, platform, platform.services.find(s => s.line_id === 'elizabeth')!)).toMatchObject({ feed: 'supported', mapping: 'unverified' });
+  }
+});
+
+it('supports all 139 Elizabeth platform/service feeds while verifying exactly 80 physical pairs across all 41 stations', () => {
+  const stations = catalogue.stations.filter(station => station.platforms.some(p => p.services.some(s => s.line_id === 'elizabeth')));
+  const pairs = stations.flatMap(station => station.platforms.flatMap(platform => platform.services.filter(s => s.line_id === 'elizabeth').map(service => serviceCapability(station, platform, service))));
+  expect(stations).toHaveLength(41);
+  expect(pairs).toHaveLength(139);
+  expect(pairs.every(pair => pair.feed === 'supported')).toBe(true);
+  expect(pairs.filter(pair => pair.mapping === 'supported')).toHaveLength(80);
+  expect(pairs.filter(pair => pair.mapping === 'unverified')).toHaveLength(59);
 });

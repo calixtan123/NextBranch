@@ -27,7 +27,7 @@ it("serves the DLR service stop beneath a hub, retains source blanks and prevent
   const result = await get(request("?station=HUBCAW"));
   const body = decodeSnapshot(await result.json(), "HUBCAW");
   expect(result.status).toBe(200);
-  expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["jubilee", "940GZZLUCYF"]]);
+  expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["elizabeth", "910GCANWHRF"], ["jubilee", "940GZZLUCYF"]]);
   expect(body.platforms).toHaveLength(3);
   expect(body.platforms[0]).toMatchObject({ physicalPlatformId: "HUBCAW-Plat03-dlr", platform: "3", direction: null, departures: [{ lineId: "dlr", destinationName: "", towards: "" }] });
   expect(body.platforms[1].physicalPlatformId).not.toBe(body.platforms[0].physicalPlatformId);
@@ -70,6 +70,41 @@ it('carries all six official Overground fixture responses through the real nativ
       const matched = expected.filter(train => physicalPlatformForTrain(station, train) === platform.platform_id);
       expect(rows, feed.lineId + '/' + platform.platform_number).toHaveLength(Math.min(matched.length, 5));
       expect(rows.every(row => row.lineId === feed.lineId)).toBe(true);
+    }
+  }
+});
+
+it('projects ten official Elizabeth responses onto exact published platforms, retaining mainline alias responses as unassigned', async () => {
+  const fixture = (await import('../../data/tfl-elizabeth-fixtures.json')).default;
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { createCanonicalCatalogue } = await import('../src/catalogue');
+  const canonical = createCanonicalCatalogue(catalogue);
+  const expectedPlatforms: Record<string, string[]> = {
+    '910GABWDXR': ['3', '4'], '910GFRNDXR': ['A', 'B'], '910GLIVSTLL': ['A', 'B'], '910GLIVST': [],
+    '910GPADTLL': ['A', 'B'], '910GPADTON': [], '910GEALINGB': ['3', '4'], '910GRDNGSTN': ['14'],
+    '910GSHENFLD': ['5', '6'], '910GHTRWTM5': ['4'],
+  };
+  for (const feed of fixture.feeds) {
+    const now = new Date(feed.observedAt);
+    const predictions = parseArrivals(feed.predictions);
+    const lineArrivals = vi.fn(async (lineId: string, stop: string) => lineId === 'elizabeth' && stop === feed.stopAreaId ? predictions : []);
+    const result = await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=' + feed.stationId));
+    const body = decodeSnapshot(await result.json(), feed.stationId);
+    expect(result.status).toBe(200);
+    const groups = body.platforms.filter(p => p.physicalPlatformId);
+    expect(groups.map(p => p.platform).sort(), feed.stopAreaId).toEqual(expectedPlatforms[feed.stopAreaId].slice().sort());
+    expect(body.platforms.flatMap(p => p.departures), feed.stopAreaId).toHaveLength(feed.stopAreaId === '910GHTRWTM5' ? 7 : predictions.length);
+    const station = catalogue.stationsById.get(feed.stationId)!;
+    for (const group of groups) {
+      const platform = station.platforms.find(p => p.platform_id === group.physicalPlatformId)!;
+      expect(group.direction).toBe(platform.cardinal_direction);
+      const selection = canonical.selection(station, platform)!;
+      const rows = boardRows(body, selection, now.getTime(), 5);
+      expect(rows).toHaveLength(Math.min(group.departures.length, 5));
+      expect(rows.every(row => row.lineId === 'elizabeth')).toBe(true);
+    }
+    if (!expectedPlatforms[feed.stopAreaId].length) {
+      expect(body.platforms.every(p => p.physicalPlatformId === null && p.direction === null)).toBe(true);
     }
   }
 });

@@ -5,11 +5,12 @@ import { numberedRailLines, overgroundLines, railLines, railPlatformInfo } from 
 import evidence from "../../../data/tfl-underground-evidence.json";
 import dlrEvidence from "../../../data/tfl-dlr-evidence.json";
 import overgroundEvidence from "../../../data/tfl-overground-evidence.json";
+import elizabethEvidence from "../../../data/tfl-elizabeth-evidence.json";
 import type { AppStation } from "./index";
 import type { CataloguePlatform, CatalogueService } from "./schema";
 
 // The checked-in official labels establish static capability even during outages.
-const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
+const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds, ...elizabethEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
   const parsed = railPlatformInfo(label.lineId, label.platformName);
   return parsed.confirmed ? [JSON.stringify([label.lineId, label.stopAreaId, parsed.platform, parsed.direction])] : [];
 })));
@@ -43,7 +44,7 @@ export const catalogueResponseSchema = z.object({
  *     Canonical station containing eligible physical platforms.
  * platform : CataloguePlatform
  *     Platform whose published identity must be unique within the exact service.
- *     Underground uses number/cardinal pairs. DLR and Overground require unique numbers.
+ *     Underground uses number/cardinal pairs. DLR, Elizabeth and Overground require unique numbers or letters.
  * service : CatalogueService
  *     Published line and stop-area relationship to assess.
  *
@@ -70,6 +71,14 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
       evidence: verified
         ? "Official station archive unique current Overground service line + stop area + platform number matched to explicit official live labels. Captured 2026-11-10 in data/tfl-overground-evidence.json. Published descriptions are preserved. Historical IDs, destinations and API inbound/outbound are not used for matching."
         : "Overground arrivals supported, but this physical service/platform pair has no unique reviewed live label. Matching awaits verification.",
+    };
+  }
+  if (service.line_id === "elizabeth") {
+    return {
+      feed: "supported", mapping: verified ? "supported" : "unverified",
+      evidence: verified
+        ? "Official station archive unique Elizabeth service stop area + platform number or letter matched to explicit official live labels. Captured 2026-11-10 in data/tfl-elizabeth-evidence.json. Published shared National Rail descriptions are preserved. Hub aliases, destinations, API direction and historical IDs are not used for matching."
+        : "Elizabeth arrivals supported, but this physical service/platform pair has no unique reviewed live label. Matching awaits verification.",
     };
   }
   if (service.line_id === "dlr") {

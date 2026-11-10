@@ -181,6 +181,26 @@ Automated native walkthroughs exercise all six lines through Search → Picker �
 
 The station catalogue refresh command remains `npm run refresh:catalogue -- --archive /path/to/tfl-stationdata-detailed.zip --sha256 <reviewed-sha256> --retrieved-on YYYY-MM-DD`. Refreshing the archive preserves the full source and regenerates JSON/CSV/XLSX together after validation. Live mapping evidence has a separate review step. Capture official line and representative service-stop responses, verify their hashes and exact labels, compare each label against the new catalogue, retain ambiguous pairs as unverified, update the evidence/fixtures and rerun capability, API and native flow regressions before enabling additional mappings.
 
+## NB-11 Elizabeth line departures and reviewed platform coverage
+
+Elizabeth uses the shared server-only line/service-stop transport, normalizer, catalogue capability owner and canonical native flow. Official captures on 10 November 2026 include 1,482 line-wide predictions with 91 distinct exact labels and ten station responses with 431 predictions. `data/tfl-elizabeth-evidence.json` retains original URLs, retrieval timestamps, SHA-256 hashes, counts and reviewed labels. `data/tfl-elizabeth-fixtures.json` retains every arrival-schema field from all ten station responses. Each fixture uses its actual capture time as the frozen clock. [Official Elizabeth arrivals](https://api.tfl.gov.uk/Line/elizabeth/Arrivals).
+
+| Elizabeth coverage | Count |
+| --- | ---: |
+| Catalogue stations with Elizabeth services | 41 |
+| Eligible physical platform/service relationships | 139 |
+| Supported feed relationships | 139 |
+| Verified physical platform/service relationships | 80 |
+| Mapping-unverified browse-only relationships | 59 |
+
+An explicit numbered or single-letter label must match exactly one published physical platform within the exact Elizabeth service stop area. Live cardinal direction stays unknown until matching succeeds, then the board displays the published direction. Abbey Wood uses `910GABWDXR` beneath `HUBABW`, Farringdon uses `910GFRNDXR`, Paddington central platforms use `910GPADTLL`, and Liverpool Street central platforms use `910GLIVSTLL`. Current line-wide data also publishes some central services under mainline stop IDs. Targeted Paddington `910GPADTON` and Liverpool Street `910GLIVST` responses contain A/B labels, which have no corresponding published Elizabeth physical platforms at those exact service stops. These records stay unassigned. Mainline numbered platforms remain browse-only. Destination, branch, API inbound/outbound and historical IDs cannot establish a mapping.
+
+Remaining gaps include Paddington mainline 1–5 and 8–12, Liverpool Street mainline 15–17, Heathrow Terminal 5 platform 3, Hayes & Harlington 1/2/5, Maidenhead 1/2/5 and West Drayton 1/2/5. Many intermediate stations have only their currently observed platform pair verified. All 59 unverified pairs are recorded in the NB-11 implementation report. Reading 14 and Shenfield 5/6 are verified by targeted official captures. An additional Shenfield Platform 4 live label has no eligible published Elizabeth platform and remains unassigned.
+
+Mixed stations retain every published shared National Rail service and description. National Rail-only platforms remain excluded by passenger eligibility. The existing board and accessible Home card state TfL departure coverage and National Rail's unsupported integration. Save is enabled whenever a platform has at least one supported feed and verified physical mapping, including during successful empty snapshots and temporary outages. Wholly unverified platforms open browse details with a matching-awaiting-verification explanation.
+
+Automated native callback walkthroughs cover Paddington A, Ealing Broadway 3, Reading 14 and Abbey Wood 4 through Search → Picker → Departures → Save → persisted reload → Home → reopened Departures in available, empty and outage conditions. Browse-only checks include Paddington 1, Liverpool Street 15, Ealing Broadway 1 and Heathrow Terminal 5 platform 3. Ten official fixture responses traverse the real server handler, native decoder and board-row projection, including unassigned mainline aliases. Compact and expanded Ealing Broadway boards retain shared service descriptions and accessible TfL coverage. Native view boundaries are mocked. Simulator/device gestures, appearance and VoiceOver require separate observations.
+
 ## Repeatable validated refresh
 
 Use Node 24, the installed application dependencies from `npm ci`, and Python 3.12 or newer. Download the official archive to a local path and review its SHA-256 and source changes. Pass the reviewed checksum and actual retrieval date explicitly. The command performs the full extraction and regenerates all three review formats.

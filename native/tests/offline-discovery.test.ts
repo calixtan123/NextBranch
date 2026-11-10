@@ -223,6 +223,10 @@ const verifiedWalkthroughs = [
   { line: 'weaver', stationId: 'HUBLST', platformNumber: '6' },
   { line: 'windrush', stationId: '910GANERLEY', platformNumber: '1' },
   { line: 'windrush', stationId: 'HUBNWX', platformNumber: 'D' },
+  { line: 'elizabeth', stationId: 'HUBPAD', platformNumber: 'A' },
+  { line: 'elizabeth', stationId: 'HUBEAL', platformNumber: '3' },
+  { line: 'elizabeth', stationId: '910GRDNGSTN', platformNumber: '14' },
+  { line: 'elizabeth', stationId: 'HUBABW', platformNumber: '4' },
   { line: 'dlr', stationId: 'HUBCAW', platformNumber: '3' },
   { line: 'dlr', stationId: 'HUBCAW', platformNumber: '4' },
   { line: 'dlr', stationId: 'HUBSRA', platformNumber: '4A' },
@@ -296,5 +300,20 @@ it.each([['910GEMRSPKH', '1'], ['HUBBSH', '1'], ['HUBWFJ', '1'], ['HUBBKG', '7']
   const tree = details(stationId, platform.platform_id);
   expect(text(tree)).toContain('Platform matching awaits verification');
   for (const service of platform.services) expect(text(tree)).toContain(service.line_name);
+  expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
+});
+
+
+it.each([['HUBPAD', '1'], ['HUBLST', '15'], ['HUBEAL', '1'], ['HUBHX5', '3']])('keeps unverified Elizabeth %s/%s inspectable without Save', (stationId, number) => {
+  const station = shared.catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(p => p.platform_number === number && p.services.some(s => s.line_id === 'elizabeth'))!;
+  const catalog = createCanonicalCatalogue(shared.catalogue);
+  const nav = navigation();
+  expect(catalog.selection(station, platform)).toBeNull();
+  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number && node.props.detail.includes('Elizabeth'))!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
+  const tree = details(stationId, platform.platform_id);
+  expect(text(tree)).toContain('Elizabeth line: Platform matching awaits verification');
+  expect(text(tree)).toContain('National Rail');
   expect(nodes(tree).some(node => node.props.children === 'Save platform')).toBe(false);
 });
