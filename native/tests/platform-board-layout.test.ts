@@ -48,6 +48,7 @@ function headerFor(fontScale: number, expanded: boolean) {
     style: 'amber', state: { error: null, pending: true }, now: 0, online: true, limited: false,
     expanded, onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
   });
+  expect(flattenStyle(tree.props.style).marginBottom).toBe(expanded ? 10 : 18);
   const header = elements(tree).find(node => node.type === View && Children.toArray(node.props.children).some(child =>
     isValidElement<Element['props']>(child) && child.type === View &&
     Children.toArray(child.props.children).some(label => isValidElement<Element['props']>(label) &&
@@ -56,6 +57,7 @@ function headerFor(fontScale: number, expanded: boolean) {
   const [identity, line] = Children.toArray(header!.props.children) as Element[];
   const lineLabel = elements(line.props.children).find(node => node.type === Label);
   expect(lineLabel, 'the header exposes its line label').toBeDefined();
+  expect(flattenStyle(lineLabel!.props.style)).toMatchObject({ fontFamily: 'Avenir Next', fontWeight: '700' });
   return { header: header!, identity, line, lineLabel: lineLabel! };
 }
 

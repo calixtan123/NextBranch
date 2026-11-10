@@ -18,6 +18,14 @@ function ReorderHandle({ label, first, last, drag, move }: {
 }) {
   const callbacks = useRef({ drag, move });
   callbacks.current = { drag, move };
+  const active = useRef(false);
+  const travelled = useRef(false);
+  useEffect(() => () => {
+    if (active.current) {
+      active.current = false;
+      callbacks.current.drag(0, true, true);
+    }
+  }, []);
   const tap = () => {
     Alert.alert('Move ' + label, undefined, [
       ...(!first ? [{ text: 'Move up', onPress: () => callbacks.current.move(-1) }] : []),
@@ -29,13 +37,28 @@ function ReorderHandle({ label, first, last, drag, move }: {
   onTap.current = tap;
   const pan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => callbacks.current.drag(0, false),
-    onPanResponderMove: (_event, gesture) => callbacks.current.drag(gesture.dy, false),
-    onPanResponderRelease: (_event, gesture) => {
-      callbacks.current.drag(gesture.dy, true);
-      if (Math.abs(gesture.dy) < 6) onTap.current();
+    onPanResponderGrant: () => {
+      active.current = true;
+      travelled.current = false;
+      callbacks.current.drag(0, false);
     },
-    onPanResponderTerminate: () => callbacks.current.drag(0, true, true),
+    onPanResponderMove: (_event, gesture) => {
+      if (!active.current) return;
+      travelled.current ||= Math.max(Math.abs(gesture.dx), Math.abs(gesture.dy)) >= 6;
+      callbacks.current.drag(gesture.dy, false);
+    },
+    onPanResponderRelease: (_event, gesture) => {
+      if (!active.current) return;
+      active.current = false;
+      callbacks.current.drag(gesture.dy, true);
+      if (!travelled.current && Math.max(Math.abs(gesture.dx), Math.abs(gesture.dy)) < 6) onTap.current();
+    },
+    onPanResponderTerminationRequest: () => false,
+    onShouldBlockNativeResponder: () => true,
+    onPanResponderTerminate: () => {
+      active.current = false;
+      callbacks.current.drag(0, true, true);
+    },
   })).current;
   return <View {...pan.panHandlers} style={ui.button} accessible accessibilityRole="button"
     accessibilityLabel={'Reorder ' + label} accessibilityHint="Drag or use Move up and Move down"
@@ -66,7 +89,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
     if (undoIntent) return () => preferences.cancelUndo(undoIntent);
   }, [preferences, undoIntent]);
   const replacing = Boolean(route.params?.replacement || undoing);
-  const [dragging, setDragging] = useState<{ from: string; to: string }>();
+  const [dragging, setDragging] = useState<{ from: string; to: string; dy: number }>();
   const positions = useRef(new Map<string, { y: number; height: number }>());
   const undo = () => {
     const result = preferences.undo();
@@ -94,7 +117,8 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
       AccessibilityInfo.announceForAccessibility(`Moved to position ${index + delta + 1}`);
     }
   };
-  return <Surface title={replacing ? 'Replace a platform' : 'Manage platforms'} onBack={navigation.goBack}>
+  return <Surface title={replacing ? 'Replace a platform' : 'Manage platforms'} onBack={navigation.goBack}
+    scrollEnabled={!dragging}>
     <Label tone="dim" style={textInset}>
       {replacement ? `Choose the saved platform to replace with ${identity(replacement)}.`
         : undoing ? 'Undo has expired.' : 'Drag the handle to reorder. Tap a card to customise its display.'}
@@ -108,14 +132,24 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
           const { y, height } = event.nativeEvent.layout;
           positions.current.set(key, { y, height });
         }} style={[ui.row, {
-          gap: 6, marginBottom: 8, borderTopWidth: 1,
+          gap: 6, marginBottom: 8, borderTopWidth: 2, borderRadius: 12,
           borderTopColor: dragging?.to === key && dragging.from !== key ? colors.selected : 'transparent',
-          opacity: dragging?.from === key ? .55 : 1,
+          backgroundColor: colors.surface,
+          transform: [{ translateY: dragging?.from === key ? dragging.dy : 0 }],
+          zIndex: dragging?.from === key ? 1 : 0,
+          ...(dragging?.from === key && { boxShadow: '0 4px 12px #00000033' }),
         }]}>
           {!replacing && <ReorderHandle label={identity(card)} first={index === 0} last={index === cards.length - 1}
             move={delta => move(key, delta)} drag={(dy, done, cancelled) => {
+              if (cancelled) {
+                setDragging(undefined);
+                return;
+              }
               const start = positions.current.get(key);
-              if (!start) return;
+              if (!start) {
+                setDragging(undefined);
+                return;
+              }
               const point = start.y + start.height / 2 + dy;
               let closest = key;
               let distance = Infinity;
@@ -131,8 +165,11 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
               }
               if (done) {
                 setDragging(undefined);
-                if (!cancelled) preferences.move(key, closest);
-              } else setDragging({ from: key, to: closest });
+                if (closest !== key) {
+                  preferences.move(key, closest);
+                  AccessibilityInfo.announceForAccessibility(`Moved to position ${cards.findIndex(item => selectionKey(item) === closest) + 1}`);
+                }
+              } else setDragging({ from: key, to: closest, dy });
             }} />}
           <View style={ui.flex}>
             <Result title={name(card)} detail={detail} onPress={() =>
@@ -175,8 +212,8 @@ export function AppearanceScreen({ navigation }: Screen<'Appearance'>) {
   const { preferences } = useRuntime();
   const { mode } = usePreferences();
   return <Surface title="Appearance" onBack={navigation.goBack}>
-    <Label tone="dim" bold size={11} accessibilityRole="header"
-      style={{ letterSpacing: .88, marginHorizontal: 2, marginTop: 7, marginBottom: 8 }}>CARD DISPLAY</Label>
+    <Label tone="dim" size={15} accessibilityRole="header"
+      style={{ marginHorizontal: 4, marginTop: 7, marginBottom: 8 }}>Card display</Label>
     <Label tone="dim" style={textInset}>Choose one style for every card, or customise each card individually.</Label>
     {modes.map(([value, title, detail]) => <Result key={value} title={title} detail={detail}
       selected={mode === value} onPress={() => preferences.setMode(value)} />)}
@@ -195,8 +232,8 @@ export function CardDisplayScreen({ navigation, route }: Screen<'CardDisplay'>) 
   return <Surface title="Card display" onBack={navigation.goBack}>
     {card ? <>
       <View style={[textInset, { marginTop: 4, gap: 4 }]}>
-        <Label size={16} bold accessibilityRole="header">{name(card)}</Label>
-        <Label size={11} tone="dim">{platformName(card)}</Label>
+        <Label size={20} bold accessibilityRole="header">{name(card)}</Label>
+        <Label size={15} tone="dim">{platformName(card)}</Label>
       </View>
       <Label tone="dim" style={{ marginBottom: 10 }}>
         Choose a display for this card. Selecting a style switches card display to Custom.

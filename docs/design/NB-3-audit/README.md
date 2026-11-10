@@ -24,3 +24,10 @@ Captured and reviewed on 10 November 2026 against NextBranch_1 revision `4706751
 - [closing-scope-review.md](closing-scope-review.md)
 
 Reports refer to the original local capture collection under `/private/tmp/nb3-native-audit/`. This directory retains the selected native screen evidence. The pinned full design source remains in the adjacent reference JSON. Auditory VoiceOver and live/device limitations are recorded in the current verification document.
+
+## User-requested control and spacing follow-up
+
+- [ui-followup-review.md](ui-followup-review.md)
+- [ui-followup-final-audit.md](ui-followup-final-audit.md)
+
+These reports cover the later Manage drag, 18-point Home spacing and Apple-style surrounding controls. The final reviewer inspected new screenshots inline without saving image files. Earlier captures above retain their original provenance. Updated finger dragging and previously recorded manual gates remain open.

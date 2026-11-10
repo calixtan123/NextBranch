@@ -4,11 +4,11 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 const dark = {
   bg: '#0B0B0D', surface: '#171719', fg: '#ECEDEF', dim: '#929398', border: '#303033',
-  warning: '#F2AC48', danger: '#E98383', selected: '#E5A542',
+  warning: '#F2AC48', danger: '#E98383', selected: '#0A84FF', primary: '#0066CC', input: '#252527',
 };
 const light = {
   bg: '#F2F2F3', surface: '#FFFFFF', fg: '#222528', dim: '#60646B', border: '#E0E0E2',
-  warning: '#824A03', danger: '#A73939', selected: '#A96109',
+  warning: '#824A03', danger: '#A73939', selected: '#0066CC', primary: '#0066CC', input: '#E5E5EA',
 };
 
 export type Palette = typeof dark;
@@ -25,13 +25,13 @@ export const ui = StyleSheet.create({
   button: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
 });
 
-/** Scalable Avenir text on the current design surface. */
-export function Label({ tone = 'fg', size = 12, bold, style, ...props }: TextProps & {
+/** Scalable system text on the current interface surface. */
+export function Label({ tone = 'fg', size = 15, bold, style, ...props }: TextProps & {
   tone?: keyof Palette; size?: number; bold?: boolean;
 }) {
   const colors = usePalette();
   return <Text {...props} style={[{
-    color: colors[tone], fontFamily: 'Avenir Next', fontSize: size, fontWeight: bold ? '700' : '400',
+    color: colors[tone], fontFamily: 'System', fontSize: size, fontWeight: bold ? '600' : '400',
   }, style]} />;
 }
 
@@ -64,7 +64,7 @@ export function Icon({ name, size = 19, tone = 'fg' }: { name: IconName; size?: 
 }
 
 /** A labelled icon button with a minimum 44-point target. */
-export function IconButton({ icon, label, onPress, tone, size, disabled }: {
+export function IconButton({ icon, label, onPress, tone = 'selected', size, disabled }: {
   icon: IconName; label: string; onPress: () => void; tone?: keyof Palette; size?: number; disabled?: boolean;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled}
@@ -74,18 +74,18 @@ export function IconButton({ icon, label, onPress, tone, size, disabled }: {
   </Pressable>;
 }
 
-/** A compact primary or secondary action using the pinned treatments. */
+/** A system-blue primary or secondary action with a native touch target. */
 export function Action({ children, onPress, primary, disabled }: {
   children: ReactNode; onPress: () => void; primary?: boolean; disabled?: boolean;
 }) {
   const colors = usePalette();
   return <Pressable accessibilityRole="button" disabled={disabled} accessibilityState={{ disabled }} onPress={onPress}
     style={({ pressed }) => [ui.button, {
-      alignSelf: 'flex-start', borderWidth: 1, borderRadius: 9, paddingHorizontal: 13, paddingVertical: 10,
-      borderColor: primary ? '#444A52' : colors.border, backgroundColor: primary ? '#31343A' : colors.surface,
+      alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10,
+      backgroundColor: primary ? colors.primary : colors.surface,
       opacity: pressed || disabled ? 0.55 : 1,
     }]}>
-    <Label size={13} bold style={primary && { color: '#FFFFFF' }}>{children}</Label>
+    <Label size={17} bold tone="selected" style={primary && { color: '#FFFFFF' }}>{children}</Label>
   </Pressable>;
 }
 
@@ -97,15 +97,15 @@ export function Result({ title, detail, onPress, selected }: {
   return <Pressable accessibilityRole={selected === undefined ? 'button' : 'radio'}
     accessibilityState={selected === undefined ? undefined : { checked: selected, selected }}
     onPress={onPress} style={({ pressed }) => [ui.row, {
-      minHeight: 52, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1,
-      borderColor: selected ? colors.selected : colors.border, paddingVertical: selected === undefined ? 10 : 14,
-      paddingHorizontal: selected === undefined ? 13 : 14, marginBottom: 8, gap: 8, opacity: pressed ? 0.65 : 1,
+      minHeight: 64, backgroundColor: colors.surface, borderRadius: 12, borderBottomWidth: 1,
+      borderBottomColor: colors.border, paddingVertical: 12,
+      paddingHorizontal: 16, marginBottom: 8, gap: 10, opacity: pressed ? 0.65 : 1,
     }]}>
     <View style={ui.flex}>
-      <Label size={14} bold>{title}</Label>
-      <Label size={11} tone="dim" style={{ marginTop: 4 }}>{detail}</Label>
+      <Label size={17}>{title}</Label>
+      <Label size={15} tone="dim" style={{ marginTop: 3 }}>{detail}</Label>
     </View>
-    {selected === undefined ? <Icon name="next" size={17} /> : selected ? <Icon name="check" tone="selected" size={16} /> : null}
+    {selected === undefined ? <Icon name="next" tone="dim" size={17} /> : selected ? <Icon name="check" tone="selected" size={20} /> : null}
   </Pressable>;
 }
 

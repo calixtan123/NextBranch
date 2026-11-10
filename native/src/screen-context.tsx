@@ -60,8 +60,9 @@ export function useRefresh() {
 }
 
 /** Uses native scrolling, safe-area layout from the root and the pinned compact header. */
-export function Surface({ title, onBack, headerAction, children, refresh, refreshing = false }: {
+export function Surface({ title, onBack, headerAction, children, refresh, refreshing = false, scrollEnabled = true }: {
   title: string; onBack?: () => void; headerAction?: ReactNode; children: ReactNode; refresh?: () => void; refreshing?: boolean;
+  scrollEnabled?: boolean;
 }) {
   const colors = usePalette();
   const preferences = usePreferences();
@@ -85,16 +86,16 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
   useEffect(() => () => clearTimeout(hold.current), []);
   return <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <View style={[ui.row, {
-      minHeight: 48, paddingHorizontal: onBack ? 4 : 15, paddingRight: 15,
+      minHeight: 52, paddingHorizontal: onBack ? 4 : 15, paddingRight: 15,
       gap: 4, backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1,
     }]}>
       {onBack && <IconButton icon="back" label="Back" onPress={onBack} />}
       <Label size={onBack ? 17 : 18} bold accessibilityRole="header" style={[ui.flex, { letterSpacing: -.5, paddingVertical: 6 }]}>
         {title}
       </Label>
-      {headerAction ?? <View accessible={false} style={{ height: 6, width: 6, borderRadius: 3, backgroundColor: '#E32017' }} />}
+      {headerAction}
     </View>
-    <ScrollView style={{ flex: 1 }}
+    <ScrollView style={{ flex: 1 }} scrollEnabled={scrollEnabled}
       automaticallyAdjustKeyboardInsets automaticallyAdjustContentInsets={false} contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
       onScrollBeginDrag={refresh ? () => { dragging.current = true; } : undefined}
@@ -132,6 +133,6 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
 export function TextAction({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled}
     onPress={onPress} style={({ pressed }) => [ui.button, { paddingHorizontal: 6, opacity: pressed || disabled ? .55 : 1 }]}>
-    <Label tone="dim" size={11} bold>{label}</Label>
+    <Label tone="selected" size={15}>{label}</Label>
   </Pressable>;
 }

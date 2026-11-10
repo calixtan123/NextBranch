@@ -34,8 +34,8 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
     refreshing={refreshing} headerAction={<IconButton icon="search" label="Search stations" size={21} onPress={openSearch} />}>
     <View style={[ui.wrap, { justifyContent: 'space-between', columnGap: 4, rowGap: 0, marginBottom: 8 }]}>
       <View style={[ui.row, { gap: 7, flexShrink: 1 }]}>
-        <Label size={14} bold accessibilityRole="header" style={{ flexShrink: 1 }}>Saved platforms</Label>
-        <Label size={11} tone="dim" accessibilityLabel={cards.length + ' of 3 saved platforms'}>{cards.length}/3</Label>
+        <Label size={17} bold accessibilityRole="header" style={{ flexShrink: 1 }}>Saved platforms</Label>
+        <Label size={15} tone="dim" accessibilityLabel={cards.length + ' of 3 saved platforms'}>{cards.length}/3</Label>
       </View>
       <View style={[ui.wrap, { columnGap: 0 }]}>
         <TextAction label="Manage platforms" onPress={() => navigation.navigate('Manage')} />

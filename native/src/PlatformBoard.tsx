@@ -154,12 +154,12 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       ...(stackedHeader && { flexDirection: 'column', alignItems: 'stretch', paddingBottom: 6 }),
     }]}>
       <View style={[!stackedHeader && ui.flex, { paddingVertical: 6, gap: 1 }]}>
-        <Label size={15} bold style={{ letterSpacing: -.25, fontWeight: '800' }}>{name}</Label>
-        <Label size={11} tone="dim">{platformName(selection)}</Label>
+        <Label size={15} bold style={{ fontFamily: 'Avenir Next', letterSpacing: -.25, fontWeight: '800' }}>{name}</Label>
+        <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{platformName(selection)}</Label>
       </View>
       <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
         <LineMarker />
-        <Label size={10} tone="dim" bold style={{ flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>Northern line</Label>
+        <Label size={10} tone="dim" bold style={{ fontFamily: 'Avenir Next', fontWeight: '700', flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>Northern line</Label>
       </View>
     </View>
     <View style={{
@@ -185,25 +185,25 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
     <View style={[ui.wrap, { minHeight: 23, paddingHorizontal: 11, paddingVertical: 3, justifyContent: 'space-between' }]}>
       <View style={[ui.row, { gap: 4, flexShrink: 1 }]}>
         {state.pending && <ActivityIndicator size="small" color={colors.dim} />}
-        <Label size={10} tone={warning ? 'warning' : 'dim'} style={{ flexShrink: 1 }}>
+        <Label size={10} tone={warning ? 'warning' : 'dim'} style={{ fontFamily: 'Avenir Next', flexShrink: 1 }}>
           {warning ? '⚠ ' : state.snapshot ? '● ' : ''}{status}
           {state.pending && state.snapshot ? ' · Updating…' : ''}
         </Label>
       </View>
-      {expanded && state.snapshot && <Label size={10} tone="dim">{count}</Label>}
+      {expanded && state.snapshot && <Label size={10} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{count}</Label>}
     </View>
   </>;
   const description = [name, platformName(selection), 'Northern line', ...rows.map((row, index) => rowLabel(row, index, false)),
     !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean).join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
-    borderRadius: 10, overflow: 'hidden', marginBottom: 10, boxShadow: '0 2px 8px #00000020',
+    borderRadius: 10, overflow: 'hidden', marginBottom: expanded ? 10 : 18, boxShadow: '0 2px 8px #00000020',
   }}>
     {onOpen ? <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={description}
       accessibilityHint="Opens platform departures" style={({ pressed }) => ({ opacity: pressed ? .68 : 1 })}>
       {content}
     </Pressable> : content}
-    {unknown > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+    {unknown > 0 && <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next', paddingHorizontal: 11, paddingVertical: 6 }}>
       {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.
     </Label>}
     {online && state.error && state.error !== 'configuration' && <View style={{ paddingHorizontal: 11, paddingBottom: 7 }}>

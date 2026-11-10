@@ -17,17 +17,18 @@ export function SearchScreen({ navigation }: Screen<'Search'>) {
   return <Surface title="Search stations" onBack={navigation.goBack}
     headerAction={<TextAction label="Cancel" onPress={navigation.goBack} />}>
     <View style={[ui.row, {
-      minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.surface,
-      paddingHorizontal: 12, gap: 9, marginBottom: 13,
+      minHeight: 48, borderRadius: 12, backgroundColor: colors.input,
+      paddingHorizontal: 12, gap: 9, marginBottom: 18,
     }]}>
       <Icon name="search" tone="dim" size={16} />
       <TextInput accessibilityLabel="Station name" placeholder="Station name" placeholderTextColor={colors.dim}
         value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false}
-        style={[ui.flex, { minHeight: 46, color: colors.fg, fontSize: 14, fontFamily: 'Avenir Next' }]} />
+        selectionColor={colors.selected}
+        style={[ui.flex, { minHeight: 46, color: colors.fg, fontSize: 17, fontFamily: 'System' }]} />
       {query !== '' && <IconButton icon="clear" label="Clear station search" tone="dim" onPress={() => setQuery('')} />}
     </View>
-    <Label accessibilityRole="header" tone="dim" size={11} bold style={{ marginTop: 5, marginBottom: 9, marginHorizontal: 2 }}>
-      {searching ? 'SEARCH RESULTS' : 'RECENT SEARCHES'}
+    <Label accessibilityRole="header" tone="dim" size={15} style={{ marginTop: 5, marginBottom: 9, marginHorizontal: 4 }}>
+      {searching ? 'Search results' : 'Recent searches'}
     </Label>
     {results.map(station => <Result key={station.id} title={station.name} detail="Northern line" onPress={() => {
       Keyboard.dismiss();
@@ -52,8 +53,8 @@ export function PickerScreen({ navigation, route }: Screen<'Picker'>) {
     {(['Southbound', 'Northbound'] as const).map(direction => {
       const matching = platforms.filter(platform => platform.direction === direction);
       return matching.length > 0 && <View key={direction}>
-        <Label tone="dim" size={11} bold accessibilityRole="header"
-          style={{ letterSpacing: 1.4, marginTop: 22, marginBottom: 8 }}>{direction.toUpperCase()}</Label>
+        <Label tone="dim" size={15} accessibilityRole="header"
+          style={{ marginTop: 24, marginBottom: 8, marginHorizontal: 4 }}>{direction}</Label>
         {matching.map(selection => <Result key={selectionKey(selection)} title={'Platform ' + selection.platform}
           detail={selection.direction} onPress={() => navigation.navigate('Departures', { selection })} />)}
       </View>;
