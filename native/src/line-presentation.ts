@@ -73,3 +73,49 @@ export function platformLineGroups(platforms: readonly CataloguePlatform[]): Pla
     return a.lines.length - b.lines.length;
   });
 }
+
+
+/**
+ * Combines published picker identity fields, explicitly retaining missing values.
+ *
+ * Parameters
+ * ----------
+ * direction : string
+ *     Published cardinal direction, or an empty string.
+ * number : string
+ *     Published platform number, or an empty string.
+ *
+ * Returns
+ * -------
+ * string
+ *     Direction-first title without inferred information.
+ */
+export function platformPickerTitle(direction: string, number: string): string {
+  const platform = number ? 'Platform ' + number : 'Platform number not published';
+  return direction && number ? `${direction} ${platform}` : `${direction || 'Direction not published'} · ${platform}`;
+}
+
+/**
+ * Summarises picker destinations without repeating shared TfL line headings.
+ *
+ * Parameters
+ * ----------
+ * services : readonly CatalogueService[]
+ *     Published services; National Rail details remain explicitly labelled.
+ *
+ * Returns
+ * -------
+ * string
+ *     A common TfL destination or individually labelled differing destinations,
+ *     followed by any mixed National Rail details. Empty values stay explicit.
+ */
+export function platformPickerDestination(services: readonly CatalogueService[]): string {
+  const unique = [...new Map(services.map(service => [JSON.stringify([service.line_id, service.direction_towards]), service])).values()];
+  const tfl = unique.filter(service => service.line_id !== 'national-rail');
+  const rail = unique.filter(service => service.line_id === 'national-rail');
+  const towards = (destination: string) => destination ? 'Towards ' + destination : 'Towards not published';
+  const labelled = (service: CatalogueService) => `${service.line_name} · ${towards(service.direction_towards)}`;
+  const destinations = new Set(tfl.map(service => service.direction_towards));
+  const descriptions = destinations.size === 1 ? [towards(tfl[0].direction_towards)] : tfl.map(labelled);
+  return [...descriptions, ...rail.map(labelled)].join('\n') || 'Towards not published';
+}

@@ -45,3 +45,19 @@
 - [ ] Extend actual element-tree screen tests for TCR heading order, shared group once, complete rows and navigation; test actual marker/label output in both themes including wrapping and unknown fallback as existing mocked native boundaries permit.
 - [ ] Run `npm --prefix native run typecheck`, `npm --prefix native test`, `EXPO_PUBLIC_NEXTBRANCH_API_URL=https://example.invalid npm --prefix native run export:ios`, `npm run verify` and `git diff --check`. Record commands/exit codes and TDD red/green evidence in the report. Do not start persistent servers or modify unrelated files.
 - [ ] Self-review the complete diff; write report to the provided task report path. Do not push or create PRs. Controller owns git commits and publication if permissions prevent local commits.
+
+### Task 2: Make platform direction and number the primary scanning hierarchy
+
+**Source of truth:** User's 2026-11-10 screenshot and instruction: replace separate Platform 3 / Northbound / Northbound Platform 3 copy with one prominent `Northbound Platform 3` heading; Camden Town uses `Northbound Platform 1` followed immediately by `Towards Edgware`.
+
+**Files:** native/src/SearchScreens.tsx, native/src/theme.tsx, native/src/line-presentation.ts if a pure presentation helper belongs there; corresponding native tests; docs/design/NB-14-verification.md.
+
+**Requirements:**
+- Combine published cardinal direction and platform number in the platform picker title, direction first. Use visually prominent 17pt semibold/bold title and smaller muted 15pt destination immediately below. Preserve native font scaling/wrapping, touch targets and accessible complete labels.
+- Remove duplicate cardinal direction and friendly_name text from picker rows when that information is already in the heading. Published friendly_name remains inspectable in platform details and is not rewritten in source data.
+- Derive destinations from platform.services direction_towards. If all services publish the same destination, show it once as `Towards ...`, without redundant line names already supplied by the group heading. If destinations differ, retain line names with their respective destination; never imply all lines share a destination. Keep blank destination explicit (`Towards not published`), deduplicate identical service/destination pairs, and preserve mixed National Rail service details.
+- Missing cardinal direction remains explicit `Direction not published`; missing platform number remains `Platform number not published`; never invent a direction/number/destination. Synthetic picker rows use the same title hierarchy while preserving synthetic navigation and unknown values.
+- Preserve exact-set line grouping, all colours, source metadata, selection identity, capability, existing details and navigation. Scope this refinement to picker cards; no departure-board redesign or data changes. Extend the responsible existing Result layer with an optional title emphasis prop if necessary; preserve unrelated callers.
+- Add meaningful failing-then-passing Vitest coverage for real Tottenham Court Road and Camden Town heading/destination output, same-destination shared services, differing shared-service destinations, unknown fields, no duplicate copy and navigation/fixtures; test rendered emphasis/accessibility where repository native mocks permit. Arrange inputs, Act by rendering/presentation calls, Assert user-visible output/navigation.
+- Run native typecheck, native tests, iOS export and root `npm run verify`, plus `git diff --check`. Record exact commands/results and any manual limits. Do not introduce dependencies, run persistent servers, push, or create PRs; controller owns publication and simulator.
+- Write report at the supplied task report path. No subagents.

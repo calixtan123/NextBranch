@@ -17,7 +17,7 @@ it('uses neutral fallback for unknown and National Rail services', () => {
 
 import { catalogue } from '../../src/lib/catalogue';
 import type { CataloguePlatform } from '../../src/lib/catalogue/schema';
-import { lineLabels, platformLineGroups } from '../src/line-presentation';
+import { lineLabels, platformLineGroups, platformPickerTitle, platformPickerDestination } from '../src/line-presentation';
 
 const station = (name: string) => catalogue.stations.find(item => item.station_name === name)!;
 const ids = (platforms: readonly CataloguePlatform[]) => platformLineGroups(platforms).map(group => group.lines.map(line => line.id));
@@ -65,4 +65,30 @@ it('deduplicates and orders labels while preserving an unknown published name', 
     { line_id: 'northern', line_name: 'Northern' }, { line_id: 'northern', line_name: 'Northern' }]))
     .toEqual([{ id: 'northern', name: 'Northern' }, { id: 'future', name: 'Published future service' }]);
   expect(lineLabels([])).toEqual([]);
+});
+
+
+it.each(['Tottenham Court Road', 'Camden Town'])('combines published direction and number once for %s', name => {
+  const platform = station(name).platforms.find(item => item.cardinal_direction === 'Northbound')!;
+  const before = JSON.stringify(platform);
+  expect(platformPickerTitle(platform.cardinal_direction, platform.platform_number)).toBe(`Northbound Platform ${platform.platform_number}`);
+  expect(platformPickerDestination(platform.services)).toBe('Towards ' + platform.services[0].direction_towards);
+  expect(JSON.stringify(platform)).toBe(before);
+});
+
+it('shows shared destinations once and deduplicates differing service/destination pairs', () => {
+  const services = station('Kew Gardens').platforms[0].services;
+  expect(platformPickerDestination(services.map(service => ({ ...service, direction_towards: 'Shared destination' })))).toBe('Towards Shared destination');
+  expect(platformPickerDestination([...services, services[0]])).toBe("District · Towards Earl's Court\nMildmay · Towards Stratford");
+});
+
+it('keeps unknown picker values explicit and preserves mixed National Rail details', () => {
+  expect(platformPickerTitle('', '')).toBe('Direction not published · Platform number not published');
+  expect(platformPickerTitle('Northbound', '')).toBe('Northbound · Platform number not published');
+  expect(platformPickerTitle('', '3')).toBe('Direction not published · Platform 3');
+  expect(platformPickerDestination([])).toBe('Towards not published');
+  const service = station('Kew Gardens').platforms[0].services[0];
+  expect(platformPickerDestination([{ ...service, direction_towards: '' }])).toBe('Towards not published');
+  expect(platformPickerDestination([service, { ...service, line_id: 'national-rail', line_name: 'National Rail', direction_towards: '' }]))
+    .toBe("Towards Earl's Court\nNational Rail · Towards not published");
 });

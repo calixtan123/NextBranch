@@ -92,11 +92,12 @@ export function Action({ children, onPress, primary, disabled }: {
 }
 
 /** A tappable list row or selected radio option. */
-export function Result({ title, detail, onPress, selected, children }: {
-  title: string; detail: string; onPress: () => void; selected?: boolean; children?: ReactNode;
+export function Result({ title, detail, onPress, selected, children, titleEmphasis = false }: {
+  title: string; detail: string; onPress: () => void; selected?: boolean; children?: ReactNode; titleEmphasis?: boolean;
 }) {
   const colors = usePalette();
   return <Pressable accessibilityRole={selected === undefined ? 'button' : 'radio'}
+    accessibilityLabel={titleEmphasis ? [title, detail].filter(Boolean).join('. ') : undefined}
     accessibilityState={selected === undefined ? undefined : { checked: selected, selected }}
     onPress={onPress} style={({ pressed }) => [ui.row, {
       minHeight: 64, backgroundColor: colors.surface, borderRadius: 12, borderBottomWidth: 1,
@@ -104,7 +105,7 @@ export function Result({ title, detail, onPress, selected, children }: {
       paddingHorizontal: 16, marginBottom: 8, gap: 10, opacity: pressed ? 0.65 : 1,
     }]}>
     <View style={ui.flex}>
-      <Label size={17}>{title}</Label>
+      <Label size={17} bold={titleEmphasis}>{title}</Label>
       {detail !== '' && <Label size={15} tone="dim" style={{ marginTop: 3 }}>{detail}</Label>}
       {children}
     </View>
