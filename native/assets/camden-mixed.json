@@ -1,0 +1,99 @@
+{
+  "station": {
+    "id": "940GZZLUCTN",
+    "name": "Camden Town"
+  },
+  "observedAt": "2026-09-16T12:00:00.000Z",
+  "newestPredictionGeneratedAt": "2026-09-16T12:00:00.000Z",
+  "refreshAfterSeconds": 30,
+  "platforms": [
+    {
+      "platform": "A",
+      "direction": "Southbound",
+      "departures": [
+        {
+          "id": "sample-camden-a-1",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:01:00.000Z",
+          "secondsToStation": 60,
+          "towards": "Morden via Bank"
+        },
+        {
+          "id": "sample-camden-a-2",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:02:00.000Z",
+          "secondsToStation": 120,
+          "towards": "Morden via Charing Cross"
+        },
+        {
+          "id": "sample-camden-a-3",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:03:00.000Z",
+          "secondsToStation": 180,
+          "towards": "Morden via Bank"
+        },
+        {
+          "id": "sample-camden-a-4",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:04:00.000Z",
+          "secondsToStation": 240,
+          "towards": "Morden via Charing Cross"
+        },
+        {
+          "id": "sample-camden-a-5",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:05:00.000Z",
+          "secondsToStation": 300,
+          "towards": null
+        },
+        {
+          "id": "sample-camden-a-6",
+          "destinationName": null,
+          "expectedArrival": "2026-09-16T12:06:00.000Z",
+          "secondsToStation": 360,
+          "towards": "Morden via Charing Cross"
+        }
+      ]
+    },
+    {
+      "platform": "B",
+      "direction": "Southbound",
+      "departures": [
+        {
+          "id": "sample-camden-b-1",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:02:00.000Z",
+          "secondsToStation": 120,
+          "towards": "Morden via Charing Cross"
+        },
+        {
+          "id": "sample-camden-b-2",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:03:00.000Z",
+          "secondsToStation": 180,
+          "towards": "Morden via Bank"
+        },
+        {
+          "id": "sample-camden-b-3",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:04:00.000Z",
+          "secondsToStation": 240,
+          "towards": "Morden via Charing Cross"
+        }
+      ]
+    },
+    {
+      "platform": null,
+      "direction": "Southbound",
+      "departures": [
+        {
+          "id": "sample-camden-unassigned",
+          "destinationName": null,
+          "expectedArrival": "2026-09-16T12:01:00.000Z",
+          "secondsToStation": 60,
+          "towards": null
+        }
+      ]
+    }
+  ]
+}

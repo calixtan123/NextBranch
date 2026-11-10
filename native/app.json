@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "NextBranch",
+    "slug": "nextbranch-iphone",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios"],
+    "ios": { "bundleIdentifier": "com.nextbranch.app", "supportsTablet": false }
+  }
+}

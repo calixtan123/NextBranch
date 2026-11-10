@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Keep browser dependencies on a fixed Playwright-supported Ubuntu release.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       NEXT_TELEMETRY_DISABLED: "1"
@@ -22,7 +23,36 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:topology-age
+      - name: Prefer HTTPS Ubuntu archive mirror for Playwright system packages
+        # Ubuntu runner images can use direct URIs or mirror+file indirection through apt-mirrors.txt.
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i '/^http:\/\/azure\.archive\.ubuntu\.com\/ubuntu\//d' /etc/apt/apt-mirrors.txt
+          fi
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run verify
       - run: npm run build
       - run: npm run test:e2e
+
+  verify-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: native
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_NEXTBRANCH_API_URL: https://example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run export:ios

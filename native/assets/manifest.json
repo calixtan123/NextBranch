@@ -1,0 +1,84 @@
+{
+  "formatVersion": 1,
+  "frozenNow": "2026-09-16T12:00:00.000Z",
+  "sourceCommit": "0dd90324c186578ee8b05243fcead93009d32d4d",
+  "issue": "NB-2",
+  "syntheticPlatforms": true,
+  "platformNotice": "A/B are synthetic test labels. These samples establish no real station platform mapping.",
+  "homeSelections": [
+    {
+      "stationId": "940GZZLUCND",
+      "platform": "A",
+      "direction": "Southbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "A",
+      "direction": "Southbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "B",
+      "direction": "Southbound"
+    }
+  ],
+  "cases": [
+    {
+      "id": "camden-mixed",
+      "request": {
+        "method": "GET",
+        "path": "/api/departures?station=940GZZLUCTN"
+      },
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store"
+      },
+      "bodyFile": "camden-mixed.json"
+    },
+    {
+      "id": "colindale-mixed",
+      "request": {
+        "method": "GET",
+        "path": "/api/departures?station=940GZZLUCND"
+      },
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store"
+      },
+      "bodyFile": "colindale-mixed.json"
+    },
+    {
+      "id": "camden-selected-empty",
+      "request": {
+        "method": "GET",
+        "path": "/api/departures?station=940GZZLUCTN"
+      },
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store"
+      },
+      "bodyFile": "camden-selected-empty.json"
+    }
+  ],
+  "replayScenarios": [
+    {
+      "id": "three-card-home",
+      "caseIds": [
+        "colindale-mixed",
+        "camden-mixed"
+      ],
+      "expectedDistinctStationRequests": 2
+    },
+    {
+      "id": "empty-camden-a",
+      "caseIds": [
+        "colindale-mixed",
+        "camden-selected-empty"
+      ],
+      "expectedDistinctStationRequests": 2
+    }
+  ]
+}
