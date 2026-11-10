@@ -33,7 +33,7 @@ vi.mock('expo-glass-effect', () => ({
 }));
 vi.mock('../src/screen-context', () => ({
   Surface: 'Surface', TextAction: 'TextAction', usePreferences: () => boundary.snapshot,
-  useRuntime: () => ({ catalogue: { has: () => true }, stations: { isOnline: () => true, isRateLimited: () => false } }),
+  useRuntime: () => ({ discovery: { catalogue: null, search: () => ({ state: 'missing-catalogue', stations: [] }) }, catalogue: { has: () => true }, stations: { isOnline: () => true, isRateLimited: () => false } }),
   useBoardTime: () => 0, useRefresh: () => ({ refresh: vi.fn(), refreshing: false }),
 }));
 vi.mock('../src/PlatformBoard', () => ({ PlatformBoard: 'PlatformBoard' }));

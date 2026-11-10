@@ -47,7 +47,7 @@ vi.mock('../src/ManageScreens', () => ({
   AppearanceScreen: 'AppearanceScreen', CardDisplayScreen: 'CardDisplayScreen',
   ManageScreen: 'ManageScreen', SettingsScreen: 'SettingsScreen',
 }));
-vi.mock('../src/SearchScreens', () => ({ PickerScreen: 'PickerScreen', SearchScreen: 'SearchScreen' }));
+vi.mock('../src/SearchScreens', () => ({ PickerScreen: 'PickerScreen', PlatformDetailsScreen: 'PlatformDetailsScreen', SearchScreen: 'SearchScreen' }));
 vi.mock('../src/navigation', () => ({ navigationRef: boundary.navigation }));
 vi.mock('../src/runtime', () => ({ createRuntime: boundary.runtime }));
 vi.mock('../src/screen-context', () => ({ Runtime: { Provider: 'RuntimeProvider' } }));
@@ -112,10 +112,11 @@ function screenPresentations(node: ReactNode): { name: string; presentation: str
 
 it('keeps the Search to Picker to Departures flow on full-screen stack cards', () => {
   boundary.runtime.mockReturnValue({ preferences: {}, stations: {}, catalogue: {}, synthetic: true });
-  const presentations = screenPresentations(App()).filter(screen => ['Search', 'Picker', 'Departures'].includes(screen.name));
+  const presentations = screenPresentations(App()).filter(screen => ['Search', 'Picker', 'PlatformDetails', 'Departures'].includes(screen.name));
   expect(presentations).toEqual([
     { name: 'Search', presentation: 'card' },
     { name: 'Picker', presentation: 'card' },
+    { name: 'PlatformDetails', presentation: 'card' },
     { name: 'Departures', presentation: 'card' },
   ]);
 });

@@ -49,7 +49,7 @@ export function createCatalogue(value: unknown) {
     const northernIds = new Set(platforms.flatMap(p => p.services.filter(s => s.line_id === "northern").map(s => s.stop_area_naptan_code)));
     const aliases = northernStations.filter(s => northernIds.has(s.id)).flatMap(s => [s.name, ...s.aliases]);
     return [{ ...station, platforms, aliases: [...new Set(aliases)] }];
-  }).toSorted((a, b) => a.station_name.localeCompare(b.station_name, "en-GB") || a.station_id.localeCompare(b.station_id));
+  }).sort((a, b) => a.station_name.localeCompare(b.station_name, "en-GB") || a.station_id.localeCompare(b.station_id));
   const stationsById = new Map(stations.map(station => [station.station_id, station]));
   const platformsById = new Map(stations.flatMap(station => station.platforms.map(platform => [platform.platform_id, platform] as const)));
   const servicesByStopArea = new Map<string, { station: AppStation; platform: CataloguePlatform; service: CataloguePlatform["services"][number] }[]>();
@@ -108,6 +108,6 @@ export function searchCatalogue(query: string, source: Catalogue | null = catalo
   if (!term) return { state: "empty-query", stations: source.stations };
   const names = (station: AppStation) => [station.station_name, ...station.aliases].map(normalize);
   const stations = source.stations.filter(station => names(station).some(name => name.includes(term)))
-    .toSorted((a, b) => Number(!names(a).some(name => name.startsWith(term))) - Number(!names(b).some(name => name.startsWith(term))) || a.station_name.localeCompare(b.station_name, "en-GB") || a.station_id.localeCompare(b.station_id));
+    .sort((a, b) => Number(!names(a).some(name => name.startsWith(term))) - Number(!names(b).some(name => name.startsWith(term))) || a.station_name.localeCompare(b.station_name, "en-GB") || a.station_id.localeCompare(b.station_id));
   return { state: stations.length ? "ready" : "no-match", stations };
 }

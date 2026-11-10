@@ -9,7 +9,7 @@ import { AppearanceScreen, CardDisplayScreen, ManageScreen, SettingsScreen } fro
 import { navigationRef, type Routes } from './navigation';
 import { createRuntime } from './runtime';
 import { Runtime } from './screen-context';
-import { PickerScreen, SearchScreen } from './SearchScreens';
+import { PickerScreen, PlatformDetailsScreen, SearchScreen } from './SearchScreens';
 import { paletteFor, Theme } from './theme';
 
 const Stack = createNativeStackNavigator<Routes>();
@@ -87,6 +87,7 @@ export function App() {
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Search" component={SearchScreen} />
               <Stack.Screen name="Picker" component={PickerScreen} />
+              <Stack.Screen name="PlatformDetails" component={PlatformDetailsScreen} />
               <Stack.Screen name="Departures" component={DeparturesScreen} />
               <Stack.Screen name="Manage" component={ManageScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
