@@ -115,3 +115,55 @@ it('keeps an initiated Undo available while the user chooses a replacement, with
   expect(keys(owner.get().cards)).toEqual(keys([a, c, b]));
   expect(owner.undo(selectionKey(c), intent)).toBe('expired');
 });
+
+it('defaults legacy and invalid interface themes to system while preserving existing preferences', async () => {
+  for (const interfaceTheme of [undefined, null, 'system', 'invalid', 1]) {
+    const storage = makeStorage();
+    storage.getItem.mockResolvedValue(JSON.stringify({ version: 1, cards: [{ ...b, style: 'modern' }, a], mode: 'custom', recent: [colindale, camden], interfaceTheme }));
+    const owner = createPreferences(storage, catalogue);
+    await owner.load();
+    expect(owner.get().interfaceTheme).toBeUndefined();
+    expect(owner.get()).toMatchObject({ mode: 'custom', recent: [colindale, camden] });
+    expect(keys(owner.get().cards)).toEqual(keys([b, a]));
+    expect(owner.get().cards[0].style).toBe('modern');
+  }
+});
+
+it('ignores interface choices before loading and serializes rapid choices with later card writes', async () => {
+  const storage = makeStorage();
+  const owner = createPreferences(storage, catalogue);
+  owner.setInterfaceTheme('dark');
+  expect(owner.get().interfaceTheme).toBeUndefined();
+  expect(storage.setItem).not.toHaveBeenCalled();
+  await owner.load();
+  for (const choice of ['dark', 'light', 'dark', 'light'] as const) owner.setInterfaceTheme(choice);
+  owner.save(a);
+  owner.setStyle(selectionKey(a), 'modern');
+  owner.selectStation(camden);
+  await owner.flush();
+  expect(storage.setItem.mock.calls.slice(0, 4).map(call => JSON.parse(call[1]).interfaceTheme)).toEqual(['dark', 'light', 'dark', 'light']);
+  const restored = createPreferences({ ...storage, getItem: async () => storage.setItem.mock.lastCall![1] }, catalogue);
+  await restored.load();
+  expect(restored.get()).toMatchObject({ interfaceTheme: 'light', mode: 'custom', recent: [camden] });
+  expect(restored.get().cards).toEqual([{ ...a, style: 'modern' }]);
+  owner.setInterfaceTheme('dark');
+  await owner.flush();
+  const dark = createPreferences({ ...storage, getItem: async () => storage.setItem.mock.lastCall![1] }, catalogue);
+  await dark.load();
+  expect(dark.get().interfaceTheme).toBe('dark');
+});
+
+it('applies session interface choices and preserves warnings when preference storage fails', async () => {
+  const storage = makeStorage();
+  storage.setItem.mockRejectedValue(Error('denied'));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  owner.setInterfaceTheme('light');
+  expect(owner.get().interfaceTheme).toBe('light');
+  await owner.flush();
+  expect(owner.get().warning).toContain('session');
+  const unread = createPreferences({ ...storage, getItem: async () => { throw Error('denied'); } }, catalogue);
+  await unread.load();
+  unread.setInterfaceTheme('dark');
+  expect(unread.get()).toMatchObject({ interfaceTheme: 'dark', warning: expect.stringContaining('session') });
+});

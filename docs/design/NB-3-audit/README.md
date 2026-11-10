@@ -31,3 +31,15 @@ Reports refer to the original local capture collection under `/private/tmp/nb3-n
 - [ui-followup-final-audit.md](ui-followup-final-audit.md)
 
 These reports cover the later Manage drag, 18-point Home spacing and Apple-style surrounding controls. The final reviewer inspected new screenshots inline without saving image files. Earlier captures above retain their original provenance. Updated finger dragging and previously recorded manual gates remain open.
+
+## Settings theme toggle follow-up
+
+- [theme-toggle-task-review.md](theme-toggle-task-review.md)
+- [theme-toggle-final-review.md](theme-toggle-final-review.md)
+
+These independent source reviews cover the persisted Settings Dark Mode switch and its integration with shared application and native appearance. Current Simulator observations and remaining acceptance boundaries are recorded in the verification document.
+
+- [Light Settings](theme-settings-light.png), captured by the final reviewer.
+- [Light native alert](theme-alert-light.png), captured by the final reviewer while system appearance stayed Dark.
+- [Dark Settings](theme-settings-dark.png), captured by the controller.
+- [Dark Home after process restart and development-client reconnect](theme-home-dark-restart.png), captured by the controller.

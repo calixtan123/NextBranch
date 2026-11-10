@@ -4,10 +4,12 @@ import { readSelection, selectionKey, type Catalogue, type Selection } from './c
 export { selectionKey, type Selection } from './catalogue';
 export type Style = 'amber' | 'modern';
 export type Mode = Style | 'custom';
+export type InterfaceTheme = 'light' | 'dark';
 export type Card = Selection & { style?: Style };
 type Undo = { card: Card; index: number; expiresAt: number };
 type State = {
   ready: boolean;
+  interfaceTheme?: InterfaceTheme;
   cards: readonly Card[];
   mode: Mode;
   recent: readonly string[];
@@ -35,7 +37,8 @@ function decode(raw: string | null): Partial<State> {
   const recent = Array.isArray(data.recent)
     ? [...new Set<string>(data.recent.filter((id: unknown) => typeof id === 'string' && byId.has(id)))].slice(0, 2)
     : [];
-  return { cards: [...cards.values()].slice(0, MAX), mode: style(data.mode) ?? (data.mode === 'custom' ? 'custom' : 'amber'), recent };
+  return { cards: [...cards.values()].slice(0, MAX), mode: style(data.mode) ?? (data.mode === 'custom' ? 'custom' : 'amber'), recent,
+    interfaceTheme: data.interfaceTheme === 'light' || data.interfaceTheme === 'dark' ? data.interfaceTheme : undefined };
 }
 
 /** Resolves the common board style without discarding saved individual overrides. */
@@ -64,8 +67,8 @@ export function createPreferences(
   const commit = (patch: Partial<State>) => {
     publish(patch);
     if (!writable) return;
-    const { cards, mode, recent } = state;
-    const payload = JSON.stringify({ version: 1, cards, mode, recent });
+    const { cards, mode, recent, interfaceTheme } = state;
+    const payload = JSON.stringify({ version: 1, cards, mode, recent, interfaceTheme });
     writeQueue = writeQueue.then(async () => {
       try {
         await storage.setItem(storageKey, payload);
@@ -163,6 +166,10 @@ export function createPreferences(
       undoChoice = null;
       commit({ cards, removal: null });
       return 'restored';
+    },
+    /** Applies an explicit interface appearance after the saved session is loaded. */
+    setInterfaceTheme(interfaceTheme: InterfaceTheme) {
+      if (state.ready && state.interfaceTheme !== interfaceTheme) commit({ interfaceTheme });
     },
     setMode(mode: Mode) {
       if (state.ready && state.mode !== mode) commit({ mode });

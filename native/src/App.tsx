@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, AppState, StatusBar, useColorScheme } from 'react-native';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { AccessibilityInfo, Appearance, AppState, StatusBar, useColorScheme } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -18,9 +18,11 @@ const Stack = createNativeStackNavigator<Routes>();
 export function App() {
   const [runtime] = useState(createRuntime);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const light = useColorScheme() === 'light';
-  const palette = paletteFor(light);
   const { preferences, stations, catalogue, synthetic } = runtime;
+  const { interfaceTheme } = useSyncExternalStore(preferences.subscribe, preferences.get);
+  const systemScheme = useColorScheme();
+  const light = (interfaceTheme ?? systemScheme) === 'light';
+  const palette = paletteFor(light);
   const syncVisible = () => {
     if (!navigationRef.isReady()) return;
     const screen = navigationRef.getCurrentRoute();
@@ -63,6 +65,10 @@ export function App() {
       stations.dispose();
     };
   }, [catalogue, preferences, stations, synthetic]);
+
+  useEffect(() => {
+    Appearance.setColorScheme(interfaceTheme ?? 'unspecified');
+  }, [interfaceTheme]);
 
   const systemTheme = light ? DefaultTheme : DarkTheme;
   return <SafeAreaProvider>

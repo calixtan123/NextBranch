@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, PanResponder, View } from 'react-native';
+import { AccessibilityInfo, Alert, PanResponder, Switch, View } from 'react-native';
 import { byId } from '../../src/lib/northern/stations';
 import { selectionKey, type Selection } from './catalogue';
 import type { Screen } from './navigation';
 import { platformName } from './PlatformBoard';
 import { type Mode, type Style } from './preferences';
 import { Surface, usePreferences, useRuntime } from './screen-context';
-import { Action, Icon, IconButton, Label, Result, ui, usePalette } from './theme';
+import { Action, Icon, IconButton, Label, Result, paletteFor, ui, usePalette } from './theme';
 
 const name = (selection: Selection) => byId.get(selection.stationId)?.name ?? selection.stationId;
 const identity = (selection: Selection) => name(selection) + ' · ' + platformName(selection);
@@ -189,11 +189,23 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
 
 /** Opens appearance and saved-card settings. */
 export function SettingsScreen({ navigation }: Screen<'Settings'>) {
+  const { preferences } = useRuntime();
+  const { ready } = usePreferences();
+  const colors = usePalette();
   return <Surface title="Settings" onBack={navigation.goBack}>
     <Label tone="dim" style={[textInset, { marginTop: 4 }]}>
       Choose how NextBranch looks and manage your saved platforms.
     </Label>
-    <Result title="Appearance" detail="Card display and interface" onPress={() => navigation.navigate('Appearance')} />
+    <View style={[ui.row, { minHeight: 44, gap: 12, paddingHorizontal: 14, paddingVertical: 10,
+      marginBottom: 8, borderRadius: 12, backgroundColor: colors.surface }]}>
+      <Label style={ui.flex}>Dark Mode</Label>
+      <Switch accessibilityLabel="Dark Mode" accessibilityRole="switch" disabled={!ready}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+        value={colors.bg === paletteFor(false).bg}
+        onValueChange={enabled => preferences.setInterfaceTheme(enabled ? 'dark' : 'light')}
+        trackColor={{ true: colors.selected }} />
+    </View>
+    <Result title="Appearance" detail="Card display styles" onPress={() => navigation.navigate('Appearance')} />
     <Result title="Manage cards" detail="Customise, reorder or remove platforms" onPress={() => navigation.navigate('Manage')} />
   </Surface>;
 }
