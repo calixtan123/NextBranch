@@ -1,0 +1,57 @@
+{
+  "retrievedOn": "2026-11-10",
+  "source": "Official exact Kew service feeds. Only observed explicit labels establish mapping. District platform 2 remains unverified.",
+  "feeds": [
+    {
+      "url": "https://api.tfl.gov.uk/Line/district/Arrivals/940GZZLUKWG",
+      "retrievedAt": "2026-11-10T20:33:50.367976+00:00",
+      "sha256": "ecb8e1c39e67b8f176378b0e483766d8fde8146a253c84e2f056ae78845e80f0",
+      "originalPath": "/private/tmp/nb13-evidence/district-kew.json",
+      "predictionCount": 1,
+      "lineId": "district",
+      "labels": [
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUKWG",
+          "platformName": "Eastbound - Platform 1"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/mildmay/Arrivals/910GKEWGRDN",
+      "retrievedAt": "2026-11-10T20:33:50.467195+00:00",
+      "sha256": "bb370e829d12e9a23e25f57ad31822cbe11d0d244a9c6559612a2727efabcb5b",
+      "originalPath": "/private/tmp/nb13-evidence/mildmay-kew.json",
+      "predictionCount": 17,
+      "lineId": "mildmay",
+      "labels": [
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    }
+  ],
+  "additionalObservations": [
+    {
+      "url": "https://api.tfl.gov.uk/Line/district/Arrivals",
+      "retrievedAt": "2026-11-10T20:31:31.351977+00:00",
+      "retrievalTimestampSource": "Raw file receipt modification time",
+      "sha256": "965e50698fb166e8e83417cc003f662f213375eafdaf9b72dc19f9012b5b7c2b",
+      "originalPath": "/private/tmp/nb13-evidence/district-network.json",
+      "responseItemCount": 484,
+      "conclusion": "No explicit District westbound physical platform label established."
+    }
+  ]
+}

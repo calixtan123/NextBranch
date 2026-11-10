@@ -270,7 +270,7 @@ it('serves all six current Overground fixture feeds with exact hub/service resol
   }
 });
 
-it('keeps Kew partial coverage explicit and assigns only verified Mildmay while excluding wrong feeds and unknown labels', async () => {
+it('keeps Kew partial coverage explicit and combines verified District and Mildmay while excluding wrong feeds and unknown labels', async () => {
   const lineArrivals = vi.fn(async (lineId: string, stopAreaId: string) => [
     arrival({ id: lineId, lineId, naptanId: stopAreaId, platformName: lineId === 'district' ? 'Eastbound - Platform 1' : 'Platform 1' }),
     arrival({ id: 'unknown', lineId, naptanId: stopAreaId, platformName: 'Platform Unknown', direction: 'outbound', destinationName: 'Stratford' }),
@@ -282,9 +282,9 @@ it('keeps Kew partial coverage explicit and assigns only verified Mildmay while 
   const assigned = body.platforms.filter((p: { physicalPlatformId: string | null }) => p.physicalPlatformId);
   expect(assigned).toHaveLength(1);
   expect(assigned[0]).toMatchObject({ physicalPlatformId: 'HUBKWG-Plat01-EB-district|london-overground', direction: 'Eastbound' });
-  expect(assigned[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['mildmay']);
-  expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { mapping: string } }) => [s.lineId, s.capability.mapping])).toEqual([['district', 'unverified'], ['mildmay', 'supported']]);
-  expect(body.platforms.filter((p: { physicalPlatformId: string | null }) => !p.physicalPlatformId).flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(3);
+  expect(assigned[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['district', 'mildmay']);
+  expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { mapping: string } }) => [s.lineId, s.capability.mapping])).toEqual([['district', 'supported'], ['mildmay', 'supported']]);
+  expect(body.platforms.filter((p: { physicalPlatformId: string | null }) => !p.physicalPlatformId).flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(2);
 });
 
 it('retains static Overground capability during empty and failed exact service feeds for every named line', async () => {
@@ -372,4 +372,21 @@ it.each(['940GZZALGWP', '940GZZALRDK'])('returns browse-only metadata without re
   expect(body.catalogue.platforms[0]).toMatchObject({ platformNumber: '', services: [{ capability: { feed: 'unverified', mapping: 'unverified' } }] });
   expect(body.platforms).toEqual([]);
   expect(lineArrivals).not.toHaveBeenCalled();
+});
+
+it('combines verified shared-platform lines once, deduplicates repeated feed records and isolates the opposite platform', async () => {
+  const lineArrivals = vi.fn(async (lineId: string, stopAreaId: string) => {
+    const east = arrival({ id: 'shared-id', lineId, naptanId: stopAreaId, platformName: 'Westbound - Platform 1' });
+    return [east, east,
+      arrival({ id: 'opposite', lineId, naptanId: stopAreaId, platformName: 'Eastbound - Platform 4' }),
+      arrival({ id: 'wrong-stop', lineId, naptanId: 'wrong-stop', platformName: 'Westbound - Platform 1' }),
+    ];
+  });
+  const body = await (await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=940GZZLUACT'))).json();
+  expect(lineArrivals.mock.calls).toEqual([['district', '940GZZLUACT'], ['piccadilly', '940GZZLUACT']]);
+  const east = body.platforms.filter((p: { platform: string }) => p.platform === '1');
+  expect(east).toHaveLength(1);
+  expect(east[0].physicalPlatformId).toBe('940GZZLUACT-Plat01-WB-district|piccadilly');
+  expect(east[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['district', 'piccadilly']);
+  expect(body.platforms.flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(4);
 });

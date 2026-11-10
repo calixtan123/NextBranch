@@ -33,6 +33,7 @@ export function createRuntime() {
       fixture ? 'nextbranch.fixture.preferences' : 'nextbranch.preferences', fixture?.cards,
       id => discovery.catalogue ? discovery.catalogue.stationsByAnyId.has(id) : Boolean(id.trim()),
       id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
-    stations: createStationOwner(fixture?.transport ?? liveTransport(), Date.now, now),
+    stations: createStationOwner(fixture?.transport ?? liveTransport(), Date.now, now,
+      id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
   };
 }

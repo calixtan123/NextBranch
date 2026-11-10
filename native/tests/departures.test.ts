@@ -208,3 +208,75 @@ it('preserves a published blank platform number while keeping whitespace and emp
     expect(() => decodeSnapshot({ ...value, platforms: [{ ...group, ...invalid }] }, C)).toThrow();
   }
 });
+
+it('shares canonical station work across service aliases and keeps a remaining consumer alive', async () => {
+  vi.useFakeTimers({ now });
+  let complete!: (value: typeof snapshot) => void;
+  const request = vi.fn<StationTransport>(() => new Promise(resolve => { complete = resolve; }));
+  const resolveStation = (id: string) => id === 'camden-alias' ? C : id;
+  const owner = createStationOwner(request, Date.now, Date.now, resolveStation);
+  owner.own([C, 'camden-alias']);
+  await settle();
+  expect(request.mock.calls.map(([id]) => id)).toEqual([C]);
+  owner.own(['camden-alias']);
+  expect(request.mock.calls[0][1].aborted).toBe(false);
+  complete(snapshot);
+  await settle();
+  expect(owner.get(C).snapshot?.station.id).toBe(C);
+  expect(owner.get('camden-alias').snapshot?.station.id).toBe('camden-alias');
+  expect(owner.get('camden-alias').snapshot?.platforms).toEqual(snapshot.platforms);
+  owner.own([]);
+  owner.own([C]);
+  await settle();
+  expect(request).toHaveBeenCalledTimes(1);
+  owner.dispose();
+});
+
+it('cancels alias-shared work only after its last consumer leaves and rejects a wrong canonical response', async () => {
+  vi.useFakeTimers({ now });
+  const request = vi.fn<StationTransport>(async () => body(L));
+  const owner = createStationOwner(request, Date.now, Date.now, id => id === 'alias' ? C : id);
+  owner.own(['alias']);
+  await settle();
+  expect(owner.get(C).error).toBe('unavailable');
+  expect(owner.get('alias').snapshot).toBeUndefined();
+  owner.dispose();
+  const pending = vi.fn<StationTransport>(() => new Promise(() => {}));
+  const second = createStationOwner(pending, Date.now, Date.now, id => id === 'alias' ? C : id);
+  second.own([C, 'alias']);
+  await settle();
+  second.own([]);
+  expect(pending.mock.calls[0][1].aborted).toBe(true);
+  second.dispose();
+});
+
+it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting', async () => {
+  vi.useFakeTimers({ now });
+  let limited = false;
+  const request = vi.fn<StationTransport>(async id => {
+    if (limited) throw { kind: 'limited', retryAfterSeconds: 45 };
+    return body(id);
+  });
+  const owner = createStationOwner(request, Date.now, Date.now, id => id === 'alias' ? C : id);
+  owner.own([C, 'alias']);
+  await settle();
+  expect(await owner.refresh([C, 'alias'])).toBe('success');
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(await owner.refresh(['alias'])).toBeNull();
+  owner.setOnline(false);
+  expect(isStale(owner.get('alias'), now, owner.isOnline())).toBe(true);
+  expect(owner.get('alias').snapshot?.station.id).toBe('alias');
+  limited = true;
+  owner.setOnline(true);
+  await settle();
+  expect(owner.get('alias').error).toBe('limited');
+  owner.own(['alias', L]);
+  expect(await owner.refresh([C, 'alias', L])).toBeNull();
+  await vi.advanceTimersByTimeAsync(44_999);
+  expect(request).toHaveBeenCalledTimes(3);
+  limited = false;
+  await vi.advanceTimersByTimeAsync(1);
+  expect(request.mock.calls.slice(3).map(([id]) => id).sort()).toEqual([C, L].sort());
+  expect(isStale(owner.get('alias'), Date.now(), true)).toBe(true);
+  owner.dispose();
+});

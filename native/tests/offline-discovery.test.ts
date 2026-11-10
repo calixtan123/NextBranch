@@ -217,6 +217,7 @@ const verifiedWalkthroughs = [
   { line: 'waterloo-city', stationId: 'HUBBAN', platformNumber: '7' },
   { line: 'liberty', stationId: 'HUBUPM', platformNumber: '6' },
   { line: 'lioness', stationId: 'HUBEUS', platformNumber: '9' },
+  { line: 'district', stationId: 'HUBKWG', platformNumber: '1' },
   { line: 'mildmay', stationId: 'HUBKWG', platformNumber: '1' },
   { line: 'mildmay', stationId: 'HUBKWG', platformNumber: '2' },
   { line: 'suffragette', stationId: '910GCROUCHH', platformNumber: '1' },

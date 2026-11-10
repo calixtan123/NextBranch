@@ -221,3 +221,12 @@ it('preserves an unknown Tram cardinal direction as unverified without deriving 
   expect(serviceCapability(station, platform, platform.services[0]!)).toMatchObject({ feed: 'supported', mapping: 'unverified' });
   expect(catalogueMetadata(station, 'empty').platforms[0]).toMatchObject({ platformNumber: '', direction: '' });
 });
+
+it('verifies Kew shared District platform 1 from the new official exact live label without widening platform 2', () => {
+  const station = catalogue.stationsById.get('HUBKWG')!;
+  const metadata = catalogueMetadata(station, 'empty');
+  expect(metadata.platforms.map(platform => [platform.platformNumber, platform.services.map(service => [service.lineId, service.capability.mapping])])).toEqual([
+    ['1', [['district', 'supported'], ['mildmay', 'supported']]],
+    ['2', [['district', 'unverified'], ['mildmay', 'supported']]],
+  ]);
+});

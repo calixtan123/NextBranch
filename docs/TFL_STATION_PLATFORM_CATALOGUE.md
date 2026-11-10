@@ -242,3 +242,57 @@ Both retained cable-car records remain searchable and inspectable with their sou
 Verified Tram selections can be saved during successful empty snapshots and temporary outages. The shared static capability boundary drives native search, picker, board, Save, persisted Home cards and reopen. Unverified selections open Platform Details with the matching explanation and no Save control.
 
 `data/tfl-tram-cable-evidence.json` retains the complete exact label sets, original URLs, receipt timestamps, SHA-256 hashes, response counts and the 70 exact retained Tram/cable-car physical projections. Its captured official ZIP is byte-identical to this inventory's source SHA-256. `data/tfl-tram-cable-fixtures.json` retains all 35 predictions from eight exact Tram captures as ordered complete schema-field projections and both cable-car empty arrays. Original responses and the projection validator remain under `/private/tmp/nb12-evidence`. The task report records capture provenance, verification commands, limits and the native callback walkthrough. Simulator/device gestures and VoiceOver were not observed in this work.
+
+
+## NB-13 shared platforms and final coverage
+
+A saved physical platform retains one canonical selection across all its services. The existing feed resolver requests distinct exact line/service-stop pairs, and the server transport coalesces overlapping requests by that pair. The API filters each response to its requested line and stop before normalization, retains line identity and deduplicates repeated records within that feed. Physical grouping joins verified services onto one platform. A record with an unknown or conflicting label stays unassigned. The native owner now resolves service aliases to their canonical station before ownership, refresh, cancellation and snapshot lookup. A canonical response is validated before alias-facing reads receive their requested station ID. Removing one alias consumer preserves work owned by another. Freshness, offline memory and the app-wide 429 deadline retain their existing owners.
+
+The targeted official Kew captures in `data/tfl-shared-evidence.json` and `data/tfl-shared-kew-fixtures.json` retain URLs, receipt timestamps, raw-response SHA-256 hashes, counts and complete arrival-schema field projections. Raw responses remain under `/private/tmp/nb13-evidence`. The newer District capture supplies an explicit `Eastbound - Platform 1` label, enabling its unique published District mapping. Platform 1 now combines District and Mildmay. Platform 2 remains saveable through verified Mildmay, with District physical matching awaiting verification. Earlier empty District captures and alternate StopPoint/timetable responses provide no westbound platform label. Empty feeds preserve capability. Published shared TfL/National Rail labels remain in the catalogue and boards, with unsupported National Rail coverage explained per service.
+
+### Final passenger coverage
+
+The complete reference extraction contains 509 stations, 1,584 physical platforms and 1,878 service relationships. The passenger subset contains 460 stations, 1,235 platforms and 1,528 relationships. Of these, 1,054 physical platforms permit saving through at least one supported verified service. The table counts service/platform relationships, so a shared platform appears under each service.
+
+| Service | Passenger relationships | Supported feed | Verified physical mapping | Mapping unverified or unsupported |
+| --- | ---: | ---: | ---: | ---: |
+| bakerloo | 52 | 52 | 48 | 4 |
+| central | 107 | 107 | 77 | 30 |
+| circle | 80 | 80 | 46 | 34 |
+| district | 134 | 134 | 105 | 29 |
+| dlr | 101 | 101 | 99 | 2 |
+| elizabeth | 139 | 139 | 80 | 59 |
+| hammersmith-city | 63 | 63 | 56 | 7 |
+| jubilee | 57 | 57 | 53 | 4 |
+| liberty | 4 | 4 | 2 | 2 |
+| lioness | 41 | 41 | 33 | 8 |
+| london-cable-car | 2 | 0 | 0 | 2 |
+| metropolitan | 80 | 80 | 67 | 13 |
+| mildmay | 58 | 58 | 56 | 2 |
+| national-rail | 129 | 0 | 0 | 129 |
+| northern | 118 | 118 | 118 | 0 |
+| piccadilly | 116 | 116 | 108 | 8 |
+| suffragette | 26 | 26 | 8 | 18 |
+| tram | 68 | 68 | 60 | 8 |
+| victoria | 33 | 33 | 33 | 0 |
+| waterloo-city | 4 | 4 | 2 | 2 |
+| weaver | 57 | 57 | 54 | 3 |
+| windrush | 59 | 59 | 57 | 2 |
+
+These counts describe reviewed static capability across this source snapshot. National Rail integration remains unsupported and both London Cable Car platforms await feed/mapping verification. Reviewed live captures establish only their observed labels. Existing gaps, source blanks, ambiguous Liberty physical records and unconfirmed Elizabeth/Overground stop aliases remain explicit.
+
+### Walkthrough and reproducible verification
+
+1. Search for Kew Gardens offline and open its picker. It lists two physical platforms, each retaining District and Mildmay descriptions.
+2. Open platform 1. The official fixture passes through the real departures handler, native decoder and board projection, combining both lines once and keeping unknown labels unassigned. Platform 2 shows only its verified Mildmay records.
+3. Save either platform, persist preferences, reload Home and reopen its Departures screen. The physical ID stays one selection independent of line count. Automated callback walkthroughs repeat Search → Picker → Departures → Save → persisted reload → Home → reopened Departures for both Mildmay platforms and District platform 1 under available, empty and outage states.
+4. Inspect Kew platform 2 coverage. District matching awaits verification while Mildmay permits saving. Inspect Anerley or Reading for shared National Rail wording and unsupported per-line coverage. Inspect Emerson Park or unverified Elizabeth platforms for browse-only explanations.
+5. Show multiple cards or detail using one canonical station and its aliases. The owner uses one request and snapshot. Removing one consumer retains the remaining request. Leaving all consumers cancels it. Offline/resume, manual refresh, timeout, rejected wrong-station responses and shared 429 cooldown are covered by targeted owner tests.
+
+The native walkthrough tests invoke real screen callbacks and real preferences while mocking native view boundaries. Simulator/device appearance, gestures and VoiceOver were not observed. Independent review and latest-head hosted CI are controller-owned release gates.
+
+Refresh the inventory with `npm run refresh:catalogue -- --archive /path/to/tfl-stationdata-detailed.zip --sha256 <reviewed-sha256> --retrieved-on YYYY-MM-DD`. Re-capture official feed evidence separately with URL, receipt time, raw hash and counts, preserve raw responses, project every arrival-schema field, and enable only exact unique labels reviewed against the refreshed inventory.
+
+Run targeted regressions with `npm test -- src/lib/catalogue/capability.test.ts src/app/api/departures/route.test.ts src/lib/tfl/client.test.ts src/lib/rail/departures.test.ts` and `npm --prefix native test -- tests/departures.test.ts tests/server-departures-contract.test.ts tests/offline-discovery.test.ts tests/canonical-saved.test.ts tests/platform-board-layout.test.ts`. Run Northern regressions with `npm test -- src/lib/northern src/app/api/journey/route.test.ts src/lib/journey-view.test.ts src/components/Planner.test.tsx`.
+
+Full gates are `npm run verify`, `python3 -m pytest -q tests/catalogue`, `npm --prefix native run typecheck` and `npm --prefix native test`. Final candidate runtime gates are `npm run build`, `npm run test:e2e` and `npm --prefix native run export:ios`.

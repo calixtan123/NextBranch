@@ -6,12 +6,13 @@ import evidence from "../../../data/tfl-underground-evidence.json";
 import dlrEvidence from "../../../data/tfl-dlr-evidence.json";
 import overgroundEvidence from "../../../data/tfl-overground-evidence.json";
 import elizabethEvidence from "../../../data/tfl-elizabeth-evidence.json";
+import sharedEvidence from "../../../data/tfl-shared-evidence.json";
 import tramCableEvidence from "../../../data/tfl-tram-cable-evidence.json";
 import type { AppStation } from "./index";
 import type { CataloguePlatform, CatalogueService } from "./schema";
 
 // The checked-in official labels establish static capability even during outages.
-const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds, ...elizabethEvidence.feeds, ...tramCableEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
+const observedMappings = new Set([...evidence.feeds, ...dlrEvidence.feeds, ...overgroundEvidence.feeds, ...elizabethEvidence.feeds, ...tramCableEvidence.feeds, ...sharedEvidence.feeds].flatMap(feed => feed.labels.flatMap(label => {
   const parsed = railPlatformInfo(label.lineId, label.platformName);
   return parsed.confirmed ? [JSON.stringify([label.lineId, label.stopAreaId, parsed.platform, parsed.direction])] : [];
 })));
@@ -106,7 +107,7 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
   return {
     feed: "supported", mapping: verified ? "supported" : "unverified",
     evidence: verified
-      ? "Official station archive service stop area + platform number + cardinal direction matched to official Underground live labels. Evidence captured 2026-11-10 in data/tfl-underground-evidence.json. Existing Northern evidence retained. Platform NaPTAN and destinations are not used."
+      ? "Official station archive service stop area + platform number + cardinal direction matched to official Underground live labels. Evidence captured 2026-11-10 in data/tfl-underground-evidence.json and targeted data/tfl-shared-evidence.json. Existing Northern evidence retained. Platform NaPTAN and destinations are not used."
       : "Underground arrivals supported, but this physical service/platform pair has no unambiguous reviewed live label. Matching awaits verification.",
   };
 }

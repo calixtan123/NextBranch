@@ -141,8 +141,8 @@ it.each(['empty', 'outage'] as const)('shows official DLR blank direction and to
 it.each([
   ['HUBEAL', '3', 'Elizabeth line', 'National Rail', true],
   ['HUBEAL', '3', 'Elizabeth line', 'National Rail', false],
-  ['HUBKWG', '1', 'Mildmay', 'District', true], ['910GANERLEY', '1', 'Windrush', 'National Rail', true],
-  ['HUBKWG', '1', 'Mildmay', 'District', false], ['910GANERLEY', '1', 'Windrush', 'National Rail', false],
+  ['HUBKWG', '2', 'Mildmay', 'District', true], ['910GANERLEY', '1', 'Windrush', 'National Rail', true],
+  ['HUBKWG', '2', 'Mildmay', 'District', false], ['910GANERLEY', '1', 'Windrush', 'National Rail', false],
 ] as const)('renders shared TfL %s coverage and every published description with expanded=%s', async (stationId, number, coveredLine, otherLine, expanded) => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get(stationId)!;

@@ -144,3 +144,28 @@ it('projects eight official Tram responses to exact blank-number physical platfo
     }
   }
 });
+
+it('joins both exact official Kew feeds on platform 1 and keeps platform 2 and unknown labels separate', async () => {
+  const fixture = (await import('../../data/tfl-shared-kew-fixtures.json')).default;
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { createCanonicalCatalogue } = await import('../src/catalogue');
+  const station = catalogue.stationsById.get('HUBKWG')!;
+  const frozen = new Date(fixture.feeds[0].observedAt);
+  const get = createDeparturesHandler({ now: () => frozen, lineArrivals: async (lineId, stop) => {
+    const feed = fixture.feeds.find(feed => feed.lineId === lineId && feed.stopAreaId === stop)!;
+    return parseArrivals([...feed.predictions, ...feed.predictions]);
+  } });
+  const response = await get(request('?station=HUBKWG'));
+  const snapshot = decodeSnapshot(await response.json(), 'HUBKWG');
+  const canonical = createCanonicalCatalogue(catalogue);
+  const one = canonical.selection(station, station.platforms[0])!;
+  const two = canonical.selection(station, station.platforms[1])!;
+  const firstRows = boardRows(snapshot, one, frozen.getTime(), 5);
+  const secondRows = boardRows(snapshot, two, frozen.getTime(), 5);
+  expect(new Set(firstRows.map(row => row.lineId))).toEqual(new Set(['district', 'mildmay']));
+  expect(new Set(secondRows.map(row => row.lineId))).toEqual(new Set(['mildmay']));
+  expect(new Set(firstRows.map(row => row.id)).size).toBe(firstRows.length);
+  expect(firstRows.some(row => secondRows.some(other => other.id === row.id))).toBe(false);
+  expect(snapshot.platforms.some(platform => !platform.physicalPlatformId)).toBe(true);
+  expect(snapshot.catalogue?.feeds?.map(feed => feed.liveState)).toEqual(['available', 'available']);
+});
