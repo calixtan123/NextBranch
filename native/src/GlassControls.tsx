@@ -42,8 +42,8 @@ export function GlassSurface({ accent, children, style }: {
 }
 
 /** A neutral-foreground glass action retaining the native button and touch target. */
-export function GlassAction({ label, icon, accent, onPress, disabled }: {
-  label: string; icon?: IconName; accent: Style; onPress: () => void; disabled?: boolean;
+export function GlassAction({ label, icon, accent, onPress, disabled, compact = false }: {
+  label: string; icon?: IconName; accent: Style; onPress: () => void; disabled?: boolean; compact?: boolean;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
     disabled={disabled} onPress={onPress}
@@ -52,11 +52,11 @@ export function GlassAction({ label, icon, accent, onPress, disabled }: {
       justifyContent: 'center', opacity: pressed || disabled ? .55 : 1,
     }]}>
     <GlassSurface accent={accent} style={[ui.row, {
-      minHeight: 44, minWidth: 44, maxWidth: '100%', justifyContent: 'center', gap: 7,
-      paddingHorizontal: icon === 'search' ? 11 : 12, paddingVertical: 9,
+      minHeight: compact ? 32 : 44, minWidth: 44, maxWidth: '100%', justifyContent: 'center', gap: 7,
+      paddingHorizontal: compact ? 8 : icon === 'search' ? 11 : 12, paddingVertical: compact ? 6 : 9,
     }]}>
       {icon && <Icon name={icon} size={icon === 'search' ? 21 : 17} tone="fg" />}
-      {icon !== 'search' && <Label size={15} tone="fg" style={{ flexShrink: 1, minWidth: 0 }}>{label}</Label>}
+      {icon !== 'search' && <Label size={compact ? 13 : 15} tone="fg" style={{ flexShrink: 1, minWidth: 0 }}>{label}</Label>}
     </GlassSurface>
   </Pressable>;
 }

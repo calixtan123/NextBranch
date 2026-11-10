@@ -40,7 +40,7 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
         <Label size={15} tone="dim" accessibilityLabel={cards.length + ' of 3 saved platforms'}>{cards.length}/3</Label>
       </View>
       <View style={[ui.wrap, { columnGap: 0, maxWidth: '100%', minWidth: 0, flexShrink: 1 }]}>
-        <GlassAction accent={accent} label="Manage platforms" onPress={() => navigation.navigate('Manage')} />
+        <GlassAction compact accent={accent} label="Manage platforms" onPress={() => navigation.navigate('Manage')} />
         <IconButton icon="settings" label="Settings" size={16} tone="dim" onPress={() => navigation.navigate('Settings')} />
       </View>
     </View>

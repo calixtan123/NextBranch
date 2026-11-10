@@ -52,3 +52,12 @@ These independent source reviews cover the persisted Settings Dark Mode switch a
 - [Maximum Dynamic Type Home top viewport](glass-home-max-type.png)
 
 These captures cover neutral glass actions, the Amber material sample and the Manage platforms wrapping correction. The development gear partly covers ordinary-size header Search. Current Light/Modern, Search interaction, native transparency changes and broader manual boundaries remain recorded in the verification document.
+
+## Compact Manage and refreshed iPhone 18 previews
+
+- [Compact Manage task review](compact-manage-task-review.md)
+- [Fresh final branch and visual review](compact-manage-final-review.md)
+- [iPhone 18 Pro Dark/Amber Home](compact-home-18-pro.png)
+- [iPhone 18 Pro Max Dark/Modern Home](compact-home-18-pro-max.png)
+
+The controller refreshed both native installations and preview connections, preserving saved platforms. Both captures show compact Manage, neutral glass controls and unobstructed Search. Broader acceptance boundaries remain in the current verification record.
