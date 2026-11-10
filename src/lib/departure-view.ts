@@ -1,13 +1,16 @@
 import { z } from "zod";
+import { catalogueResponseSchema } from "./catalogue/capability";
 
 const departureSchema = z.object({
   id: z.string().min(1),
+  lineId: z.literal("northern").optional(),
   destinationName: z.string().nullable(),
   expectedArrival: z.string().datetime(),
   secondsToStation: z.number().finite(),
   towards: z.string().nullable(),
 });
 const platformSchema = z.object({
+  physicalPlatformId: z.string().nullable().optional(),
   platform: z.string().nullable(),
   direction: z.enum(["Northbound", "Southbound"]).nullable(),
   departures: z.array(departureSchema),
@@ -18,9 +21,11 @@ const responseSchema = z.object({
   newestPredictionGeneratedAt: z.string().datetime().nullable(),
   refreshAfterSeconds: z.number().int().positive(),
   platforms: z.array(platformSchema),
+  catalogue: catalogueResponseSchema.optional(),
 });
 
 export type Departure = z.infer<typeof departureSchema> & {
+  physicalPlatformId?: string | null;
   platform: string | null;
   direction: "Northbound" | "Southbound" | null;
 };
@@ -44,12 +49,14 @@ export function groupDepartures(items: readonly Departure[]): DeparturePlatform[
   for (const item of items) {
     const key = `${item.platform ?? ""}\u0000${item.direction ?? ""}`;
     const group = grouped.get(key) ?? {
+      ...(item.physicalPlatformId !== undefined ? { physicalPlatformId: item.physicalPlatformId } : {}),
       platform: item.platform,
       direction: item.direction,
       departures: [],
     };
     group.departures.push({
       id: item.id,
+      ...(item.lineId !== undefined ? { lineId: item.lineId } : {}),
       destinationName: item.destinationName,
       expectedArrival: item.expectedArrival,
       secondsToStation: item.secondsToStation,

@@ -24,3 +24,7 @@ skills-lock.json
 
 # Isolated feature worktrees created by local development tooling
 .worktrees/
+
+# Python catalogue refresh verification
+__pycache__/
+.pytest_cache/

@@ -68,3 +68,71 @@ Apply the following rules when integrating this snapshot.
 Validation compares every extracted station and platform field with its source CSV row, verifies unique station/platform IDs and valid joins, and compares the complete multiset of service relationships with `PlatformServices.csv`. It also checks the CSV against the nested JSON and checks the XLSX ZIP/XML structure and worksheet row counts. Snapshot counts, blank platform numbers, customer-facing flags and the Kew Gardens shared-line example are checked explicitly.
 
 Refresh by downloading the official archive, reviewing its schema and scope, repeating the station/platform/service joins, and replacing the three representations together after the same checks. Record the new dates, counts and source checksum with the refreshed snapshot.
+
+## NB-5 foundation and passenger catalogue
+
+`src/lib/catalogue` validates the entire snapshot with the application's installed Zod dependency before deriving the passenger catalogue. The validation boundary rejects malformed values, duplicate station/platform IDs, duplicate service relationships, unknown or inconsistent line references, incorrect provenance and disagreeing metadata counts. The refresh command additionally checks both source joins before constructing the nested JSON. Empty source strings retain their published meaning.
+
+The bundled version is identified by its source date and archive SHA-256 in `metadata`. Source totals and derived passenger totals are separate.
+
+| Representation | Stations | Physical platforms | Service relationships |
+| --- | ---: | ---: | ---: |
+| Complete published extraction | 509 | 1,584 | 1,878 |
+| Customer-facing platforms with an in-scope TfL service | 460 | 1,235 | 1,528 |
+
+The app subset includes the 20 rail/tram lines and retained London Cable Car. It excludes all six non-customer-facing platforms and National Rail-only platforms. Its service total includes every published service on retained shared TfL/National Rail platforms. For example, Amersham retains Metropolitan and National Rail relationships on each eligible shared physical platform. Kew Gardens retains two physical platforms, each with District and Mildmay services and their separate stop-area IDs.
+
+`createCatalogue` provides canonical station, physical-platform and service-stop-area indexes. `stationsByAnyId` adds only unambiguous service stop-area aliases, preserving existing Northern IDs such as `940GZZLUEUS` alongside canonical `HUBEUS`. `searchCatalogue` uses the existing punctuation/case normalization and reviewed Northern aliases, orders prefix matches before contained matches, and resolves ties by canonical name and ID. It returns explicit `empty-query`, `no-match` and `missing-catalogue` states. Empty queries return the complete sorted passenger station list. All these operations work from the bundled snapshot without a network request.
+
+Published platform number, friendly description, cardinal direction and service wording remain independent fields. An empty string remains unknown. Consumers can display “Direction unavailable” for a blank direction. The API leaves Camden Town's blank southbound `direction_towards` fields empty.
+
+## Northern departures compatibility and mapping evidence
+
+`/api/departures?station=<id>` accepts a canonical passenger station ID or an unambiguous service stop-area alias. Northern hubs resolve to their published Northern service stop area for the existing server-only Northern transport. The response retains the requested `station.id`, legacy station names for existing Northern IDs, existing platform labels/directions, response status/error codes, refresh policy, freshness handling and prediction ordering. Journey, branch, confidence, credential and rate-limit logic remains owned by the existing Northern modules.
+
+The additive `catalogue` object contains the canonical station ID, all eligible physical-platform descriptions, all retained services and service-level `feed` and `mapping` capabilities. Each capability is `supported`, `unsupported` or `unverified`. Supported Northern groups also include `physicalPlatformId`, with `null` for unassigned predictions. Departures retain `lineId`. The shared response decoder preserves these optional additions and continues accepting older responses.
+
+Northern physical matching requires the existing normalizer's exact live label, such as `Northbound - Platform 1`, plus exactly one catalogue platform with that published number, cardinal direction and Northern service. Direction-only, number-only, contradictory and ambiguous records retain a null physical-platform assignment. Destination, branch wording, historical platform-ID text and platform NaPTAN are never matching inputs.
+
+Colindale's official `Platforms.csv` establishes the following distinct pairs in the checksum-pinned archive. The duplicated NaPTAN has no role in matching.
+
+| Canonical physical platform | Published number | Published direction |
+| --- | --- | --- |
+| `940GZZLUCND-Plat01-NB-northern` | 1 | Northbound |
+| `940GZZLUCND-Plat02-SB-northern` | 2 | Southbound |
+
+The unambiguous number-and-cardinal pair is the mapping evidence. The original duplicated NaPTAN remains preserved in source and API metadata. Camden Town likewise matches the published 1/3 Northbound and 2/4 Southbound pairs without manufacturing a Bank or Charing Cross platform branch. Temporary allocations with a contradictory label remain unassigned. [Official archive](https://api.tfl.gov.uk/stationdata/tfl-stationdata-detailed.zip), [field specification](https://content.tfl.gov.uk/step-free-access-and-toilet-data-guide.pdf).
+
+Only the existing Northern arrivals transport is implemented in NB-5. Other in-scope line feeds and mappings are `unverified` pending their mode-specific evidence and implementation. National Rail live integration is `unsupported` for this delivery. Catalogue-only stations return their platform metadata with `liveState: "unverified"` and make no upstream request. A supported Northern feed separately reports `available`, successful `empty`, or transient `unavailable`. Upstream/configuration failures retain their 503/500 status and established error code, with additive catalogue capability metadata. Feed capability therefore survives an empty snapshot or outage.
+
+Native search/picker/save integration remains gated on NB-3 acceptance and merge. NB-5 verification covers the reusable catalogue and normal server API boundary. The parent NB-4 delivery owns the later native search-to-save walkthrough and remaining live modes.
+
+## Repeatable validated refresh
+
+Use Node 24, the installed application dependencies from `npm ci`, and Python 3.12 or newer. Download the official archive to a local path and review its SHA-256 and source changes. Pass the reviewed checksum and actual retrieval date explicitly. The command performs the full extraction and regenerates all three review formats.
+
+```bash
+curl --fail --location 'https://api.tfl.gov.uk/stationdata/tfl-stationdata-detailed.zip' --output /tmp/tfl-stationdata-detailed.zip
+shasum -a 256 /tmp/tfl-stationdata-detailed.zip
+npm run refresh:catalogue -- \
+  --archive /tmp/tfl-stationdata-detailed.zip \
+  --sha256 <reviewed-sha256> \
+  --retrieved-on YYYY-MM-DD
+```
+
+For this reference version, the reviewed SHA-256 is `9107a1ed212bcc1fe9ae6b89dc9ad0dc40b14295271983c14272ba7763c6d2df` and retrieval date is `2026-11-10`. The refresh takes its source version date from `FeedInfo.csv`. Preserve the downloaded archive for source-level auditing. `--output <directory>` supports a disposable verification bundle. The output directory must be dedicated to these three files.
+
+The refresh uses standard-library CSV, ZIP and XML processing, and invokes the same Zod validation boundary as application loading. It rejects broken source joins, duplicate IDs, unknown lines/modes, malformed source rows, invalid booleans and checksum mismatches. JSON is staged and validated first. CSV is compared cell-for-cell with the derived JSON service rows. All three XLSX worksheets are reopened and compared cell-for-cell with their expected JSON views, preserving blanks and text-safe identifiers. The generated review workbook has filterable headers and frozen header rows across Platforms, Platform services and Stations.
+
+A sibling exclusive lock serializes refresh writers. The complete validated directory is published using directory renames, with the prior directory restored if publication fails. Readers can briefly encounter a missing directory between the two renames. Run refresh in a maintenance/development context, then rebuild/redeploy the app, whose catalogue is bundled at build time. A process kill or power loss can leave `.<directory-name>.refresh.lock` and `.<directory-name>.previous` beside the output. After confirming the refresh process has ended, inspect the current bundle and backup. Restore the `.previous` directory if the destination is absent, then remove the stale lock. The command preserves an interrupted backup and refuses to overwrite it. These checks provide rollback for ordinary errors. The two renames do not form a crash-atomic filesystem transaction.
+
+After refresh, review the JSON/CSV/XLSX diff together. Update the documented full/app counts, source date and checksum if they changed, and review mapping evidence before enabling new live capability.
+
+```bash
+npm test -- src/lib/catalogue src/app/api/departures/route.test.ts src/lib/departure-view.test.ts
+python3 -m pytest -q tests/catalogue
+npm run verify
+npm run build
+```
+
+Pytest uses Arrange / Act / Assert. Each test prepares a small official-schema archive, runs the extraction or refresh operation, and checks exported values or safe failure behavior. The suite covers shared services and blanks, malformed tables, broken joins, duplicate IDs, unknown lines, checksum and writer-lock rejection, validation before publication, rollback, retained recovery backups and repeat refreshes. The existing Verify CI workflow runs these tests alongside the TypeScript suite.

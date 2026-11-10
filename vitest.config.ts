@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
@@ -9,5 +10,5 @@ export default defineConfig({
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },
   },
-  resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
 });

@@ -20,9 +20,14 @@ jobs:
         with:
           node-version: 24.x
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest==9.1.1
       - run: npm ci
       - run: npm run check:topology-age
       - run: npx playwright install --with-deps chromium webkit
+      - run: python -m pytest -q tests/catalogue
       - run: npm run verify
       - run: npm run build
       - run: npm run test:e2e
