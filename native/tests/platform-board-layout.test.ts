@@ -5,8 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { LineLabels } from '../src/LineLabels';
 import { PlatformBoard } from '../src/PlatformBoard';
 import { Label } from '../src/theme';
+import type { Snapshot } from '../src/api';
 
-const boundary = vi.hoisted(() => ({ fontScale: 1 }));
+const boundary = vi.hoisted(() => ({ fontScale: 1, light: false }));
 vi.mock('react', async importOriginal => ({
   ...await importOriginal<typeof import('react')>(),
   useState: (initial: unknown) => [initial, vi.fn()],
@@ -18,8 +19,9 @@ vi.mock('react-native', () => ({
 }));
 vi.mock('../src/theme', async importOriginal => {
   const theme = await importOriginal<typeof import('../src/theme')>();
-  return { ...theme, usePalette: () => theme.paletteFor(false) };
+  return { ...theme, usePalette: () => theme.paletteFor(boundary.light) };
 });
+
 vi.mock('react-native-svg', () => ({
   default: 'Svg', Circle: 'Circle', Defs: 'Defs', FeGaussianBlur: 'FeGaussianBlur', Filter: 'Filter',
   Path: 'Path', Pattern: 'Pattern', Rect: 'Rect',
@@ -191,4 +193,47 @@ it.each([true, false])('renders verified Tram blank numbers without inventing la
     const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
     expect((button?.props as { accessibilityLabel?: string }).accessibilityLabel).toContain('Platform number not published');
   }
+});
+
+describe.each([
+  { style: 'amber', light: false }, { style: 'amber', light: true },
+  { style: 'modern', light: false }, { style: 'modern', light: true },
+] as const)('$style departure copy in light=$light', ({ style, light }) => {
+  it.each([false, true])('renders concise destinations and complete route labels with expanded=%s', expanded => {
+    boundary.fontScale = 1;
+    boundary.light = light;
+    const observedAt = '2026-11-10T12:00:00Z';
+    const snapshot: Snapshot = { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+      observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: 'A', direction: 'Southbound', departures: [
+        { id: '1-epping', destinationName: 'Epping Underground Station', towards: null },
+        { id: '2-hainault', destinationName: 'Hainault Underground Station', towards: 'Hainault via Newbury Park' },
+        { id: '3-embedded', destinationName: 'Hainault Underground Station via Newbury Park', towards: 'Hainault via Newbury Park' },
+      ].map(row => ({ ...row, expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 })) }] };
+    const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Southbound' },
+      style, now: Date.parse(observedAt), online: true, limited: false, expanded,
+      state: { pending: false, error: null, snapshot },
+      onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+    const rows = elements(tree).filter(node => 'row' in node.props).map(node => {
+      const render = node.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
+      return render(node.props);
+    });
+    const texts = rows.map(row => elements(row).filter(node => node.type === 'Text')
+      .map(node => Children.toArray(node.props.children).join('')));
+    expect(texts[0]).toContain('Epping');
+    expect(texts[1]).toContain('Hainault via Newbury Park');
+    expect(texts[2]).toContain('Hainault via Newbury Park');
+    const suffix = expanded ? ', Expected at 12:01 London time' : '';
+    expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
+      '1, Epping, 1 min' + suffix,
+      '2, Hainault, via Newbury Park, 1 min' + suffix,
+      '3, Hainault via Newbury Park, 1 min' + suffix,
+    ]);
+    if (!expanded) {
+      const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+      const label = (button.props as { accessibilityLabel: string }).accessibilityLabel;
+      expect(label).toContain('1, Epping, 1 min');
+      expect(label).not.toMatch(/Underground Station|Branch unavailable|, ,/);
+    }
+  });
 });

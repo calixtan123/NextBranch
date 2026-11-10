@@ -82,13 +82,24 @@ it('shows shared destinations once and deduplicates differing service/destinatio
   expect(platformPickerDestination([...services, services[0]])).toBe("District · Towards Earl's Court\nMildmay · Towards Stratford");
 });
 
-it('keeps unknown picker values explicit and preserves mixed National Rail details', () => {
+it('keeps unknown identity values explicit while omitting unpublished picker destinations', () => {
   expect(platformPickerTitle('', '')).toBe('Direction not published · Platform number not published');
   expect(platformPickerTitle('Northbound', '')).toBe('Northbound · Platform number not published');
   expect(platformPickerTitle('', '3')).toBe('Direction not published · Platform 3');
-  expect(platformPickerDestination([])).toBe('Towards not published');
+  expect(platformPickerDestination([])).toBe('');
   const service = station('Kew Gardens').platforms[0].services[0];
-  expect(platformPickerDestination([{ ...service, direction_towards: '' }])).toBe('Towards not published');
+  expect(platformPickerDestination([{ ...service, direction_towards: '' }])).toBe('');
   expect(platformPickerDestination([service, { ...service, line_id: 'national-rail', line_name: 'National Rail', direction_towards: '' }]))
-    .toBe("Towards Earl's Court\nNational Rail · Towards not published");
+    .toBe("Towards Earl's Court");
+});
+
+it('omits blank picker lines without dropping labels from differing published destinations or mutating services', () => {
+  const [district, mildmay] = station('Kew Gardens').platforms[0].services;
+  const services = [district, mildmay, { ...district, direction_towards: '  ' },
+    { ...district, line_id: 'national-rail', line_name: 'National Rail', direction_towards: 'Richmond' }];
+  const before = JSON.stringify(services);
+
+  expect(platformPickerDestination(services)).toBe("District · Towards Earl's Court\nMildmay · Towards Stratford\nNational Rail · Towards Richmond");
+  expect(JSON.stringify(services)).toBe(before);
+  expect(platformPickerDestination([{ ...district, direction_towards: '' }, mildmay])).toBe('Towards Stratford');
 });

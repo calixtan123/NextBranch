@@ -127,6 +127,8 @@ it('retains tram blank numbers and unknown fields and excludes National Rail-onl
   expect(rows).toHaveLength(2);
   expect(text(tree)).not.toMatch(/Platform [0-9]/);
   expect(text(tree)).toContain('Platform number not published');
+  expect(text(tree)).not.toContain('Towards not published');
+  expect(rows.every(row => row.props.detail === '')).toBe(true);
   const tram = shared.catalogue.stationsById.get('HUBECY')!.platforms[0];
   expect(text(details('HUBECY', tram.platform_id))).toContain('Towards not published');
   const unknown = shared.catalogue.stations.find(station => station.platforms.some(platform => !platform.cardinal_direction))!;
@@ -151,6 +153,8 @@ it('keeps reviewed Northern navigation and synthetic fixture platforms working',
   const synthetic = picker(station.station_id, nav);
   expect(text(synthetic)).toContain('Platform A');
   expect(text(synthetic)).not.toContain('Platform 1');
+  expect(text(synthetic)).not.toContain('Towards not published');
+  expect(nodes(synthetic).find(node => node.props.title === 'Southbound Platform A')!.props.detail).toBe('');
   nodes(synthetic).find(node => node.props.title === 'Southbound Platform A')!.props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('Departures', { selection: { stationId: station.station_id, platform: 'A', direction: 'Southbound' } });
 });
@@ -359,7 +363,7 @@ it('renders Northern, Central and Elizabeth headings at TCR with complete explic
     expect(row.props.titleEmphasis).toBe(true);
     expect(row.props.detail).not.toContain(platform.cardinal_direction || 'Direction not published');
     expect(row.props.detail).not.toContain(platform.friendly_name);
-    expect(row.props.detail).toBe(platform.services[0].direction_towards ? 'Towards ' + platform.services[0].direction_towards : 'Towards not published');
+    expect(row.props.detail).toBe(platform.services[0].direction_towards ? 'Towards ' + platform.services[0].direction_towards : '');
   }
 });
 

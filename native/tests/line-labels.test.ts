@@ -35,6 +35,16 @@ it.each([false, true])('keeps long shared headings wrapping with bordered swatch
   }
 });
 
+it.each([false, true])('omits empty picker subtext and accessibility punctuation in light=%s', light => {
+  theme.light = light;
+  const tree = Result({ title: 'Eastbound Platform 3', detail: '', titleEmphasis: true, onPress: vi.fn() });
+  expect(tree.props.accessibilityLabel).toBe('Eastbound Platform 3');
+  const content = Children.toArray(tree.props.children).filter(isValidElement<Record<string, any>>)[0];
+  const labels = Children.toArray(content.props.children).filter(isValidElement<Record<string, any>>);
+  expect(labels).toHaveLength(1);
+  expect(Label(labels[0].props).props.children).toBe('Eastbound Platform 3');
+});
+
 it('renders no invented labels for an empty service list', () => {
   expect(Children.count(LineLabels({ lines: [] }).props.children)).toBe(0);
 });

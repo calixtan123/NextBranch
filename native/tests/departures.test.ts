@@ -18,7 +18,7 @@ it('matches only the physical tuple, keeps every branch, expires before limiting
   expect(boardRows(snapshot, a, now, 3).map(row => row.id)).toEqual([1, 2, 3].map(i => 'sample-camden-a-' + i));
   const detail = boardRows(snapshot, a, now, 5);
   expect(detail.map(row => row.id)).toEqual([1, 2, 3, 4, 5].map(i => 'sample-camden-a-' + i));
-  expect(detail.map(row => row.branch).join(' ')).toMatch(/Bank.*Charing Cross.*Branch unavailable/i);
+  expect(detail.map(row => row.branch)).toEqual(['via Bank', 'via Charing Cross', 'via Bank', 'via Charing Cross', '']);
   expect(boardRows(snapshot, { ...a, direction: 'Northbound' }, now, 5)).toEqual([]);
   expect(boardRows(snapshot, { ...a, stationId: L }, now, 5)).toEqual([]);
   const first = Date.parse(detail[0].expectedArrival);
@@ -29,6 +29,33 @@ it('matches only the physical tuple, keeps every branch, expires before limiting
   expect(boardRows(snapshot, a, first + 30_001, 5).at(-1)?.destination).toBe('Unknown destination');
   expect(unassignedCount(snapshot, now)).toBe(1);
   expect(boardRows(snapshot, a, now + 3_600_000, 5)).toEqual([]);
+});
+
+it.each([
+  ['Epping Underground Station', null, 'Epping', ''],
+  ['Hainault Underground Station', 'Hainault via Newbury Park', 'Hainault', 'via Newbury Park'],
+  ['Hainault Underground Station via Newbury Park', 'Hainault via Newbury Park', 'Hainault via Newbury Park', ''],
+  ['  Hainault  uNdErGrOuNd   StAtIoN  VIA  Newbury Park  ', 'Hainault via newbury park', 'Hainault VIA Newbury Park', ''],
+  ['Morden Underground Station', 'Morden via bank', 'Morden', 'via Bank'],
+  ['Morden Underground Station', 'Morden via cx', 'Morden', 'via Charing Cross'],
+  ['Morden via Charing Cross', 'Morden via CX', 'Morden via Charing Cross', ''],
+  ['Hainault via Newbury Park', 'Hainault via Stratford', 'Hainault via Newbury Park', 'via Stratford'],
+  ['Underground Station Road', null, 'Underground Station Road', ''],
+  ['Station Approach Underground', null, 'Station Approach Underground', ''],
+  ['  ', null, 'Unknown destination', ''],
+  ['Underground Station', null, 'Unknown destination', ''],
+  [null, null, 'Unknown destination', ''],
+])('shortens display destination %s and preserves advertised route %s without changing the source', (destinationName, towards, destination, branch) => {
+  const input: typeof snapshot = { ...snapshot, platforms: [{ platform: 'A', direction: 'Southbound', departures: [{
+    ...snapshot.platforms[0].departures[0], destinationName, towards,
+  }] }] };
+  const before = JSON.stringify(input);
+
+  const rows = boardRows(input, a, now, 3);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ destination, branch });
+  expect(JSON.stringify(input)).toBe(before);
 });
 
 it('counts unassigned predictions through the exact 30-second grace boundary', () => {

@@ -107,15 +107,17 @@ export function platformPickerTitle(direction: string, number: string): string {
  * -------
  * string
  *     A common TfL destination or individually labelled differing destinations,
- *     followed by any mixed National Rail details. Empty values stay explicit.
+ *     followed by any published National Rail destinations. Unpublished values
+ *     produce no subtext; source service records remain unchanged.
  */
 export function platformPickerDestination(services: readonly CatalogueService[]): string {
-  const unique = [...new Map(services.map(service => [JSON.stringify([service.line_id, service.direction_towards]), service])).values()];
+  const unique = [...new Map(services.filter(service => service.direction_towards.trim())
+    .map(service => [JSON.stringify([service.line_id, service.direction_towards]), service])).values()];
   const tfl = unique.filter(service => service.line_id !== 'national-rail');
   const rail = unique.filter(service => service.line_id === 'national-rail');
-  const towards = (destination: string) => destination ? 'Towards ' + destination : 'Towards not published';
+  const towards = (destination: string) => 'Towards ' + destination;
   const labelled = (service: CatalogueService) => `${service.line_name} · ${towards(service.direction_towards)}`;
   const destinations = new Set(tfl.map(service => service.direction_towards));
   const descriptions = destinations.size === 1 ? [towards(tfl[0].direction_towards)] : tfl.map(labelled);
-  return [...descriptions, ...rail.map(labelled)].join('\n') || 'Towards not published';
+  return [...descriptions, ...rail.map(labelled)].join('\n');
 }

@@ -94,7 +94,7 @@ export function PickerScreen({ navigation, route }: Screen<'Picker'>) {
         <Label tone="dim" size={15} accessibilityRole="header"
           style={{ marginTop: 24, marginBottom: 8, marginHorizontal: 4 }}>{direction || 'Direction not published'}</Label>
         {fixtures.map(selection => <Result key={selectionKey(selection)} title={platformPickerTitle(selection.direction, selection.platform)} titleEmphasis
-          detail="Towards not published" onPress={() => navigation.navigate('Departures', { selection })} />)}
+          detail="" onPress={() => navigation.navigate('Departures', { selection })} />)}
       </View>;
     })}
     {!platforms.length && !fixturePlatforms.length && <View style={{ marginTop: 16, gap: 12 }}>

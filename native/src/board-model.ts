@@ -1,8 +1,19 @@
+/** Projects native departure display fields while preserving source predictions and matching. */
 import { branchLabel, normalizeTowards } from '../../src/lib/northern/route';
 import { DEPARTED_GRACE, displayCountdown, secondsToOrigin } from '../../src/lib/northern/time';
 import type { Snapshot } from './api';
 import type { Selection } from './catalogue';
 import type { Style } from './preferences';
+
+/** Reads only an advertised via clause, preserving names beyond the two Northern aliases. */
+function displayVia(value: string | null | undefined): string {
+  const advertised = value?.trim().replace(/\s+/g, ' ');
+  const via = advertised?.match(/\bvia\s+(.+)$/i);
+  if (!via) return '';
+  const compact = /^(?:bank|cx|charing\s+cross)$/i.test(via[1])
+    ? branchLabel(normalizeTowards(advertised)) : null;
+  return `via ${compact ?? via[1]}`;
+}
 
 /** Projects an exact physical platform before sorting and taking its visible row limit. */
 export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit: 3 | 5) {
@@ -17,15 +28,14 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
     .sort((a, b) => Date.parse(a.expectedArrival) - Date.parse(b.expectedArrival) || a.id.localeCompare(b.id))
     .slice(0, limit)
     .map(row => {
-      const advertised = row.towards?.trim();
-      const via = advertised?.match(/\bvia\s+(.+)$/i);
-      const compact = via && /^(?:bank|cx|charing\s+cross)$/i.test(via[1])
-        ? branchLabel(normalizeTowards(advertised)) : null;
-      const branch = via ? `via ${compact ?? via[1]}` : 'Branch unavailable';
+      const destination = row.destinationName?.trim().replace(/\s+/g, ' ')
+        .replace(/(?:^|\s+)Underground Station(?=\s*(?:via\b|$))/i, '').trim() || 'Unknown destination';
+      const via = displayVia(row.towards);
+      const branch = via.toLowerCase() === displayVia(destination).toLowerCase() ? '' : via;
       return {
         id: row.id,
         lineId: row.lineId,
-        destination: row.destinationName?.trim() || 'Unknown destination',
+        destination,
         branch,
         countdown: displayCountdown(row.seconds),
         expectedArrival: row.expectedArrival,
