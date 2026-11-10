@@ -1,0 +1,201 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import camden from '../assets/camden-mixed.json';
+import colindale from '../assets/colindale-mixed.json';
+import { createStationOwner, isStale } from '../src/station-owner';
+import { decodeSnapshot, httpTransport, type StationTransport } from '../src/api';
+import { boardRows, layoutFor, matrixWidth, unassignedCount, wrapMatrix } from '../src/board-model';
+
+const C = camden.station.id;
+const L = colindale.station.id;
+const now = Date.parse(camden.observedAt);
+const snapshot = decodeSnapshot(camden, C);
+const a = { stationId: C, platform: 'A', direction: 'Southbound' } as const;
+const body = (id: string) => decodeSnapshot(id === C ? camden : colindale, id);
+const settle = () => vi.advanceTimersByTimeAsync(0);
+afterEach(() => vi.useRealTimers());
+
+it('matches only the physical tuple, keeps every branch, expires before limiting, and preserves fallback text', () => {
+  expect(boardRows(snapshot, a, now, 3).map(row => row.id)).toEqual([1, 2, 3].map(i => 'sample-camden-a-' + i));
+  const detail = boardRows(snapshot, a, now, 5);
+  expect(detail.map(row => row.id)).toEqual([1, 2, 3, 4, 5].map(i => 'sample-camden-a-' + i));
+  expect(detail.map(row => row.branch).join(' ')).toMatch(/Bank.*Charing Cross.*Branch unavailable/i);
+  expect(boardRows(snapshot, { ...a, direction: 'Northbound' }, now, 5)).toEqual([]);
+  expect(boardRows(snapshot, { ...a, stationId: L }, now, 5)).toEqual([]);
+  const first = Date.parse(detail[0].expectedArrival);
+  expect(boardRows(snapshot, a, first + 30_000, 3)[0].countdown).toBe('Due');
+  expect(boardRows(snapshot, a, first + 30_001, 3).map(row => row.id)).toEqual([
+    'sample-camden-a-2', 'sample-camden-a-3', 'sample-camden-a-4',
+  ]);
+  expect(boardRows(snapshot, a, first + 30_001, 5).at(-1)?.destination).toBe('Unknown destination');
+  expect(unassignedCount(snapshot, now)).toBe(1);
+  expect(boardRows(snapshot, a, now + 3_600_000, 5)).toEqual([]);
+});
+
+it('counts unassigned predictions through the exact 30-second grace boundary', () => {
+  const unassigned = snapshot.platforms.find(group => group.platform === null)!.departures[0];
+  const arrival = Date.parse(unassigned.expectedArrival);
+  expect(unassignedCount(snapshot, arrival + 30_000)).toBe(1);
+  expect(unassignedCount(snapshot, arrival + 30_001)).toBe(0);
+});
+
+it('switches Amber to readable native text at accessibility sizes and preserves unsupported characters', () => {
+  expect(layoutFor('amber', 1, 'Morden via Bank')).toBe('matrix');
+  expect(layoutFor('amber', 2, 'Morden via Charing Cross')).toBe('text');
+  expect(layoutFor('amber', 1, 'Elephant & Castle')).toBe('text');
+});
+
+it('sizes Morden via Bank at the pinned Amber scale', () => {
+  expect(matrixWidth('Morden via Bank', .78)).toBeCloseTo(146.718, 6);
+});
+
+it('keeps Morden via Bank together at its pinned width and wraps just below it', () => {
+  expect(wrapMatrix('Morden via Bank', 146.718, .78)).toEqual(['Morden via Bank']);
+  expect(wrapMatrix('Morden via Bank', 146.717, .78)).toEqual(['Morden via', 'Bank']);
+});
+
+it('accepts offset timestamps, rejects malformed and wrong-station responses and enforces release HTTPS', () => {
+  expect(decodeSnapshot({ ...camden, observedAt: '2026-09-16T13:00:00+01:00' }, C).station.id).toBe(C);
+  expect(() => decodeSnapshot(camden, L)).toThrow();
+  expect(() => decodeSnapshot({ ...camden, platforms: [{}] }, C)).toThrow();
+  expect(() => httpTransport('http://localhost:3000', false)).toThrow();
+  expect(() => httpTransport('/api', false)).toThrow();
+});
+
+it('coalesces station owners, reuses fresh detail, isolates errors and retains stale status while retrying', async () => {
+  vi.useFakeTimers({ now });
+  let failCamden = false;
+  const request = vi.fn<StationTransport>(async id => {
+    if (id === C && failCamden) throw Error('down');
+    return body(id);
+  });
+  const owner = createStationOwner(request, Date.now);
+  owner.own([L, C, C]);
+  await settle();
+  expect(request.mock.calls.map(([id]) => id)).toEqual([L, C]);
+  owner.own([C]);
+  await settle();
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(isStale(owner.get(C), now + 30_000, true)).toBe(false);
+  expect(isStale(owner.get(C), now + 30_001, true)).toBe(true);
+  failCamden = true;
+  await owner.refresh([C]);
+  expect(owner.get(C).snapshot).toEqual(snapshot);
+  expect(isStale(owner.get(C), now, true)).toBe(true);
+  expect(owner.get(L).error).toBeNull();
+  expect(await owner.refresh([C])).toBeNull();
+  failCamden = false;
+  vi.setSystemTime(now + 10_000);
+  const retry = owner.refresh([C]);
+  expect(isStale(owner.get(C), Date.now(), true)).toBe(true);
+  await retry;
+  expect(isStale(owner.get(C), Date.now(), true)).toBe(false);
+  owner.dispose();
+});
+
+it('keeps the shared 429 deadline despite an unrelated in-flight success and applies it on resume', async () => {
+  vi.useFakeTimers({ now });
+  let resolveColindale!: (data: ReturnType<typeof body>) => void;
+  const request = vi.fn<StationTransport>()
+    .mockRejectedValueOnce({ kind: 'limited', retryAfterSeconds: 45 })
+    .mockImplementationOnce(() => new Promise(resolve => { resolveColindale = resolve; }))
+    .mockImplementation(async id => body(id));
+  const owner = createStationOwner(request, Date.now);
+  owner.own([C, L]);
+  await settle();
+  resolveColindale(body(L));
+  await settle();
+  expect(await owner.refresh([L])).toBeNull();
+  owner.setActive(false);
+  await vi.advanceTimersByTimeAsync(40_000);
+  owner.setActive(true);
+  expect(request).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(request.mock.calls.slice(2).map(([id]) => id).sort()).toEqual([C, L].sort());
+  owner.dispose();
+});
+
+it('times out while reading a response body, ignores late superseded results and pauses while inactive', async () => {
+  vi.useFakeTimers({ now });
+  let complete!: (data: unknown) => void;
+  const fakeFetch = vi.fn<typeof fetch>().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: () => new Promise(resolve => { complete = resolve; }),
+  } as Response);
+  const request = httpTransport('https://example.test', false, fakeFetch);
+  const owner = createStationOwner(request, Date.now);
+  owner.own([C]);
+  await vi.advanceTimersByTimeAsync(20_000);
+  expect(owner.get(C).error).toBe('timeout');
+  expect(owner.get(C).pending).toBe(false);
+  expect(fakeFetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
+  owner.own([]);
+  complete(camden);
+  await settle();
+  expect(owner.get(C).snapshot).toBeUndefined();
+  owner.setActive(false);
+  owner.own([L]);
+  await vi.advanceTimersByTimeAsync(100_000);
+  expect(fakeFetch).toHaveBeenCalledTimes(1);
+  owner.setActive(true);
+  await settle();
+  expect(fakeFetch).toHaveBeenCalledTimes(2);
+  owner.own([C]);
+  complete(colindale);
+  await settle();
+  expect(owner.get(L).snapshot).toBeUndefined();
+  owner.dispose();
+});
+
+it('defers newly owned stations after 429 and exposes the reason until the shared deadline', async () => {
+  vi.useFakeTimers({ now });
+  const request = vi.fn<StationTransport>()
+    .mockRejectedValueOnce({ kind: 'limited', retryAfterSeconds: 15 })
+    .mockImplementation(async id => body(id));
+  const owner = createStationOwner(request, Date.now);
+  owner.own([C]);
+  await settle();
+  owner.own([L]);
+  expect(owner.get(L).error).toBeNull();
+  expect(owner.isRateLimited()).toBe(true);
+  expect(await owner.refresh([L])).toBeNull();
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(request.mock.calls.map(([id]) => id)).toEqual([C, L]);
+  expect(owner.isRateLimited()).toBe(false);
+  owner.dispose();
+});
+
+it('uses the server interval, pauses offline, and retains matching data until reconnect succeeds', async () => {
+  vi.useFakeTimers({ now });
+  const request = vi.fn<StationTransport>(async id => ({ ...body(id), refreshAfterSeconds: 12 }));
+  const owner = createStationOwner(request, Date.now);
+  owner.own([C]);
+  await vi.advanceTimersByTimeAsync(11_999);
+  expect(request).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(request).toHaveBeenCalledTimes(2);
+  owner.setOnline(false);
+  await vi.advanceTimersByTimeAsync(12_000);
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(isStale(owner.get(C), Date.now(), owner.isOnline())).toBe(true);
+  expect(await owner.refresh([C])).toBeNull();
+  owner.setOnline(true);
+  await settle();
+  expect(request).toHaveBeenCalledTimes(3);
+  owner.dispose();
+});
+
+it('uses exactly the documented GET URL and stops retrying an invalid station', async () => {
+  vi.useFakeTimers({ now });
+  const request = vi.fn<typeof fetch>().mockResolvedValue({ status: 400, ok: false } as Response);
+  const owner = createStationOwner(httpTransport('https://example.test/', false, request), Date.now);
+  owner.own([C]);
+  await settle();
+  expect(request.mock.calls[0][0]).toBe('https://example.test/api/departures?station=' + C);
+  expect(request.mock.calls[0][1]?.cache).toBe('no-store');
+  expect(owner.get(C).error).toBe('invalid');
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(await owner.refresh([C])).toBeNull();
+  expect(request).toHaveBeenCalledTimes(1);
+  owner.dispose();
+});

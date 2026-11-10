@@ -1,0 +1,45 @@
+{
+  "station": {
+    "id": "940GZZLUCND",
+    "name": "Colindale"
+  },
+  "observedAt": "2026-09-16T12:00:00.000Z",
+  "newestPredictionGeneratedAt": "2026-09-16T12:00:00.000Z",
+  "refreshAfterSeconds": 30,
+  "platforms": [
+    {
+      "platform": "A",
+      "direction": "Southbound",
+      "departures": [
+        {
+          "id": "sample-colindale-a-1",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:01:00.000Z",
+          "secondsToStation": 60,
+          "towards": "Morden via Bank"
+        },
+        {
+          "id": "sample-colindale-a-2",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:02:00.000Z",
+          "secondsToStation": 120,
+          "towards": "Morden via Charing Cross"
+        },
+        {
+          "id": "sample-colindale-a-3",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:03:00.000Z",
+          "secondsToStation": 180,
+          "towards": "Morden via Bank"
+        },
+        {
+          "id": "sample-colindale-a-4",
+          "destinationName": "Morden",
+          "expectedArrival": "2026-09-16T12:04:00.000Z",
+          "secondsToStation": 240,
+          "towards": "Morden via Charing Cross"
+        }
+      ]
+    }
+  ]
+}

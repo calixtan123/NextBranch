@@ -24,3 +24,8 @@ skills-lock.json
 
 # Isolated feature worktrees created by local development tooling
 .worktrees/
+
+# Expo generated native project and local output
+/native/.expo/
+/native/dist/
+/native/ios/
