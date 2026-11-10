@@ -107,6 +107,34 @@ Only the existing Northern arrivals transport is implemented in NB-5. Other in-s
 
 Native search/picker/save integration remains gated on NB-3 acceptance and merge. NB-5 verification covers the reusable catalogue and normal server API boundary. The parent NB-4 delivery owns the later native search-to-save walkthrough and remaining live modes.
 
+## NB-8 Underground departures and reviewed platform coverage
+
+The server now fetches the exact line and service stop-area pair for all eleven Underground lines. `getArrivals` remains the Northern wrapper used by journey callers. Concurrent arrivals requests share work only when both line ID and stop area agree. A request with its own cancellation signal remains isolated from shared requests. Canonical hubs resolve through each published service relationship, including multiple lines at Euston and separate District/Mildmay stop areas at Kew Gardens.
+
+Official TfL line-arrivals responses were captured on 10 November 2026. `data/tfl-underground-evidence.json` retains the source URL, original response SHA-256, prediction count and distinct observed line/stop-area/platform labels for every line. These captures establish supported feed capability. A physical service/platform mapping additionally requires an observed explicit cardinal direction and platform number matching exactly one published platform for the same service stop area and line. Previously reviewed Northern mappings remain supported. Platform NaPTANs, destination names and branch wording play no role in this match. Labels such as “Inner Rail”, conflicting directions or number-only descriptions remain unconfirmed.
+
+| Line | Predictions in capture | Distinct observed labels |
+| --- | ---: | ---: |
+| Bakerloo | 217 | 48 |
+| Central | 606 | 98 |
+| Circle | 143 | 48 |
+| District | 445 | 107 |
+| Hammersmith & City | 276 | 77 |
+| Jubilee | 419 | 53 |
+| Metropolitan | 258 | 74 |
+| Northern | 966 | 108 |
+| Piccadilly | 633 | 110 |
+| Victoria | 272 | 33 |
+| Waterloo & City | 4 | 3 |
+
+A capture reflects trains present at that observation time. Underground platforms absent from reviewed evidence remain discoverable with matching awaiting verification. New labels require a fresh official capture and review against the station archive before enabling the mapping. Refreshing the station archive alone does not establish new live capability. The original raw capture files were temporary verification inputs, while their hashes and reviewed distinct labels are retained in the evidence bundle.
+
+Non-Northern normalization retains Northbound, Southbound, Eastbound and Westbound, exact line identity, stop area and feed-scoped prediction IDs. Existing Northern normalization, journey branch handling, freshness and confidence rules are reused. The server and native decoders retain these directions and line IDs. Canonical boards use `physicalPlatformId` to prevent same-number trains from another physical platform leaking onto a selected board.
+
+The additive `catalogue.feeds` array reports `available`, successful `empty` or temporary `unavailable` per line/stop pair. Aggregate `liveState` becomes `partial` when one feed fails while another succeeds. All-feed failures retain the existing 500 configuration or 503 upstream response. Static feed/mapping capabilities survive outages and empty snapshots, so a supported verified platform can still be saved. Boards distinguish temporary supported-feed failure, successful empty feeds, unsupported National Rail coverage and services awaiting verification. Other TfL modes remain unverified in this task, including Mildmay at Kew Gardens. Combining and validating those remaining shared-mode feeds belongs to subsequent tasks.
+
+Automated native screen walkthroughs execute Search → Picker → Departures → Save → persisted reload → Home → reopened Departures with representative reviewed platforms for all eleven lines, each during an outage and successful empty snapshot. The walkthroughs cover Baker Street, Bank, Aldgate, Acton Town, Aldgate East, Colindale and Blackhorse Road. They exercise actual screen callbacks with mocked native view boundaries. They establish navigation/save behavior in tests. Simulator and physical-device visual/interaction sign-off remain outstanding.
+
 ## Repeatable validated refresh
 
 Use Node 24, the installed application dependencies from `npm ci`, and Python 3.12 or newer. Download the official archive to a local path and review its SHA-256 and source changes. Pass the reviewed checksum and actual retrieval date explicitly. The command performs the full extraction and regenerates all three review formats.

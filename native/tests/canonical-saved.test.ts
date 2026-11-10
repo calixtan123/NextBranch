@@ -72,11 +72,12 @@ it('saves and reloads a synthetic verified unknown-direction physical platform',
   expect(catalogue.has(restored.get().cards[0])).toBe(true);
 });
 
-it('preserves the line identity of a departure on a canonical board', async () => {
+it.each(['Northbound', 'Southbound', 'Eastbound', 'Westbound'] as const)('preserves line identity and %s through native decoding and a canonical board', async direction => {
   const { boardRows } = await import('../src/board-model');
   const snapshot = decodeSnapshot({ station: { id: 's', name: 'Station' }, observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null,
-    platforms: [{ platform: '1', direction: 'Northbound', physicalPlatformId: 'p', departures: [{ id: 't', lineId: 'northern', destinationName: null, expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60, towards: null }] }] }, 's');
-  expect(boardRows(snapshot, { stationId: 's', platform: '1', direction: 'Northbound', physicalPlatformId: 'p' }, Date.parse(snapshot.observedAt), 3)[0].lineId).toBe('northern');
+    platforms: [{ platform: '1', direction, physicalPlatformId: 'p', departures: [{ id: 't', lineId: 'central', destinationName: null, expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60, towards: null }] }] }, 's');
+  expect(snapshot.platforms[0].direction).toBe(direction);
+  expect(boardRows(snapshot, { stationId: 's', platform: '1', direction, physicalPlatformId: 'p' }, Date.parse(snapshot.observedAt), 3)[0].lineId).toBe('central');
 });
 
 it('allows partial coverage but leaves wholly unverified platforms unsavable', () => {

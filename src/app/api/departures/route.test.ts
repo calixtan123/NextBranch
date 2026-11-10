@@ -135,18 +135,19 @@ it("maps all four Camden platforms without inventing missing published branch wo
   expect(body.catalogue.platforms.filter((p: { direction: string }) => p.direction === "Southbound").every((p: { services: { towards: string }[] }) => p.services.every(s => s.towards === ""))).toBe(true);
 });
 
-it("keeps unverified non-Northern feeds discoverable without treating them as empty supported feeds", async () => {
-  const arrivals = vi.fn();
+it("keeps the unverified Overground service discoverable beside a supported empty District feed", async () => {
+  const arrivals = vi.fn(async () => []);
   const get = createDeparturesHandler({ arrivals, now: () => now });
   const result = await get(request("?station=HUBKWG"));
   expect(result.status).toBe(200);
   const body = await result.json();
   expect(body.platforms).toEqual([]);
-  expect(body.catalogue.liveState).toBe("unverified");
+  expect(body.catalogue.liveState).toBe("empty");
   expect(body.catalogue.platforms).toHaveLength(2);
   expect(body.catalogue.platforms[0].services.map((s: { lineId: string }) => s.lineId).sort()).toEqual(["district", "mildmay"]);
-  expect(body.catalogue.platforms[0].services.every((s: { capability: { feed: string } }) => s.capability.feed === "unverified")).toBe(true);
-  expect(arrivals).not.toHaveBeenCalled();
+  expect(body.catalogue.platforms[0].services.find((s: { lineId: string }) => s.lineId === "district").capability.feed).toBe("supported");
+  expect(body.catalogue.platforms[0].services.find((s: { lineId: string }) => s.lineId === "mildmay").capability.feed).toBe("unverified");
+  expect(arrivals).toHaveBeenCalledWith("940GZZLUKWG");
 });
 
 it("exposes immutable supported capability separately for empty and failed Northern snapshots", async () => {
@@ -158,4 +159,50 @@ it("exposes immutable supported capability separately for empty and failed North
   expect(failedBody.catalogue.liveState).toBe("unavailable");
   expect(emptyBody.catalogue.platforms).toEqual(failedBody.catalogue.platforms);
   expect(emptyBody.catalogue.platforms.every((p: { services: { capability: { feed: string } }[] }) => p.services.some(s => s.capability.feed === "supported"))).toBe(true);
+});
+
+it("fetches exact Underground service feeds for hubs and preserves distinct physical groups and all line identities", async () => {
+  const { catalogue } = await import("@/lib/catalogue");
+  const { serviceCapability } = await import("@/lib/catalogue/capability");
+  const selected = catalogue.stationsById.get("HUBEUS")!;
+  const lineArrivals = vi.fn(async (lineId: string, stop: string) => selected.platforms.flatMap(platform => platform.services.filter(s => s.line_id === lineId && serviceCapability(selected, platform, s).mapping === "supported").map(() => arrival({
+    id: platform.platform_id, lineId, naptanId: stop, platformName: `${platform.cardinal_direction} - Platform ${platform.platform_number}`,
+  }))).concat([arrival({ id: "wrong-line", lineId: "district", naptanId: stop }), arrival({ id: "wrong-stop", lineId, naptanId: "other" })]));
+  const get = createDeparturesHandler({ lineArrivals, now: () => now });
+  const result = await get(request("?station=HUBEUS"));
+  expect(result.status).toBe(200);
+  expect(lineArrivals.mock.calls).toEqual([["northern", "940GZZLUEUS"], ["victoria", "940GZZLUEUS"]]);
+  const body = await result.json();
+  expect(body.platforms).toHaveLength(6);
+  expect(new Set(body.platforms.map((p: { physicalPlatformId: string }) => p.physicalPlatformId)).size).toBe(6);
+  expect(body.platforms.flatMap((p: { departures: { lineId: string }[] }) => p.departures).map((d: { lineId: string }) => d.lineId).sort()).toEqual(["northern", "northern", "northern", "northern", "victoria", "victoria"]);
+});
+
+it("keeps successful Underground feeds usable when another service feed fails", async () => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async line => {
+    if (line === "northern") throw new TflError("upstream", "unavailable");
+    return [arrival({ id: "victoria", lineId: "victoria", naptanId: "940GZZLUEUS", platformName: "Northbound - Platform 4" })];
+  } });
+  const result = await get(request("?station=HUBEUS"));
+  expect(result.status).toBe(200);
+  const body = await result.json();
+  expect(body.platforms).toHaveLength(1);
+  expect(body.catalogue.liveState).toBe("partial");
+  expect(body.catalogue.feeds).toEqual([
+    { lineId: "northern", stopAreaId: "940GZZLUEUS", liveState: "unavailable" },
+    { lineId: "victoria", stopAreaId: "940GZZLUEUS", liveState: "available" },
+  ]);
+});
+
+it.each(["bakerloo", "central", "circle", "district", "hammersmith-city", "jubilee", "metropolitan", "northern", "piccadilly", "victoria", "waterloo-city"])("serves a verified %s platform through the handler and public decoder", async lineId => {
+  const { catalogue } = await import("@/lib/catalogue");
+  const { serviceCapability } = await import("@/lib/catalogue/capability");
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
+  const match = catalogue.stations.flatMap(station => station.platforms.flatMap(platform => platform.services.filter(service => service.line_id === lineId && serviceCapability(station, platform, service).mapping === "supported").map(service => ({ station, platform, service })) ))[0]!;
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async (line, stop) => line === lineId && stop === match.service.stop_area_naptan_code ? [arrival({ lineId, naptanId: stop, platformName: `${match.platform.cardinal_direction} - Platform ${match.platform.platform_number}` })] : [] });
+  const result = await get(request(`?station=${match.station.station_id}`));
+  const parsed = parseDeparturesResponse(await result.json(), match.station.station_id)!;
+  expect(result.status).toBe(200);
+  expect(parsed.platforms).toHaveLength(1);
+  expect(parsed.platforms[0]).toMatchObject({ physicalPlatformId: match.platform.platform_id, direction: match.platform.cardinal_direction, departures: [{ lineId }] });
 });

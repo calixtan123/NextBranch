@@ -3,7 +3,7 @@ import { catalogueResponseSchema } from "./catalogue/capability";
 
 const departureSchema = z.object({
   id: z.string().min(1),
-  lineId: z.literal("northern").optional(),
+  lineId: z.string().min(1).optional(),
   destinationName: z.string().nullable(),
   expectedArrival: z.string().datetime(),
   secondsToStation: z.number().finite(),
@@ -12,7 +12,7 @@ const departureSchema = z.object({
 const platformSchema = z.object({
   physicalPlatformId: z.string().nullable().optional(),
   platform: z.string().nullable(),
-  direction: z.enum(["Northbound", "Southbound"]).nullable(),
+  direction: z.enum(["Northbound", "Southbound", "Eastbound", "Westbound"]).nullable(),
   departures: z.array(departureSchema),
 });
 const responseSchema = z.object({
@@ -27,7 +27,7 @@ const responseSchema = z.object({
 export type Departure = z.infer<typeof departureSchema> & {
   physicalPlatformId?: string | null;
   platform: string | null;
-  direction: "Northbound" | "Southbound" | null;
+  direction: "Northbound" | "Southbound" | "Eastbound" | "Westbound" | null;
 };
 export type DeparturePlatform = z.infer<typeof platformSchema>;
 export type DeparturesResponse = z.infer<typeof responseSchema>;
@@ -47,7 +47,7 @@ export function parseDeparturesResponse(
 export function groupDepartures(items: readonly Departure[]): DeparturePlatform[] {
   const grouped = new Map<string, DeparturePlatform>();
   for (const item of items) {
-    const key = `${item.platform ?? ""}\u0000${item.direction ?? ""}`;
+    const key = JSON.stringify([item.physicalPlatformId ?? null, item.platform, item.direction]);
     const group = grouped.get(key) ?? {
       ...(item.physicalPlatformId !== undefined ? { physicalPlatformId: item.physicalPlatformId } : {}),
       platform: item.platform,

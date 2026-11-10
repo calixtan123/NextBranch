@@ -6,6 +6,7 @@ import sourceSnapshot from '../../data/tfl-station-platform-inventory/tfl-statio
 import { createCatalogue, createCanonicalCatalogue } from '../src/catalogue';
 import { createDiscovery, reviewedSelection } from '../src/discovery';
 import { createPreferences } from '../src/preferences';
+import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { SearchScreen, PickerScreen, PlatformDetailsScreen } from '../src/SearchScreens';
 import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
 import type { Screen } from '../src/navigation';
@@ -77,6 +78,11 @@ it('shows empty, no-match, missing-catalogue and canonical recent names through 
   expect(text(render())).toContain('No stations found');
   hooks.runtime.mockReturnValue({ ...hooks.runtime(), discovery: createDiscovery(() => { throw Error('missing'); }) });
   expect(text(render())).toContain('Station catalogue is unavailable');
+});
+
+it('offers an Underground platform from empty Home', () => {
+  hooks.runtime.mockReturnValue({ ...hooks.runtime(), stations: { isOnline: () => true, isRateLimited: () => false } });
+  expect(text(HomeScreen({ navigation: navigation() } as unknown as Screen<'Home'>))).toContain('Add an Underground platform');
 });
 
 it('persists non-Northern canonical recents and restores their names without altering saved selections', async () => {
@@ -202,23 +208,42 @@ it('retains recoverable recent IDs when canonical discovery is unavailable', asy
 });
 
 
-it.each(['outage', 'empty'] as const)('searches, saves, restores and reopens a verified platform during %s', async condition => {
+const undergroundWalkthroughs = [
+  { line: 'bakerloo', stationId: '940GZZLUBST', platformNumber: '8' },
+  { line: 'central', stationId: 'HUBBAN', platformNumber: '5' },
+  { line: 'circle', stationId: '940GZZLUALD', platformNumber: '1' },
+  { line: 'district', stationId: '940GZZLUACT', platformNumber: '1' },
+  { line: 'hammersmith-city', stationId: '940GZZLUADE', platformNumber: '1' },
+  { line: 'jubilee', stationId: '940GZZLUBST', platformNumber: '7' },
+  { line: 'metropolitan', stationId: '940GZZLUALD', platformNumber: '2' },
+  { line: 'northern', stationId: '940GZZLUCND', platformNumber: '1' },
+  { line: 'piccadilly', stationId: '940GZZLUACT', platformNumber: '1' },
+  { line: 'victoria', stationId: 'HUBBHO', platformNumber: '1' },
+  { line: 'waterloo-city', stationId: 'HUBBAN', platformNumber: '7' },
+].flatMap(example => ['outage', 'empty'].map(condition => ({ ...example, condition })));
+
+it.each(undergroundWalkthroughs)('searches, saves, restores and reopens $line during $condition', async ({ line, stationId, platformNumber, condition }) => {
   const catalog = createCanonicalCatalogue(shared.catalogue);
+  const station = shared.catalogue.stationsById.get(stationId)!;
+  const platform = station.platforms.find(candidate => candidate.platform_number === platformNumber)!;
+  const service = platform.services.find(candidate => candidate.line_id === line)!;
+  expect(serviceCapability(station, platform, service)).toMatchObject({ feed: 'supported', mapping: 'supported' });
   let raw: string | null = null;
   const storage = { getItem: async () => raw, setItem: async (_key: string, value: string) => { raw = value; } };
   const preferences = createPreferences(storage, catalog, Date.now, 'test', [], id => shared.catalogue.stationsByAnyId.has(id));
   await preferences.load();
-  const snapshot = condition === 'empty' ? { station: { id: '940GZZLUCND', name: 'Colindale' }, observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } : undefined;
+  const snapshot = condition === 'empty' ? { station: { id: stationId, name: station.station_name }, observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } : undefined;
   const stations = { get: () => ({ pending: false, error: condition === 'outage' ? 'unavailable' : null, snapshot }), isOnline: () => true, isRateLimited: () => false };
   hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: catalog, synthetic: false, preferences, stations });
   hooks.preferences.mockImplementation(() => preferences.get());
   const nav = { ...navigation(), popToTop: vi.fn() };
-  hooks.query = 'Colindale';
-  nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.props.title === 'Colindale')!.props.onPress();
-  expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId: '940GZZLUCND' });
-  nodes(picker('940GZZLUCND', nav)).find(node => node.props.title === 'Platform 1')!.props.onPress();
+  hooks.query = station.station_name;
+  nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.props.title === station.station_name)!.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
+  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + platformNumber)!.props.onPress();
   const [route, params] = nav.navigate.mock.lastCall!;
   expect(route).toBe('Departures');
+  expect(params.selection).toMatchObject({ stationId, physicalPlatformId: platform.platform_id, direction: platform.cardinal_direction });
   const board = DeparturesScreen({ navigation: nav, route: { params } } as unknown as Screen<'Departures'>);
   nodes(board).find(node => node.props.children === 'Save platform')!.props.onPress();
   await preferences.flush();

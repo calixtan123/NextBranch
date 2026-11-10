@@ -35,7 +35,26 @@ describe("catalogue capability", () => {
     const amersham = catalogue.stations.find(station => station.station_name === "Amersham")!;
     const metadata = catalogueMetadata(amersham, "unverified");
     expect(metadata.platforms[0].services.find(s => s.lineId === "national-rail")?.capability).toMatchObject({ feed: "unsupported", mapping: "unsupported" });
-    expect(metadata.platforms[0].services.find(s => s.lineId === "metropolitan")?.capability.feed).toBe("unverified");
+    expect(metadata.platforms[0].services.find(s => s.lineId === "metropolitan")?.capability.feed).toBe("supported");
     expect(northernStopAreas(amersham)).toEqual([]);
   });
+});
+
+it("supports all eleven official Underground feeds and only observed unique platform mappings", async () => {
+  const { undergroundFeeds } = await import("./capability");
+  const { undergroundLines } = await import("../underground/platform");
+  for (const line of undergroundLines) {
+    const match = catalogue.stations.flatMap(station => station.platforms.flatMap(platform => platform.services.filter(service => service.line_id === line && serviceCapability(station, platform, service).mapping === "supported").map(service => ({ station, platform, service }))));
+    expect(match.length, line).toBeGreaterThan(0);
+    expect(undergroundFeeds(match[0]!.station)).toContainEqual({ lineId: line, stopAreaId: match[0]!.service.stop_area_naptan_code });
+  }
+  const kew = catalogue.stationsById.get("HUBKWG")!;
+  expect(undergroundFeeds(kew)).toEqual([{ lineId: "district", stopAreaId: "940GZZLUKWG" }]);
+  expect(serviceCapability(kew, kew.platforms[0]!, kew.platforms[0]!.services.find(s => s.line_id === "mildmay")!)).toMatchObject({ feed: "unverified", mapping: "unverified" });
+});
+
+it("requires matching line and service stop area before assigning a same-number physical platform", () => {
+  const euston = catalogue.stationsById.get("HUBEUS")!;
+  const train = { ...normalizePredictions([{ id: "t", lineId: "northern", naptanId: "940GZZLUEUS", expectedArrival: "2026-11-10T12:01:00Z", platformName: "Northbound - Platform 3" }], now)[0]!, stopAreaId: "different-stop" };
+  expect(physicalPlatformForTrain(euston, train)).toBeNull();
 });

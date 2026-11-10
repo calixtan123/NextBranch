@@ -100,3 +100,20 @@ it('labels each shared-platform departure with its published line', async () => 
   const row = elements(tree).find(node => (node.props as { row?: unknown }).row) as ReactElement<{ lineName?: string }> | undefined;
   expect(row?.props.lineName).toBe('District');
 });
+
+it('shows temporary per-line failure separately from static verified support', async () => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('940GZZLUACT')!;
+  const platform = station.platforms[0]!;
+  const tree = PlatformBoard({ selection: { stationId: station.station_id, platform: platform.platform_number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded: true,
+    state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [],
+      catalogue: { stationId: station.station_id, liveState: 'partial', platforms: [], feeds: [{ lineId: 'district', stopAreaId: '940GZZLUACT', liveState: 'unavailable' }] } } },
+    onRetry: vi.fn(), onReview: vi.fn(),
+  });
+  const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
+  expect(copy).toContain('District');
+  expect(copy).toContain('Live departures temporarily unavailable');
+  expect(copy).toContain('Piccadilly');
+  expect(copy).toContain('Live departures available');
+});

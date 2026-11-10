@@ -147,7 +147,10 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const lineNames = platform ? [...new Set(platform.services.map(service => service.line_name))].join(' · ') : 'Northern line';
   const details = platform?.services.map(service => {
     const capability = serviceCapability(station!, platform, service);
-    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? 'Live departures available' :
+    const feedState = state.snapshot?.catalogue?.feeds?.find(feed => feed.lineId === service.line_id && feed.stopAreaId === service.stop_area_naptan_code)?.liveState;
+    const supportedCopy = feedState === 'unavailable' || state.error ? 'Live departures temporarily unavailable'
+      : feedState === 'empty' ? 'No upcoming departures' : 'Live departures available';
+    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? supportedCopy :
       capability.feed === 'unsupported' ? 'Live departures unsupported' : 'Live departures or platform matching await verification';
     return `${service.line_name} · ${service.direction_towards ? 'Towards ' + service.direction_towards : 'Towards not published'} · ${coverage}`;
   }).join('\n');

@@ -46,3 +46,14 @@ it("retains additive physical identity and line metadata while accepting legacy 
   expect(parsed?.platforms[0].physicalPlatformId).toBe("940GZZLUCND-Plat01-NB-northern");
   expect(parsed?.platforms[0].departures[0].lineId).toBe("northern");
 });
+
+it("preserves cardinal and line identity and isolates physical platforms sharing the same tuple", () => {
+  const base = { id: "one", lineId: "central", platform: "1", direction: "Eastbound" as const, destinationName: null, expectedArrival: "2026-11-10T12:00:00Z", secondsToStation: 60, towards: null };
+  const platforms = groupDepartures([
+    { ...base, physicalPlatformId: "one" }, { ...base, id: "two", physicalPlatformId: "two", lineId: "district" },
+    { ...base, id: "unverified", physicalPlatformId: null },
+  ]);
+  expect(platforms).toHaveLength(3);
+  const response = parseDeparturesResponse({ station: { id: "s", name: "Station" }, observedAt: "2026-11-10T12:00:00Z", newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms }, "s");
+  expect(response?.platforms.find(p => p.physicalPlatformId === "two")).toMatchObject({ direction: "Eastbound", departures: [{ lineId: "district" }] });
+});

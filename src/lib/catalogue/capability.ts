@@ -1,8 +1,16 @@
 /** Evidenced feed and physical-platform matching, independent of live availability. */
 import { z } from "zod";
-import type { Train } from "../northern/predictions";
+import type { UndergroundDeparture } from "../underground/departures";
+import { undergroundLines, undergroundPlatformInfo } from "../underground/platform";
+import evidence from "../../../data/tfl-underground-evidence.json";
 import type { AppStation } from "./index";
 import type { CataloguePlatform, CatalogueService } from "./schema";
+
+// The checked-in official labels establish static capability even during outages.
+const observedMappings = new Set(evidence.feeds.flatMap(feed => feed.labels.flatMap(label => {
+  const parsed = undergroundPlatformInfo(label.platformName);
+  return parsed.confirmed ? [JSON.stringify([label.lineId, label.stopAreaId, parsed.platform, parsed.direction])] : [];
+})));
 
 export type Capability = "supported" | "unsupported" | "unverified";
 export const capabilitySchema = z.object({
@@ -12,7 +20,8 @@ export const capabilitySchema = z.object({
 });
 export const catalogueResponseSchema = z.object({
   stationId: z.string(),
-  liveState: z.enum(["available", "empty", "unverified", "unavailable"]),
+  liveState: z.enum(["available", "empty", "unverified", "unavailable", "partial"]),
+  feeds: z.array(z.object({ lineId: z.string(), stopAreaId: z.string(), liveState: z.enum(["available", "empty", "unavailable"]) })).optional(),
   platforms: z.array(z.object({
     platformId: z.string(), platformNumber: z.string(), description: z.string(),
     direction: z.string(), platformNaptanCode: z.string(),
@@ -42,18 +51,20 @@ export const catalogueResponseSchema = z.object({
  */
 export function serviceCapability(station: AppStation, platform: CataloguePlatform, service: CatalogueService): z.infer<typeof capabilitySchema> {
   if (service.line_id === "national-rail") return { feed: "unsupported", mapping: "unsupported", evidence: "National Rail live integration is outside this delivery." };
-  if (service.line_id !== "northern" || !service.stop_area_naptan_code) return { feed: "unverified", mapping: "unverified", evidence: "Live feed and platform mapping require mode-specific verification." };
+  if (!undergroundLines.some(line => line === service.line_id) || !service.stop_area_naptan_code) return { feed: "unverified", mapping: "unverified", evidence: "Live feed and platform mapping require mode-specific verification." };
   const unique = station.platforms.filter(candidate =>
     candidate.platform_number === platform.platform_number &&
     candidate.cardinal_direction === platform.cardinal_direction &&
-    candidate.services.some(s => s.line_id === "northern" && s.stop_area_naptan_code === service.stop_area_naptan_code),
+    candidate.services.some(s => s.line_id === service.line_id && s.stop_area_naptan_code === service.stop_area_naptan_code),
   ).length === 1;
-  const verified = Boolean(platform.platform_number) && ["Northbound", "Southbound"].includes(platform.cardinal_direction) && unique;
+  const observed = observedMappings.has(JSON.stringify([service.line_id, service.stop_area_naptan_code, platform.platform_number, platform.cardinal_direction]));
+  const retainedNorthern = service.line_id === "northern" && ["Northbound", "Southbound"].includes(platform.cardinal_direction);
+  const verified = Boolean(platform.platform_number) && unique && (observed || retainedNorthern);
   return {
     feed: "supported", mapping: verified ? "supported" : "unverified",
     evidence: verified
-      ? "Official station archive platform number + cardinal direction, matched to the exact Northern live platform label. Duplicate platform NaPTAN is not used."
-      : "Northern arrivals supported, physical-platform number/direction mapping is ambiguous or incomplete.",
+      ? "Official station archive service stop area + platform number + cardinal direction matched to official Underground live labels. Evidence captured 2026-11-10 in data/tfl-underground-evidence.json. Existing Northern evidence retained. Platform NaPTAN and destinations are not used."
+      : "Underground arrivals supported, but this physical service/platform pair has no unambiguous reviewed live label. Matching awaits verification.",
   };
 }
 
@@ -64,21 +75,46 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
  * ----------
  * station : AppStation
  *     Canonical station containing eligible physical platforms.
- * train : Train
- *     Existing Northern normalizer output with platform confidence retained.
+ * train : UndergroundDeparture
+ *     Line departure retaining service stop area and platform confidence.
  *
  * Returns
  * -------
  * string or null
  *     Canonical physical ID when uniquely evidenced, otherwise null.
  */
-export function physicalPlatformForTrain(station: AppStation, train: Train): string | null {
+export function physicalPlatformForTrain(station: AppStation, train: Pick<UndergroundDeparture, "platformConfirmed" | "platform" | "direction" | "lineId"> & { stopAreaId?: string }): string | null {
   if (!train.platformConfirmed) return null;
   const matches = station.platforms.filter(platform =>
     platform.platform_number === train.platform && platform.cardinal_direction === train.direction &&
-    platform.services.some(service => service.line_id === train.lineId && serviceCapability(station, platform, service).mapping === "supported"),
+    platform.services.some(service => service.line_id === train.lineId && (!train.stopAreaId || service.stop_area_naptan_code === train.stopAreaId) && serviceCapability(station, platform, service).mapping === "supported"),
   );
   return matches.length === 1 ? matches[0]!.platform_id : null;
+}
+
+/**
+ * Resolves supported Underground requests to exact line and service stop-area keys.
+ *
+ * Parameters
+ * ----------
+ * station : AppStation
+ *     Station whose eligible platforms retain their published service stops.
+ *
+ * Returns
+ * -------
+ * object[]
+ *     Sorted unique line/stop requests. Other modes remain unverified.
+ */
+export function undergroundFeeds(station: AppStation): { lineId: string; stopAreaId: string }[] {
+  const feeds = new Map<string, { lineId: string; stopAreaId: string }>();
+  for (const platform of station.platforms) {
+    for (const service of platform.services) {
+      if (serviceCapability(station, platform, service).feed !== "supported") continue;
+      const feed = { lineId: service.line_id, stopAreaId: service.stop_area_naptan_code };
+      feeds.set(JSON.stringify(feed), feed);
+    }
+  }
+  return [...feeds.values()].sort((a, b) => a.lineId.localeCompare(b.lineId) || a.stopAreaId.localeCompare(b.stopAreaId));
 }
 
 /**

@@ -1,22 +1,23 @@
-/** Serves compatible Northern departures and offline passenger-platform metadata. */
+/** Serves line-specific Underground departures and offline passenger-platform metadata. */
 import { NextResponse } from "next/server";
 import { groupDepartures, type Departure } from "@/lib/departure-view";
 import { catalogue } from "@/lib/catalogue";
 import { byId } from "@/lib/northern/stations";
-import { catalogueMetadata, northernStopAreas, physicalPlatformForTrain } from "@/lib/catalogue/capability";
-import { normalizePredictions, type Train } from "@/lib/northern/predictions";
+import { catalogueMetadata, undergroundFeeds, physicalPlatformForTrain } from "@/lib/catalogue/capability";
+import { normalizeUndergroundPredictions, type UndergroundDeparture } from "@/lib/underground/departures";
 import type { Arrival } from "@/lib/northern/schemas";
-import { getArrivals, TflError } from "@/lib/tfl/client";
+import { getLineArrivals, TflError } from "@/lib/tfl/client";
 import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
 import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 
 export const dynamic = "force-dynamic";
 export type DeparturesDependencies = {
-  arrivals: (station: string) => Promise<Arrival[]>;
+  arrivals?: (station: string) => Promise<Arrival[]>;
+  lineArrivals?: (lineId: string, stopAreaId: string) => Promise<Arrival[]>;
   now: () => Date;
   rateLimit?: RateLimitAdapter;
 };
-const live: DeparturesDependencies = { arrivals: getArrivals, now: () => new Date() };
+const live: DeparturesDependencies = { lineArrivals: getLineArrivals, now: () => new Date() };
 const headers = { "Cache-Control": "no-store" };
 const response = (body: object, status = 200, additionalHeaders: Record<string, string> = {}) => NextResponse.json(body, { status, headers: { ...headers, ...additionalHeaders } });
 
@@ -28,7 +29,7 @@ function requestedStation(request: Request): string | null {
   return station && catalogue.stationsByAnyId.has(station) ? station : null;
 }
 
-function toDeparture(train: Train, physicalPlatformId: string | null): Departure {
+function toDeparture(train: UndergroundDeparture, physicalPlatformId: string | null): Departure {
   return {
     id: train.id,
     lineId: train.lineId,
@@ -65,28 +66,32 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
     const station = catalogue.stationsByAnyId.get(stationId);
     if (!station) return response({ error: "INVALID_STATION" }, 400);
     const now = deps.now();
-    const stopAreas = northernStopAreas(station);
-    let arrivals: Arrival[];
-    try {
-      arrivals = (await Promise.all(stopAreas.map(stop => deps.arrivals(stop)))).flat();
-    } catch (error) {
-      const configuration = error instanceof TflError && error.code === "config";
+    const feeds = undergroundFeeds(station);
+    const transport = deps.lineArrivals ?? ((_line: string, stop: string) => deps.arrivals ? deps.arrivals(stop) : getLineArrivals(_line, stop));
+    const results = await Promise.allSettled(feeds.map(feed => transport(feed.lineId, feed.stopAreaId)));
+    const current = results.flatMap((result, index) => result.status === "fulfilled"
+      ? normalizeUndergroundPredictions(result.value.filter(arrival => arrival.lineId === feeds[index]!.lineId && arrival.naptanId === feeds[index]!.stopAreaId), now)
+      : []);
+    const states = results.map((result, index) => ({
+      ...feeds[index]!,
+      liveState: result.status === "rejected" ? "unavailable" as const
+        : current.some(train => train.lineId === feeds[index]!.lineId && train.stopAreaId === feeds[index]!.stopAreaId) ? "available" as const : "empty" as const,
+    }));
+    const failures = results.filter(result => result.status === "rejected");
+    if (feeds.length && failures.length === feeds.length) {
+      const configuration = failures.some(result => result.reason instanceof TflError && result.reason.code === "config");
       return response(
-        { error: configuration ? "CONFIGURATION_ERROR" : "TFL_UNAVAILABLE", catalogue: catalogueMetadata(station, "unavailable") },
+        { error: configuration ? "CONFIGURATION_ERROR" : "TFL_UNAVAILABLE", catalogue: { ...catalogueMetadata(station, "unavailable"), feeds: states } },
         configuration ? 500 : 503,
       );
     }
-    const current = normalizePredictions(
-      arrivals.filter((arrival) => stopAreas.includes(arrival.naptanId)),
-      now,
-    );
     const timestamps = current
       .map((train) => train.timestamp)
       .filter((timestamp): timestamp is string => timestamp !== null)
       .toSorted((a, b) => new Date(b).getTime() - new Date(a).getTime());
     return response({
       station: { id: stationId, name: byId.get(stationId)?.name ?? station.station_name },
-      catalogue: catalogueMetadata(station, stopAreas.length ? (current.length ? "available" : "empty") : "unverified"),
+      catalogue: { ...catalogueMetadata(station, !feeds.length ? "unverified" : failures.length ? "partial" : current.length ? "available" : "empty"), feeds: states },
       observedAt: now.toISOString(),
       newestPredictionGeneratedAt: timestamps[0] ?? null,
       refreshAfterSeconds: 30,
