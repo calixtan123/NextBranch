@@ -1,6 +1,8 @@
+/** Native theme palettes, accessible controls and shared presentation primitives. */
 import { createContext, useContext, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type TextProps } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { lineColour } from './line-presentation';
 
 const dark = {
   bg: '#0B0B0D', surface: '#171719', fg: '#ECEDEF', dim: '#929398', border: '#303033',
@@ -90,8 +92,8 @@ export function Action({ children, onPress, primary, disabled }: {
 }
 
 /** A tappable list row or selected radio option. */
-export function Result({ title, detail, onPress, selected }: {
-  title: string; detail: string; onPress: () => void; selected?: boolean;
+export function Result({ title, detail, onPress, selected, children }: {
+  title: string; detail: string; onPress: () => void; selected?: boolean; children?: ReactNode;
 }) {
   const colors = usePalette();
   return <Pressable accessibilityRole={selected === undefined ? 'button' : 'radio'}
@@ -103,15 +105,17 @@ export function Result({ title, detail, onPress, selected }: {
     }]}>
     <View style={ui.flex}>
       <Label size={17}>{title}</Label>
-      <Label size={15} tone="dim" style={{ marginTop: 3 }}>{detail}</Label>
+      {detail !== '' && <Label size={15} tone="dim" style={{ marginTop: 3 }}>{detail}</Label>}
+      {children}
     </View>
     {selected === undefined ? <Icon name="next" tone="dim" size={17} /> : selected ? <Icon name="check" tone="selected" size={20} /> : null}
   </Pressable>;
 }
 
-/** Small Northern line marker used outside the departure surface. */
-export function LineMarker() {
+/** Bordered colour swatch; adjacent text carries the line identity accessibly. */
+export function LineMarker({ lineId }: { lineId: string }) {
+  const colors = usePalette();
   return <Svg width={17} height={7} accessible={false}>
-    <Rect x={0.5} y={0.5} width={16} height={6} rx={2.5} fill="#101010" stroke="#A0A0A0" />
+    <Rect x={0.5} y={0.5} width={16} height={6} rx={2.5} fill={lineColour(lineId)} stroke={colors.fg} />
   </Svg>;
 }

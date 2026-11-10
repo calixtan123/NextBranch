@@ -7,6 +7,7 @@ import { createCatalogue, createCanonicalCatalogue } from '../src/catalogue';
 import { createDiscovery, reviewedSelection } from '../src/discovery';
 import { createPreferences } from '../src/preferences';
 import { serviceCapability } from '../../src/lib/catalogue/capability';
+import { LineLabels } from '../src/LineLabels';
 import { SearchScreen, PickerScreen, PlatformDetailsScreen } from '../src/SearchScreens';
 import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
 import type { Screen } from '../src/navigation';
@@ -60,8 +61,7 @@ it('searches outside Northern, aliases and punctuation deterministically through
   const nav = navigation();
   const tree = SearchScreen({ navigation: nav } as unknown as Screen<'Search'>);
   const result = nodes(tree).find(node => node.props.title === 'Kew Gardens')!;
-  expect(result.props.detail).toContain('District');
-  expect(result.props.detail).toContain('Mildmay');
+  expect(nodes(result).find(node => node.type === LineLabels)?.props.lines).toEqual([{ id: 'district', name: 'District' }, { id: 'mildmay', name: 'Mildmay' }]);
   result.props.onPress();
   expect(hooks.runtime().preferences.selectStation).toHaveBeenCalledWith('HUBKWG');
   expect(nav.navigate).toHaveBeenCalledWith('Picker', { stationId: 'HUBKWG' });
@@ -340,4 +340,33 @@ it.each(['HUBECY', 'HUBELM', 'HUBBEK', '940GZZALGWP', '940GZZALRDK'])('keeps unv
   expect(text(detailTree)).toContain(platform.cardinal_direction || 'Direction unavailable');
   expect(text(detailTree)).toContain(stationId.startsWith('940GZZAL') ? 'Live feed and platform matching await verification' : 'Platform matching awaits verification');
   expect(nodes(detailTree).some(node => node.props.children === 'Save platform')).toBe(false);
+});
+
+
+it('renders Northern, Central and Elizabeth headings at TCR with complete explicit-direction rows', () => {
+  const station = shared.catalogue.stations.find(item => item.station_name === 'Tottenham Court Road')!;
+  const tree = picker(station.station_id);
+  const headings = nodes(tree).filter(node => node.type === LineLabels && node.props.heading);
+  expect(headings.map(node => node.props.lines.map((line: { id: string }) => line.id))).toEqual([['northern'], ['central'], ['elizabeth']]);
+  const rows = nodes(tree).filter(node => node.type === 'Result');
+  expect(rows).toHaveLength(station.platforms.length);
+  for (const platform of station.platforms) {
+    const row = rows.find(node => node.key?.endsWith(platform.platform_id))!;
+    expect(row).toBeDefined();
+    expect(row.props.detail).toContain(platform.cardinal_direction || 'Direction not published');
+    expect(row.props.detail).toContain(platform.friendly_name);
+    for (const service of platform.services) {
+      expect(row.props.detail).toContain(service.line_name);
+      expect(row.props.detail).toContain(service.direction_towards || 'Towards not published');
+    }
+  }
+});
+
+it('renders one shared heading at Kew and published-service markers in browse details', () => {
+  const tree = picker('HUBKWG');
+  const headings = nodes(tree).filter(node => node.type === LineLabels && node.props.heading);
+  expect(headings).toHaveLength(1);
+  expect(headings[0].props.lines).toEqual([{ id: 'district', name: 'District' }, { id: 'mildmay', name: 'Mildmay' }]);
+  const platform = shared.catalogue.stationsById.get('HUBKWG')!.platforms[0];
+  expect(nodes(details('HUBKWG', platform.platform_id)).find(node => node.type === LineLabels)?.props.lines).toEqual(headings[0].props.lines);
 });

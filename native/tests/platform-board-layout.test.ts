@@ -2,6 +2,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
+import { LineLabels } from '../src/LineLabels';
 import { PlatformBoard } from '../src/PlatformBoard';
 import { Label } from '../src/theme';
 
@@ -55,9 +56,8 @@ function headerFor(fontScale: number, expanded: boolean) {
       label.type === Label && label.props.children === "King's Cross St. Pancras")));
   expect(header, 'the board exposes its station header').toBeDefined();
   const [identity, line] = Children.toArray(header!.props.children) as Element[];
-  const lineLabel = elements(line.props.children).find(node => node.type === Label);
+  const lineLabel = elements(line.props.children).find(node => node.type === LineLabels);
   expect(lineLabel, 'the header exposes its line label').toBeDefined();
-  expect(flattenStyle(lineLabel!.props.style)).toMatchObject({ fontFamily: 'Avenir Next', fontWeight: '700' });
   return { header: header!, identity, line, lineLabel: lineLabel! };
 }
 
@@ -81,8 +81,9 @@ describe.each([
       "King's Cross St. Pancras", 'Southbound · Platform A',
     ]);
     expect(flattenStyle(line.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center', maxWidth: lineWidth });
-    expect(lineLabel.props.children).toBe('Northern line');
-    expect(flattenStyle(lineLabel.props.style)).toMatchObject({ flexShrink: 1, textAlign: textAlignment });
+    expect((lineLabel.props as { lines?: unknown }).lines).toEqual([{ id: 'northern', name: 'Northern line' }]);
+    expect((lineLabel.props as { align?: unknown }).align).toBe(textAlignment);
+    expect((lineLabel.props as { textStyle?: unknown }).textStyle).toMatchObject({ fontFamily: 'Avenir Next', fontWeight: '700' });
   });
 });
 
@@ -153,6 +154,8 @@ it.each([
     onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
+  const labels = elements(tree).find(node => node.type === LineLabels)!;
+  expect((labels.props as { lines?: { name: string }[] }).lines?.map(line => line.name)).toEqual(expect.arrayContaining([coveredLine, otherLine]));
   expect(copy).toContain(coveredLine);
   expect(copy).toContain(otherLine);
   expect(copy).toContain('TfL departures');

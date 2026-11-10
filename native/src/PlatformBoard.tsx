@@ -1,3 +1,4 @@
+/** Saved and expanded physical-platform boards with live arrival and coverage state. */
 import { memo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, FeGaussianBlur, Filter, Path, Pattern, Rect } from 'react-native-svg';
@@ -9,10 +10,12 @@ import {
   boardRows, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
 } from './board-model';
 import type { Selection } from './catalogue';
+import { LineLabels } from './LineLabels';
+import { lineLabels } from './line-presentation';
 import { glyphs } from './glyphs';
 import type { Style } from './preferences';
 import { isStale, type createStationOwner } from './station-owner';
-import { Action, Label, LineMarker, ui, usePalette } from './theme';
+import { Action, Label, ui, usePalette } from './theme';
 
 const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '#251F15', text: '#FFAA25', step: 6 };
 const modern = { background: '#080C10', dot: '#29303B', frame: '#1B3444', rule: '#4F9BBB', text: '#BDEBFF', step: 7 };
@@ -174,8 +177,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
         <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{platformName(selection)}</Label>
       </View>
       <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
-        <LineMarker />
-        <Label size={10} tone="dim" bold style={{ fontFamily: 'Avenir Next', fontWeight: '700', flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>{lineNames}</Label>
+        <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={10} align={stackedHeader ? 'left' : 'right'}
+          textStyle={{ fontFamily: 'Avenir Next', fontWeight: '700' }} />
       </View>
     </View>
     <View style={{
