@@ -106,11 +106,14 @@ export function platformPickerTitle(direction: string, number: string): string {
  * Returns
  * -------
  * string
- *     A common TfL destination or individually labelled differing destinations,
+ *     A common destination only when every TfL service publishes it; otherwise,
+ *     individually labelled published TfL destinations,
  *     followed by any published National Rail destinations. Unpublished values
  *     produce no subtext; source service records remain unchanged.
  */
 export function platformPickerDestination(services: readonly CatalogueService[]): string {
+  const allTflDestinationsPublished = services.every(service =>
+    service.line_id === 'national-rail' || service.direction_towards.trim().length > 0);
   const unique = [...new Map(services.filter(service => service.direction_towards.trim())
     .map(service => [JSON.stringify([service.line_id, service.direction_towards]), service])).values()];
   const tfl = unique.filter(service => service.line_id !== 'national-rail');
@@ -118,6 +121,7 @@ export function platformPickerDestination(services: readonly CatalogueService[])
   const towards = (destination: string) => 'Towards ' + destination;
   const labelled = (service: CatalogueService) => `${service.line_name} · ${towards(service.direction_towards)}`;
   const destinations = new Set(tfl.map(service => service.direction_towards));
-  const descriptions = destinations.size === 1 ? [towards(tfl[0].direction_towards)] : tfl.map(labelled);
+  const descriptions = allTflDestinationsPublished && destinations.size === 1
+    ? [towards(tfl[0].direction_towards)] : tfl.map(labelled);
   return [...descriptions, ...rail.map(labelled)].join('\n');
 }

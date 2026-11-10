@@ -82,6 +82,19 @@ it('shows shared destinations once and deduplicates differing service/destinatio
   expect(platformPickerDestination([...services, services[0]])).toBe("District · Towards Earl's Court\nMildmay · Towards Stratford");
 });
 
+it.each([
+  ['Ealing Common', '2', 'Piccadilly · Towards Oakwood'],
+  ['Barking', '6', "District · Towards Earl's Court"],
+  ['Paddington', '2', 'District · Towards Edgware Road'],
+  ['South Kensington', '2', 'Circle · Towards Liverpool Street'],
+])('retains the published service label when %s platform %s has another unknown destination', (name, number, expected) => {
+  const services = station(name).platforms.find(platform => platform.platform_number === number)!.services;
+  const before = JSON.stringify(services);
+
+  expect(platformPickerDestination(services)).toBe(expected);
+  expect(JSON.stringify(services)).toBe(before);
+});
+
 it('keeps unknown identity values explicit while omitting unpublished picker destinations', () => {
   expect(platformPickerTitle('', '')).toBe('Direction not published · Platform number not published');
   expect(platformPickerTitle('Northbound', '')).toBe('Northbound · Platform number not published');
@@ -101,5 +114,5 @@ it('omits blank picker lines without dropping labels from differing published de
 
   expect(platformPickerDestination(services)).toBe("District · Towards Earl's Court\nMildmay · Towards Stratford\nNational Rail · Towards Richmond");
   expect(JSON.stringify(services)).toBe(before);
-  expect(platformPickerDestination([{ ...district, direction_towards: '' }, mildmay])).toBe('Towards Stratford');
+  expect(platformPickerDestination([{ ...district, direction_towards: '' }, mildmay])).toBe('Mildmay · Towards Stratford');
 });
