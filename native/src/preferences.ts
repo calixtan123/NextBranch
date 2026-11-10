@@ -23,13 +23,14 @@ const MAX = 3;
 const style = (value: unknown): Style | undefined => value === 'amber' || value === 'modern' ? value : undefined;
 const persistenceWarning = 'Changes may only be available for this session.';
 
-function decode(raw: string | null, isKnownStation: (id: string) => boolean, canonicalStationId: (id: string) => string): Partial<State> {
+function decode(raw: string | null, isKnownStation: (id: string) => boolean, canonicalStationId: (id: string) => string, catalogue: Catalogue): Partial<State> {
   if (raw === null) return {};
   const data = JSON.parse(raw);
   if (data?.version !== 1) throw new Error('Unsupported preference version');
   const cards = new Map<string, Card>();
   for (const item of Array.isArray(data.cards) ? data.cards : []) {
-    const selection = readSelection(item);
+    const parsed = readSelection(item);
+    const selection = parsed ? catalogue.resolve?.(parsed) ?? parsed : null;
     if (selection && !cards.has(selectionKey(selection))) {
       cards.set(selectionKey(selection), { ...selection, style: style(item.style) });
     }
@@ -98,7 +99,7 @@ export function createPreferences(
     load: () => loading ??= (async () => {
       try {
         const raw = await storage.getItem(storageKey);
-        const decoded = decode(raw, isKnownStation, canonicalStationId);
+        const decoded = decode(raw, isKnownStation, canonicalStationId, catalogue);
         publish({ cards: initialCards, ...decoded, ready: true });
       } catch {
         writable = false;

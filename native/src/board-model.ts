@@ -9,7 +9,8 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
   if (snapshot?.station.id !== selection.stationId) return [];
   const clock = new Date(now);
   return snapshot.platforms
-    .filter(group => group.platform === selection.platform && group.direction === selection.direction)
+    .filter(group => selection.physicalPlatformId ? group.physicalPlatformId === selection.physicalPlatformId :
+      group.platform === selection.platform && group.direction === selection.direction)
     .flatMap(group => group.departures)
     .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now)
     .map(row => ({ ...row, seconds: secondsToOrigin(row.expectedArrival, clock) }))
@@ -23,6 +24,7 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
       const branch = via ? `via ${compact ?? via[1]}` : 'Branch unavailable';
       return {
         id: row.id,
+        lineId: row.lineId,
         destination: row.destinationName?.trim() || 'Unknown destination',
         branch,
         countdown: displayCountdown(row.seconds),
@@ -34,7 +36,7 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
 /** Counts visible predictions that lack a confirmed platform or direction. */
 export function unassignedCount(snapshot: Snapshot | undefined, now: number): number {
   return snapshot?.platforms
-    .filter(group => !group.platform || !group.direction)
+    .filter(group => !group.physicalPlatformId && (!group.platform || !group.direction))
     .flatMap(group => group.departures)
     .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now).length ?? 0;
 }

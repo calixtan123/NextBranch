@@ -6,7 +6,7 @@ import type { CataloguePlatform } from '../../src/lib/catalogue/schema';
 import { GlassSurface } from './GlassControls';
 import { majorityStyle } from './preferences';
 import { selectionKey } from './catalogue';
-import { reviewedSelection } from './discovery';
+import { serviceCapability } from '../../src/lib/catalogue/capability';
 import type { Screen } from './navigation';
 import { Surface, TextAction, usePreferences, useRuntime } from './screen-context';
 import { Action, Icon, IconButton, Label, Result, ui, usePalette } from './theme';
@@ -80,7 +80,7 @@ export function PickerScreen({ navigation, route }: Screen<'Picker'>) {
         <Label tone="dim" size={15} accessibilityRole="header"
           style={{ marginTop: 24, marginBottom: 8, marginHorizontal: 4 }}>{direction || 'Direction not published'}</Label>
         {matching.map(platform => {
-          const selection = reviewedSelection(station!, platform, catalogue);
+          const selection = catalogue.selection?.(station!, platform);
           return <Result key={platform.platform_id}
             title={platform.platform_number ? 'Platform ' + platform.platform_number : 'Platform number not published'}
             detail={[platform.friendly_name, services(platform)].filter(Boolean).join('\n')}
@@ -108,11 +108,17 @@ export function PlatformDetailsScreen({ navigation, route }: Screen<'PlatformDet
     {platform && station ? <View style={{ gap: 12 }}>
       <Label size={22} bold accessibilityRole="header">{station.station_name}</Label>
       <Label size={19} bold>{platform.platform_number ? 'Platform ' + platform.platform_number : 'Platform number not published'}</Label>
-      <Label>{platform.cardinal_direction || 'Direction not published'}</Label>
+      <Label>{platform.cardinal_direction || 'Direction unavailable'}</Label>
       <Label>{platform.friendly_name || 'Platform description not published'}</Label>
       <Label bold accessibilityRole="header">Published services</Label>
       <Label>{services(platform)}</Label>
-      <Label tone="dim">Live departures and saving are unavailable for this platform in this version. You can inspect its published details offline.</Label>
+      <Label tone="dim">{platform.services.map(service => {
+        const capability = serviceCapability(station, platform, service);
+        return `${service.line_name}: ${capability.feed === 'unsupported' ? 'Live departures unsupported' :
+          capability.feed === 'supported' && capability.mapping === 'supported' ? 'Live departures available' :
+          capability.feed === 'supported' ? 'Platform matching awaits verification' : 'Live feed and platform matching await verification'}`;
+      }).join('\n')}
+Live departures and saving are unavailable for this platform in this version.</Label>
     </View> : <View style={{ gap: 12 }}>
       <Label tone="dim" accessibilityRole="alert">Platform information is unavailable. Search for the station again or reopen the app to retry.</Label>
       <Action onPress={() => navigation.navigate('Search')}>Search stations</Action>

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import reviewedCatalogue from '../assets/platform-catalogue.json';
 import { httpTransport, RequestFailure, type StationTransport } from './api';
-import { createCatalogue } from './catalogue';
+import { createCatalogue, createCanonicalCatalogue, type Catalogue } from './catalogue';
 import { createDiscovery } from './discovery';
 import { createPreferences } from './preferences';
 import { createStationOwner } from './station-owner';
@@ -21,8 +21,8 @@ export function createRuntime() {
     ? (require('./fixture') as typeof import('./fixture'))
       .fixtureRuntime(scenario, process.env.EXPO_PUBLIC_NEXTBRANCH_SEED === '1')
     : null;
-  const catalogue = fixture?.catalogue ?? createCatalogue(reviewedCatalogue);
   const discovery = createDiscovery();
+  const catalogue: Catalogue = fixture?.catalogue ?? (discovery.catalogue ? createCanonicalCatalogue(discovery.catalogue) : createCatalogue(reviewedCatalogue));
   const now = fixture?.now ?? Date.now;
   return {
     now,

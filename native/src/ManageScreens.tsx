@@ -8,8 +8,8 @@ import { type Mode, type Style } from './preferences';
 import { Surface, usePreferences, useRuntime } from './screen-context';
 import { Action, Icon, IconButton, Label, Result, paletteFor, ui, usePalette } from './theme';
 
-const name = (selection: Selection) => byId.get(selection.stationId)?.name ?? selection.stationId;
-const identity = (selection: Selection) => name(selection) + ' · ' + platformName(selection);
+const name = (selection: Selection, discovery?: ReturnType<typeof useRuntime>['discovery']) => discovery?.catalogue?.stationsByAnyId.get(selection.stationId)?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
+const identity = (selection: Selection, discovery?: ReturnType<typeof useRuntime>['discovery']) => name(selection, discovery) + ' · ' + platformName(selection);
 const textInset = { marginHorizontal: 2, marginBottom: 14 };
 
 function ReorderHandle({ label, first, last, drag, move }: {
@@ -79,7 +79,7 @@ function ReorderHandle({ label, first, last, drag, move }: {
 
 /** Manages the saved order or confirms replacement of a specific slot. */
 export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
-  const { preferences } = useRuntime();
+  const { preferences, discovery } = useRuntime();
   const { cards, removal } = usePreferences();
   const colors = usePalette();
   const undoing = route.params?.undo === true;
@@ -98,7 +98,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
   };
   const confirm = (card: Selection) => {
     if (!replacement) return;
-    Alert.alert('Replace this platform?', `Replace ${identity(card)} with ${identity(replacement)}?`, [
+    Alert.alert('Replace this platform?', `Replace ${identity(card, discovery)} with ${identity(replacement, discovery)}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Replace', style: 'destructive', onPress: () => {
         const key = selectionKey(card);
@@ -120,7 +120,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
   return <Surface title={replacing ? 'Replace a platform' : 'Manage platforms'} onBack={navigation.goBack}
     scrollEnabled={!dragging}>
     <Label tone="dim" style={textInset}>
-      {replacement ? `Choose the saved platform to replace with ${identity(replacement)}.`
+      {replacement ? `Choose the saved platform to replace with ${identity(replacement, discovery)}.`
         : undoing ? 'Undo has expired.' : 'Drag the handle to reorder. Tap a card to customise its display.'}
     </Label>
     {!replacing && cards.length === 0 && <Label tone="dim" style={textInset}>No platforms saved yet.</Label>}
@@ -139,7 +139,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
           zIndex: dragging?.from === key ? 1 : 0,
           ...(dragging?.from === key && { boxShadow: '0 4px 12px #00000033' }),
         }]}>
-          {!replacing && <ReorderHandle label={identity(card)} first={index === 0} last={index === cards.length - 1}
+          {!replacing && <ReorderHandle label={identity(card, discovery)} first={index === 0} last={index === cards.length - 1}
             move={delta => move(key, delta)} drag={(dy, done, cancelled) => {
               if (cancelled) {
                 setDragging(undefined);
@@ -172,10 +172,10 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
               } else setDragging({ from: key, to: closest, dy });
             }} />}
           <View style={ui.flex}>
-            <Result title={name(card)} detail={detail} onPress={() =>
+            <Result title={name(card, discovery)} detail={detail} onPress={() =>
               replacing ? confirm(card) : navigation.navigate('CardDisplay', { cardKey: key })} />
           </View>
-          {!replacing && <IconButton icon="trash" label={'Remove ' + identity(card)} size={18} tone="danger"
+          {!replacing && <IconButton icon="trash" label={'Remove ' + identity(card, discovery)} size={18} tone="danger"
             onPress={() => preferences.remove(key)} />}
         </View>;
       })}
@@ -237,14 +237,14 @@ export function AppearanceScreen({ navigation }: Screen<'Appearance'>) {
 
 /** Edits the selected card’s persistent display override. */
 export function CardDisplayScreen({ navigation, route }: Screen<'CardDisplay'>) {
-  const { preferences } = useRuntime();
+  const { preferences, discovery } = useRuntime();
   const { cards } = usePreferences();
   const { cardKey } = route.params;
   const card = cards.find(item => selectionKey(item) === cardKey);
   return <Surface title="Card display" onBack={navigation.goBack}>
     {card ? <>
       <View style={[textInset, { marginTop: 4, gap: 4 }]}>
-        <Label size={20} bold accessibilityRole="header">{name(card)}</Label>
+        <Label size={20} bold accessibilityRole="header">{name(card, discovery)}</Label>
         <Label size={15} tone="dim">{platformName(card)}</Label>
       </View>
       <Label tone="dim" style={{ marginBottom: 10 }}>

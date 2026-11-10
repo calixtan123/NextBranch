@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { catalogueResponseSchema } from '../../src/lib/catalogue/capability';
 import { REFRESH_SECONDS } from '../../src/lib/northern/time';
 
 const timestamp = z.iso.datetime({ offset: true }).refine(value => Number.isFinite(Date.parse(value)));
 const exactLabel = z.string().min(1).refine(value => value === value.trim());
 const departure = z.object({
   id: exactLabel,
+  lineId: exactLabel.optional(),
   destinationName: z.string().nullable(),
   expectedArrival: timestamp,
   secondsToStation: z.number().finite(),
@@ -15,9 +17,11 @@ const snapshot = z.object({
   observedAt: timestamp,
   newestPredictionGeneratedAt: timestamp.nullable(),
   refreshAfterSeconds: z.number().int().positive().optional().default(REFRESH_SECONDS),
+  catalogue: catalogueResponseSchema.optional(),
   platforms: z.array(z.object({
+    physicalPlatformId: exactLabel.nullable().optional(),
     platform: exactLabel.nullable(),
-    direction: z.enum(['Northbound', 'Southbound']).nullable(),
+    direction: z.enum(['Northbound', 'Southbound', 'Eastbound', 'Westbound']).nullable(),
     departures: z.array(departure),
   })),
 });

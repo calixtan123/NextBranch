@@ -2,6 +2,8 @@ import { memo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, FeGaussianBlur, Filter, Path, Pattern, Rect } from 'react-native-svg';
 import { byId } from '../../src/lib/northern/stations';
+import type { AppStation } from '../../src/lib/catalogue';
+import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { londonTime } from '../../src/lib/northern/time';
 import {
   boardRows, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
@@ -67,13 +69,13 @@ function rowLabel(row: Row, index: number, expanded: boolean) {
     expanded ? `Expected at ${londonTime(row.expectedArrival)} London time` : null].filter(Boolean).join(', ');
 }
 
-function TrainRow({ row, index, style, width, expanded, last }: {
-  row: Row; index: number; style: Style; width: number; expanded: boolean; last: boolean;
+function TrainRow({ row, index, style, width, expanded, last, lineName }: {
+  row: Row; index: number; style: Style; width: number; expanded: boolean; last: boolean; lineName?: string;
 }) {
   const { fontScale } = useWindowDimensions();
   const isAmber = style === 'amber';
   const board = isAmber ? amber : modern;
-  const text = row.destination + ' ' + row.branch;
+  const text = [lineName, row.destination, row.branch].filter(Boolean).join(' ');
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
   const scale = text.length > 28 ? .61 : text.length > 22 ? .68 : .78;
   const gap = isAmber ? 5 : 7;
@@ -83,7 +85,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
     ? row.countdown + 's' : row.countdown;
   const stacked = fontScale > 1.35;
   const font = isAmber ? 'Avenir Next' : 'GillSans-Light';
-  return <View accessible accessibilityLabel={rowLabel(row, index, expanded)}
+  return <View accessible accessibilityLabel={[lineName, rowLabel(row, index, expanded)].filter(Boolean).join(', ')}
     style={[ui.row, {
       minHeight: 37, paddingVertical: 3, gap, alignItems: stacked ? 'flex-start' : 'center',
       borderBottomWidth: last ? 0 : 1, borderBottomColor: board.rule,
@@ -129,18 +131,26 @@ function freshness(state: LiveState, now: number, online: boolean, limited: bool
 }
 
 /** Formats a catalogue selection independently of feed content. */
-export const platformName = (selection: Selection) => `${selection.direction} · Platform ${selection.platform}`;
+export const platformName = (selection: Selection) => `${selection.direction || 'Direction unavailable'} · ${selection.platform ? 'Platform ' + selection.platform : 'Platform number not published'}`;
 
 /** Shared Home and detail board, including stale or partial matching snapshots. */
-export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onRetry, onReview }: {
+export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onRetry, onReview, station }: {
   selection: Selection; style: Style; state: LiveState; now: number; online: boolean; limited: boolean; expanded?: boolean;
-  onOpen?: () => void; onRetry: () => void; onReview: () => void;
+  onOpen?: () => void; onRetry: () => void; onReview: () => void; station?: AppStation;
 }) {
   const colors = usePalette();
   const { fontScale } = useWindowDimensions();
   const stackedHeader = fontScale > 1.35;
   const [width, setWidth] = useState(0);
-  const name = byId.get(selection.stationId)?.name ?? selection.stationId;
+  const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
+  const platform = station?.platforms.find(item => item.platform_id === selection.physicalPlatformId);
+  const lineNames = platform ? [...new Set(platform.services.map(service => service.line_name))].join(' · ') : 'Northern line';
+  const details = platform?.services.map(service => {
+    const capability = serviceCapability(station!, platform, service);
+    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? 'Live departures available' :
+      capability.feed === 'unsupported' ? 'Live departures unsupported' : 'Live departures or platform matching await verification';
+    return `${service.line_name} · ${service.direction_towards ? 'Towards ' + service.direction_towards : 'Towards not published'} · ${coverage}`;
+  }).join('\n');
   const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3);
   const board = style === 'amber' ? amber : modern;
   const warning = !online || Boolean(state.error) || isStale(state, now, online);
@@ -159,7 +169,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       </View>
       <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
         <LineMarker />
-        <Label size={10} tone="dim" bold style={{ fontFamily: 'Avenir Next', fontWeight: '700', flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>Northern line</Label>
+        <Label size={10} tone="dim" bold style={{ fontFamily: 'Avenir Next', fontWeight: '700', flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>{lineNames}</Label>
       </View>
     </View>
     <View style={{
@@ -176,7 +186,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       </View>
       <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
-          width={width} expanded={expanded} last={index === rows.length - 1} />)}
+          width={width} expanded={expanded} last={index === rows.length - 1}
+          lineName={row.lineId && platform && platform.services.length > 1 ? platform.services.find(service => service.line_id === row.lineId)?.line_name ?? row.lineId : undefined} />)}
         {!rows.length && <Text style={{ color: board.text, padding: 8, fontSize: 12, fontFamily: 'Avenir Next' }}>
           {state.snapshot ? emptyStatus : status}
         </Text>}
@@ -193,7 +204,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       {expanded && state.snapshot && <Label size={10} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{count}</Label>}
     </View>
   </>;
-  const description = [name, platformName(selection), 'Northern line', ...rows.map((row, index) => rowLabel(row, index, false)),
+  const description = [name, platformName(selection), lineNames, details, ...rows.map((row, index) => rowLabel(row, index, false)),
     !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean).join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
@@ -203,6 +214,9 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       accessibilityHint="Opens platform departures" style={({ pressed }) => ({ opacity: pressed ? .68 : 1 })}>
       {content}
     </Pressable> : content}
+    {platform && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+      {[platform.friendly_name || 'Platform description not published', details].join('\n')}
+    </Label>}
     {unknown > 0 && <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next', paddingHorizontal: 11, paddingVertical: 6 }}>
       {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.
     </Label>}

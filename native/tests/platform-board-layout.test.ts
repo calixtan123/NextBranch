@@ -85,3 +85,18 @@ describe.each([
     expect(flattenStyle(lineLabel.props.style)).toMatchObject({ flexShrink: 1, textAlign: textAlignment });
   });
 });
+
+it('labels each shared-platform departure with its published line', async () => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('HUBKWG')!;
+  const platform = station.platforms[0];
+  const tree = PlatformBoard({ selection: { stationId: station.station_id, platform: platform.platform_number,
+    direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, station,
+    style: 'modern', state: { error: null, pending: false, snapshot: { station: { id: station.station_id, name: station.station_name },
+      observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: platform.platform_number, direction: 'Eastbound', physicalPlatformId: platform.platform_id,
+        departures: [{ id: 'train', lineId: 'district', destinationName: 'Ealing', expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60, towards: null }] }] } },
+    now: Date.parse('2026-01-01T00:00:00Z'), online: true, limited: false, onRetry: () => {}, onReview: () => {} });
+  const row = elements(tree).find(node => (node.props as { row?: unknown }).row) as ReactElement<{ lineName?: string }> | undefined;
+  expect(row?.props.lineName).toBe('District');
+});
