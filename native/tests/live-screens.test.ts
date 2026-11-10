@@ -14,6 +14,7 @@ vi.mock('../src/screen-context', () => ({
   useBoardTime: () => 0,
   useRefresh: () => ({ refresh: vi.fn(), refreshing: false }),
 }));
+vi.mock('../src/GlassControls', () => ({ GlassAction: 'GlassAction' }));
 vi.mock('../src/PlatformBoard', () => ({ PlatformBoard: 'PlatformBoard', platformName: () => 'Platform A' }));
 vi.mock('../src/theme', () => ({ Action: 'Action', IconButton: 'IconButton', Label: 'Label', Result: 'Result', ui: {} }));
 

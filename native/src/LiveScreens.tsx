@@ -4,8 +4,9 @@ import { boardRows } from './board-model';
 import { selectionKey } from './catalogue';
 import type { Screen } from './navigation';
 import { PlatformBoard, platformName } from './PlatformBoard';
-import { effectiveStyle } from './preferences';
-import { Surface, TextAction, useBoardTime, usePreferences, useRefresh, useRuntime } from './screen-context';
+import { GlassAction } from './GlassControls';
+import { effectiveStyle, majorityStyle } from './preferences';
+import { Surface, useBoardTime, usePreferences, useRefresh, useRuntime } from './screen-context';
 import { Action, IconButton, Label, Result, ui } from './theme';
 
 /** Displays a recoverable review entry for a previously saved, now unknown tuple. */
@@ -19,6 +20,7 @@ export function ReviewCard({ stationId, platform, onPress }: { stationId: string
 export function HomeScreen({ navigation }: Screen<'Home'>) {
   const { stations, catalogue, preferences } = useRuntime();
   const { cards, mode, removal } = usePreferences();
+  const accent = majorityStyle(mode, cards);
   const now = useBoardTime();
   const { refresh, refreshing } = useRefresh();
   const ids = cards.filter(catalogue.has).map(card => card.stationId);
@@ -31,14 +33,14 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
     if (outcome === 'expired') AccessibilityInfo.announceForAccessibility('Undo has expired');
   };
   return <Surface title="NextBranch" refresh={ids.length && online && !limited ? () => void refresh(ids) : undefined}
-    refreshing={refreshing} headerAction={<IconButton icon="search" label="Search stations" size={21} onPress={openSearch} />}>
+    refreshing={refreshing} headerAction={<GlassAction icon="search" label="Search stations" accent={accent} onPress={openSearch} />}>
     <View style={[ui.wrap, { justifyContent: 'space-between', columnGap: 4, rowGap: 0, marginBottom: 8 }]}>
       <View style={[ui.row, { gap: 7, flexShrink: 1 }]}>
         <Label size={17} bold accessibilityRole="header" style={{ flexShrink: 1 }}>Saved platforms</Label>
         <Label size={15} tone="dim" accessibilityLabel={cards.length + ' of 3 saved platforms'}>{cards.length}/3</Label>
       </View>
-      <View style={[ui.wrap, { columnGap: 0 }]}>
-        <TextAction label="Manage platforms" onPress={() => navigation.navigate('Manage')} />
+      <View style={[ui.wrap, { columnGap: 0, maxWidth: '100%', minWidth: 0, flexShrink: 1 }]}>
+        <GlassAction accent={accent} label="Manage platforms" onPress={() => navigation.navigate('Manage')} />
         <IconButton icon="settings" label="Settings" size={16} tone="dim" onPress={() => navigation.navigate('Settings')} />
       </View>
     </View>
@@ -55,7 +57,7 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
       Add a Northern line platform to see its next departures here.
     </Label>}
     <View style={ui.wrap}>
-      {cards.length < 3 && <Action onPress={openSearch}>+ Add a platform</Action>}
+      {cards.length < 3 && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}
       {ids.length > 0 && <IconButton icon="refresh" label="Refresh departures" tone="dim"
         disabled={refreshing || !online || limited} onPress={() => void refresh(ids)} />}
       {removal && <Action onPress={undo}>Undo removal</Action>}

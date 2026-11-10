@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Keyboard, TextInput, View } from 'react-native';
 import { byId, searchStations } from '../../src/lib/northern/stations';
+import { GlassSurface } from './GlassControls';
+import { majorityStyle } from './preferences';
 import { selectionKey } from './catalogue';
 import type { Screen } from './navigation';
 import { Surface, TextAction, usePreferences, useRuntime } from './screen-context';
@@ -9,24 +11,25 @@ import { Action, Icon, IconButton, Label, Result, ui, usePalette } from './theme
 /** Searches bundled canonical names and aliases and displays recent stations. */
 export function SearchScreen({ navigation }: Screen<'Search'>) {
   const colors = usePalette();
-  const { recent } = usePreferences();
+  const { recent, mode, cards } = usePreferences();
+  const accent = majorityStyle(mode, cards);
   const { preferences } = useRuntime();
   const [query, setQuery] = useState('');
   const searching = query.trim().length > 0;
   const results = searching ? searchStations(query) : recent.flatMap(id => byId.get(id) ?? []);
   return <Surface title="Search stations" onBack={navigation.goBack}
     headerAction={<TextAction label="Cancel" onPress={navigation.goBack} />}>
-    <View style={[ui.row, {
-      minHeight: 48, borderRadius: 12, backgroundColor: colors.input,
+    <GlassSurface accent={accent} style={[ui.row, {
+      minHeight: 48,
       paddingHorizontal: 12, gap: 9, marginBottom: 18,
     }]}>
       <Icon name="search" tone="dim" size={16} />
       <TextInput accessibilityLabel="Station name" placeholder="Station name" placeholderTextColor={colors.dim}
         value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false}
-        selectionColor={colors.selected}
+        selectionColor={colors.fg}
         style={[ui.flex, { minHeight: 46, color: colors.fg, fontSize: 17, fontFamily: 'System' }]} />
       {query !== '' && <IconButton icon="clear" label="Clear station search" tone="dim" onPress={() => setQuery('')} />}
-    </View>
+    </GlassSurface>
     <Label accessibilityRole="header" tone="dim" size={15} style={{ marginTop: 5, marginBottom: 9, marginHorizontal: 4 }}>
       {searching ? 'Search results' : 'Recent searches'}
     </Label>

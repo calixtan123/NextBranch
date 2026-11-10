@@ -46,6 +46,13 @@ export function effectiveStyle(mode: Mode, card?: Card): Style {
   return mode === 'custom' ? card?.style ?? 'amber' : mode;
 }
 
+/** Derives the control accent from effective saved styles, resolving ties to Amber. */
+export function majorityStyle(mode: Mode, cards: readonly Card[]): Style {
+  if (cards.length === 0) return effectiveStyle(mode);
+  const modernCount = cards.filter(card => effectiveStyle(mode, card) === 'modern').length;
+  return modernCount > cards.length / 2 ? 'modern' : 'amber';
+}
+
 /** Owns synchronous preference transactions and serializes durable snapshots. */
 export function createPreferences(
   storage: Storage,

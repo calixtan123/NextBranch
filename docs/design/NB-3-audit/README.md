@@ -43,3 +43,12 @@ These independent source reviews cover the persisted Settings Dark Mode switch a
 - [Light native alert](theme-alert-light.png), captured by the final reviewer while system appearance stayed Dark.
 - [Dark Settings](theme-settings-dark.png), captured by the controller.
 - [Dark Home after process restart and development-client reconnect](theme-home-dark-restart.png), captured by the controller.
+
+## Neutral glass controls follow-up
+
+- [Task review and scoped layout re-review](glass-controls-task-review.md)
+- [Fresh whole-branch final review](glass-controls-final-review.md)
+- [Dark Amber Home on iPhone 17e](glass-home-amber.png)
+- [Maximum Dynamic Type Home top viewport](glass-home-max-type.png)
+
+These captures cover neutral glass actions, the Amber material sample and the Manage platforms wrapping correction. The development gear partly covers ordinary-size header Search. Current Light/Modern, Search interaction, native transparency changes and broader manual boundaries remain recorded in the verification document.
