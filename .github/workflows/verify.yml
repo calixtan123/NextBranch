@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Keep browser dependencies on a fixed Playwright-supported Ubuntu release.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       NEXT_TELEMETRY_DISABLED: "1"
