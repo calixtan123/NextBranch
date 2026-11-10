@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "source": "https://api.tfl.gov.uk/stationdata/tfl-stationdata-detailed.zip",
+  "feedStartDate": "2026-10-20T13:56+00:00",
+  "reviewedAt": "2026-11-10",
+  "archiveSha256": "9107a1ed212bcc1fe9ae6b89dc9ad0dc40b14295271983c14272ba7763c6d2df",
+  "platforms": [
+    {
+      "stationId": "940GZZLUCND",
+      "platform": "1",
+      "direction": "Northbound"
+    },
+    {
+      "stationId": "940GZZLUCND",
+      "platform": "2",
+      "direction": "Southbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "1",
+      "direction": "Northbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "2",
+      "direction": "Southbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "3",
+      "direction": "Northbound"
+    },
+    {
+      "stationId": "940GZZLUCTN",
+      "platform": "4",
+      "direction": "Southbound"
+    }
+  ]
+}

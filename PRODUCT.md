@@ -34,3 +34,9 @@ Calm, direct, and trustworthy. The product should feel like a compact consumer t
 ## Accessibility & Inclusion
 
 Target WCAG 2.2 AA. All controls need keyboard operation, visible focus, descriptive accessible names, and at least 44-by-44-pixel touch targets. Information must not rely on colour alone. Support system light and dark themes, tabular numerals for time data, high-contrast text, and reduced-motion preferences. Loading, error, offline, stale, empty, and ambiguous-data states must be announced clearly to assistive technology.
+
+## NextBranch for iPhone
+
+NextBranch helps Northern line commuters compare up to three saved physical platforms. Each Home card shows the next three departures with advertised branch wording. A card opens a five-departure board. Station search works offline, and saving a platform requires a reviewed station, platform and direction tuple. Users can reorder their cards and choose the Amber or Modern display globally or per card. The existing web journey tool remains a separate surface.
+
+The native flow and its setup are documented in [the NB-3 design and verification record](docs/design/NB-3-verification.md).
