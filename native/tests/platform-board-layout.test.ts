@@ -80,12 +80,17 @@ describe.each([
     expect(flattenStyle(header.props.style)).toMatchObject({ flexDirection: direction, alignItems: alignment });
     expect(flattenStyle(identity.props.style).flex).toBe(identityFlex);
     expect(elements(identity.props.children).filter(node => node.type === Label).map(node => node.props.children)).toEqual([
-      "King's Cross St. Pancras", 'Southbound · Platform A',
+      'Southbound Platform A', "King's Cross St. Pancras",
     ]);
     expect(flattenStyle(line.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center', maxWidth: lineWidth });
     expect((lineLabel.props as { lines?: unknown }).lines).toEqual([{ id: 'northern', name: 'Northern line' }]);
     expect((lineLabel.props as { align?: unknown }).align).toBe(textAlignment);
-    expect((lineLabel.props as { textStyle?: unknown }).textStyle).toMatchObject({ fontFamily: 'Avenir Next', fontWeight: '700' });
+    expect((lineLabel.props as { size?: number }).size).toBe(12);
+    const [heading, station] = elements(identity.props.children).filter(node => node.type === Label);
+    expect(heading.props).toMatchObject({ size: 19, bold: true });
+    expect(flattenStyle(heading.props.style)).toMatchObject({ fontWeight: '700' });
+    expect(flattenStyle(heading.props.style).fontFamily).toBeUndefined();
+    expect(station.props).toMatchObject({ size: 14, tone: 'dim' });
   });
 });
 
@@ -117,8 +122,8 @@ it('shows temporary per-line failure separately from static verified support', a
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('District');
   expect(copy).toContain('Live departures temporarily unavailable');
-  expect(copy).toContain('Piccadilly');
-  expect(copy).toContain('Live departures available');
+  expect(copy).not.toContain('Towards not published');
+  expect(copy).not.toContain('Live departures available');
 });
 
 it.each(['empty', 'outage'] as const)('shows official DLR blank direction and towards with accurate %s coverage', async condition => {
@@ -135,8 +140,9 @@ it.each(['empty', 'outage'] as const)('shows official DLR blank direction and to
     onRetry: vi.fn(), onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
-  expect(copy).toContain('Direction unavailable · Platform 3');
-  expect(copy).toContain('DLR · Towards not published');
+  expect(copy).toContain('Direction not published · Platform 3');
+  expect(copy).toContain('DLR · ');
+  expect(copy).not.toContain('Towards not published');
   expect(copy).toContain(condition === 'empty' ? 'No upcoming departures' : 'Live departures temporarily unavailable');
   expect(copy).not.toContain('matching await verification');
 });
@@ -146,7 +152,7 @@ it.each([
   ['HUBEAL', '3', 'Elizabeth line', 'National Rail', false],
   ['HUBKWG', '2', 'Mildmay', 'District', true], ['910GANERLEY', '1', 'Windrush', 'National Rail', true],
   ['HUBKWG', '2', 'Mildmay', 'District', false], ['910GANERLEY', '1', 'Windrush', 'National Rail', false],
-] as const)('renders shared TfL %s coverage and every published description with expanded=%s', async (stationId, number, coveredLine, otherLine, expanded) => {
+] as const)('renders shared TfL %s platform %s coverage for %s / %s with expanded=%s', async (stationId, number, coveredLine, otherLine, expanded) => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get(stationId)!;
   const platform = station.platforms.find(p => p.platform_number === number)!;
@@ -158,17 +164,19 @@ it.each([
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   const labels = elements(tree).find(node => node.type === LineLabels)!;
   expect((labels.props as { lines?: { name: string }[] }).lines?.map(line => line.name)).toEqual(expect.arrayContaining([coveredLine, otherLine]));
-  expect(copy).toContain(coveredLine);
   expect(copy).toContain(otherLine);
-  expect(copy).toContain('TfL departures');
   if (otherLine === 'National Rail') expect(copy).toContain('TfL departures only');
-  expect(copy).toContain('Live departures available');
+  expect(copy).not.toContain('Live departures available');
   expect(copy).toContain(otherLine === 'District' ? 'Platform matching awaits verification' : 'Live departures unsupported');
-  for (const service of platform.services) expect(copy).toContain(service.direction_towards || 'Towards not published');
+  for (const service of platform.services.filter(service => service.line_name === otherLine)) {
+    if (service.direction_towards) expect(copy).toContain('Towards ' + service.direction_towards);
+  }
+  expect(copy).not.toContain('Towards not published');
   if (!expanded) {
     const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
     const accessibleCopy = (button?.props as { accessibilityLabel?: string }).accessibilityLabel;
-    expect(accessibleCopy).toContain(otherLine === 'National Rail' ? 'TfL departures only' : 'TfL departures');
+    if (otherLine === 'National Rail') expect(accessibleCopy).toContain('TfL departures only');
+    expect(accessibleCopy).not.toMatch(/Live departures available|Towards not published/);
     expect(accessibleCopy).toContain(coveredLine);
     expect(accessibleCopy).toContain(otherLine);
   }
@@ -186,8 +194,8 @@ it.each([true, false])('renders verified Tram blank numbers without inventing la
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('Eastbound · Platform number not published');
-  expect(copy).toContain('Tram · Towards not published');
-  expect(copy).toContain('Live departures available');
+  expect(copy).not.toContain('Towards not published');
+  expect(copy).not.toContain('Live departures available');
   expect(copy).not.toContain('Platform 1');
   if (!expanded) {
     const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
@@ -236,4 +244,60 @@ describe.each([
       expect(label).not.toMatch(/Underground Station|Branch unavailable|, ,/);
     }
   });
+});
+
+
+it.each(['amber', 'modern'] as const)('omits redundant metadata for a verified real Baker Street platform in %s', async style => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('940GZZLUBST')!;
+  const platform = station.platforms.find(platform => platform.platform_number === '8')!;
+  expect(platform).toBeDefined();
+  const tree = PlatformBoard({ station, selection: { stationId: station.station_id,
+    platform: platform.platform_number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    style, now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false,
+    state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name },
+      observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
+    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+  const labels = elements(tree).filter(node => node.type === Label);
+  expect(labels.map(node => Children.toArray(node.props.children).join('')).join(' '))
+    .not.toMatch(/TfL departures|Live departures available|Towards|Platform description/);
+  expect(labels.filter(node => (node.props as { size?: number }).size === 11)).toHaveLength(0);
+  const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+  expect((button.props as { accessibilityLabel: string }).accessibilityLabel)
+    .not.toMatch(/TfL departures|Live departures available|Towards|Platform description/);
+});
+
+it.each([
+  { online: false, limited: false, error: null, observedAt: '2026-11-10T12:00:00Z', expected: 'Offline · Predictions may be outdated' },
+  { online: true, limited: false, error: null, observedAt: '2026-11-10T11:00:00Z', expected: 'Predictions may be outdated' },
+  { online: true, limited: true, error: null, observedAt: '2026-11-10T12:00:00Z', expected: 'Too many requests · Try again shortly' },
+  { online: true, limited: false, error: 'unavailable', observedAt: '2026-11-10T12:00:00Z', expected: 'Predictions may be outdated' },
+] as const)('preserves visible and accessible $expected', ({ online, limited, error, observedAt, expected }) => {
+  const tree = PlatformBoard({ selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
+    style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online, limited,
+    state: { pending: false, error, snapshot: { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+      observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
+    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+  const copy = elements(tree).filter(node => node.type === Label)
+    .map(node => Children.toArray(node.props.children).join('')).join(' ');
+  const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+  expect(copy).toContain(expected);
+  expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain(expected);
+});
+
+it('deduplicates repeated service caveats in visible and accessible summaries', async () => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const source = catalogue.stationsById.get('HUBKWG')!;
+  const platform = source.platforms.find(platform => platform.platform_number === '2')!;
+  const station = { ...source, platforms: [{ ...platform, services: [...platform.services, ...platform.services] }] };
+  const tree = PlatformBoard({ station, selection: { stationId: station.station_id, platform: platform.platform_number,
+    direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, style: 'amber',
+    state: { pending: false, error: null }, now: 0, online: true, limited: false,
+    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+  const copy = elements(tree).filter(node => node.type === Label)
+    .map(node => Children.toArray(node.props.children).join('')).join(' ');
+  const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+  const accessible = (button.props as { accessibilityLabel: string }).accessibilityLabel;
+  expect(copy.match(/Platform matching awaits verification/g)).toHaveLength(1);
+  expect(accessible.match(/Platform matching awaits verification/g)).toHaveLength(1);
 });
