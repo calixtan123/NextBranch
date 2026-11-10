@@ -28,7 +28,7 @@ Commands were bounded with a Perl alarm on this macOS host. The native package u
 | Isolated copy of native manifests | `npm ci` | Exit 0 |
 | `native/` | `CI=1 npx expo install --check` | Exit 0 |
 | `native/` | `npm run typecheck` | Exit 0 |
-| `native/` | `npm test` | Exit 0, 22 tests after final review fixes |
+| `native/` | `npm test` | Exit 0, 33 tests across seven files after native runtime and large-text fixes |
 | `native/` | `CI=1 EXPO_NO_TELEMETRY=1 EXPO_PUBLIC_NEXTBRANCH_API_URL=https://example.invalid EXPO_PUBLIC_NEXTBRANCH_FIXTURE=three-card-home EXPO_PUBLIC_NEXTBRANCH_SEED=1 npm run export:ios` | Exit 0 |
 | Root | `NEXT_TELEMETRY_DISABLED=1 npm run verify` | Exit 0, 260 tests |
 | Root | `NEXT_TELEMETRY_DISABLED=1 npm run build` | Exit 0 |
@@ -45,8 +45,44 @@ The scoped independent review identified and verified two fixes: exact expiry at
 
 The fresh whole-branch reviewer identified missing keyboard insets and incorrect Amber character advance. The final fix enables native keyboard insets and derives rendering/wrapping from the pinned 12.65-point advance. Two red/green metric regressions bring the native suite to 22 passing tests. The controller reran the full native suite, typecheck and iOS export after these changes; all exited 0. Modern text shadows, the card shadow and Amber glow are restored in source. Scoped re-review accepted the source fixes without new actionable findings. The SVG combines lit dots before blurring, whereas the design composites each dot's CSS shadow; rendered equivalence and native filter performance remain unverified.
 
-Independent review is accepted at source level only. Neither the reviewer nor the controller has approved the required native screenshot comparison or interaction matrix. Publication must remain a draft and NB-3 must remain In Progress until these acceptance checks pass.
+Subsequent scoped review accepted the navigation-readiness guard, Hermes-compatible search sorting and full-screen Search/Picker/Departures navigation. The controller observed Search → Camden → Platform A → five-row detail → Saved returning Home. The native suite now has 25 passing tests. The controller reports a fresh root verification (260 tests), native tests, native typecheck and iOS export, all exit 0.
 
-## Device and live acceptance
+Matched reference renders now cover all eight design screens. Scoped independent screenshot review accepted the Home, Manage and Card Display typography/spacing corrections: ordinary Avenir labels use weight 400, station board labels use 800, Manage has the reference's outer row spacing, and Card Display restores the Done gap. No unresolved actionable finding remains from that scoped review. Native safe areas, real system bars, 44-point action targets, explicit replacement confirmation and fixture disclosure deliberately adapt the prototype.
 
-The worker ran the static export and tests. The parent owns Simulator screenshots and walkthroughs, including search and keyboard handling, drag and Undo, both board styles, appearance, app restart and the small/large iPhone matrix. Physical-iPhone VoiceOver, maximum Dynamic Type, Reduce Motion and intermittent connectivity need device evidence. The live API and catalogue outside Colindale and Camden Town remain separate acceptance checks.
+Source and screenshot reviews accept the implemented screens and scoped fixes. The latest local verification on 10 November passed native tests (33), native typecheck and iOS export, plus root typecheck, lint and tests (260). The PR remains draft and NB-3 remains In Progress pending the unobserved acceptance checks listed below and latest-head CI.
+
+## Observed native runtime evidence
+
+The following results were observed by the controller on the iPhone 18 Pro Simulator unless stated otherwise. Independent screenshot review supports the visual observations; it did not duplicate native interactions.
+
+| Check | Result and boundary |
+| --- | --- |
+| Landscape keyboard and Picker | Camden result scrolled completely above the visible software keyboard; tapping it opened the current full-screen Picker. |
+| Portrait last-result search and cancellation | With the software keyboard visible, scrolled the result list to Woodside Park and selected it. Unknown catalogue recovery appeared; Back returned to Search with keyboard dismissed; Cancel returned Home preserving all three cards/order. This is normal-size portrait coverage, not a small-device or maximum-text pass. |
+| Drag after spacing change | Moved Colindale from first to last, preserving Camden B/A relative order. |
+| Non-drag reorder | Tapped a grip, used the native Move down alert, and moved Camden B below Camden A. VoiceOver-enabled non-drag management was observed separately. Audible speech remains unverified. |
+| Process restart | Terminated and relaunched the app; three cards, order and styles were restored. |
+| Management states | Captured removal/Undo restoration, reordered Manage, replacement selection and explicit old/new confirmation. Subsequent controller interactions observed timed Undo disappearance and replacement Cancel preserving all three records/order. The selection/confirmation/result sequence established replacement of only the selected slot. |
+| Maximum Dynamic Type | Manage and Card Display wrap without reported truncation; Card Display scrolling worked. Representative small iPhone 17e and large iPhone 18 Pro Max captures plus observed scrolling expose complete Home/detail destination, Bank/Charing Cross wording, fallback text, countdowns and lower actions. The small detail navigation title wraps midword at maximum type size, an observed layout limitation. |
+| Visual comparison | Reviewed both board styles and the eight-screen reference set; post-fix Home/Manage/Card Display renders accepted. This is visual-design review, not a claim of identical raster output across native and browser font/filter engines. |
+
+## Consolidated walkthroughs
+
+1. **Find and save.** Controller observed empty Home → Search → station → synthetic fixture platform → preview → Save returning Home. Earlier keyboard, last-result, Back and Cancel checks passed with selections preserved. High Barnet and other unreviewed stations show the recoverable catalogue message. Successful physical-platform selection for High Barnet remains unavailable because its catalogue has not been reviewed.
+2. **Compare three platforms.** Three cards and mixed Bank/Charing Cross rows were observed, and selections/order/styles survived process restart. Controlled Camden refresh failure marked both Camden cards stale while Colindale remained fresh. Camden retry cleared both warnings. Exact two-station request ownership and fresh-detail reuse are covered by deterministic owner tests.
+3. **Expand and refresh.** Controller observed Search → Camden → Platform A → five-row detail → Saved → Home. Failed-refresh and retry UI outcomes were observed as above. Colindale Home and expanded detail were directly inspected again on 10 November and both retained Modern styling while the Camden Home cards retained Amber after global Amber → Modern → Custom. Exact expiry/refill, offline and background/resume rules pass deterministic owner tests. A time-advanced expiry/offline/background-resume native walkthrough remains unobserved. The fixture clock is frozen, so ordinary waiting cannot establish expiry.
+4. **Manage saved cards.** Controller observed drag and native Move down reorder, VoiceOver-enabled removal/Undo, timed Undo disappearance, replacement Cancel preserving records, and explicit one-slot replacement confirmation/result. Duplicate-save navigation is protected by regression tests and the observed Saved return flow. Process restart restored selections, order and styles.
+
+## Accessibility, device and environment boundaries
+
+Representative small/large Simulator runs cover light/dark, portrait and landscape search/keyboard recovery, maximum-type essential route readability and scrolling. Controller observed Reduce Motion navigation on the small device and on iPhone 18 Pro Max through appearance/navigation/refresh. Maximum-type board headers reflow to full-width station/platform and line rows. These are representative checks across the recorded devices, not exhaustive device/screen combinations.
+
+With VoiceOver enabled, accessibility inspection exposed complete destination/branch/countdown/London-time labels, checked/unchecked appearance options and no individual dot nodes. Non-drag reorder and removal/Undo were operable. Available tools expose accessibility structure but cannot hear speech. Actual spoken output, exactly one refresh-completion announcement and absence of countdown chatter remain unverified.
+
+Physical-iPhone testing is unavailable because this session has no connected physical test device. Live-API acceptance is unavailable because no deployed NextBranch API origin and server-side TfL credentials were supplied for this native test run. All captured departure rows are explicitly labelled fixture data. Only six Colindale/Camden production tuples have reviewed provenance. Other stations remain recoverable catalogue limitations. The exact expiry/offline/background-resume native walkthrough and auditory VoiceOver check remain acceptance gates unless the user explicitly accepts that scope limitation.
+
+The independent reviewer accepted all eight captured design screens and both board styles after typography/spacing fixes. Native safe areas, system bars, 44-point controls, explicit replacement confirmation, accessibility reflow and fixture disclosure adapt the prototype. Pixel-identical raster output is not established across browser/native font and SVG glow compositing engines. Five moderate Expo CLI/fingerprint dependency findings remain recorded. App Store/TestFlight publication and signing administration are outside this ticket.
+
+## Retained audit evidence
+
+Selected native captures and the final scoped review reports are committed under [NB-3-audit](NB-3-audit/README.md). The complete local capture/reference collection remains in `/private/tmp/nb3-native-audit/`. Retained reports preserve the evidence available when each was written. Later observations in this document supersede their older pending entries. Source reviews and screenshot inspection establish their stated scope, while unobserved checks above remain open.

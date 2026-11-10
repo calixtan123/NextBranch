@@ -31,7 +31,7 @@ export function Label({ tone = 'fg', size = 12, bold, style, ...props }: TextPro
 }) {
   const colors = usePalette();
   return <Text {...props} style={[{
-    color: colors[tone], fontFamily: 'Avenir Next', fontSize: size, fontWeight: bold ? '700' : '500',
+    color: colors[tone], fontFamily: 'Avenir Next', fontSize: size, fontWeight: bold ? '700' : '400',
   }, style]} />;
 }
 

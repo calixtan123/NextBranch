@@ -22,6 +22,7 @@ export function App() {
   const palette = paletteFor(light);
   const { preferences, stations, catalogue, synthetic } = runtime;
   const syncVisible = () => {
+    if (!navigationRef.isReady()) return;
     const screen = navigationRef.getCurrentRoute();
     if (screen?.name === 'Home') {
       stations.own(preferences.get().cards.filter(catalogue.has).map(card => card.stationId));
@@ -78,7 +79,7 @@ export function App() {
               contentStyle: { backgroundColor: palette.bg },
             }}>
               <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Search" component={SearchScreen} options={{ presentation: 'containedModal' }} />
+              <Stack.Screen name="Search" component={SearchScreen} />
               <Stack.Screen name="Picker" component={PickerScreen} />
               <Stack.Screen name="Departures" component={DeparturesScreen} />
               <Stack.Screen name="Manage" component={ManageScreen} />

@@ -87,7 +87,7 @@ export function searchStations(query: string): readonly Station[] {
         normalize(value).includes(term),
       ),
     )
-    .toSorted((a, b) => {
+    .sort((a, b) => {
       const rank = (station: Station) =>
         [station.name, ...station.aliases].some((value) =>
           normalize(value).startsWith(term),

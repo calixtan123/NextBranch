@@ -108,7 +108,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
           const { y, height } = event.nativeEvent.layout;
           positions.current.set(key, { y, height });
         }} style={[ui.row, {
-          gap: 6, borderTopWidth: 1,
+          gap: 6, marginBottom: 8, borderTopWidth: 1,
           borderTopColor: dragging?.to === key && dragging.from !== key ? colors.selected : 'transparent',
           opacity: dragging?.from === key ? .55 : 1,
         }]}>
@@ -204,6 +204,6 @@ export function CardDisplayScreen({ navigation, route }: Screen<'CardDisplay'>) 
       {displayOptions.map(([value, title, detail]) => <Result key={value} title={title} detail={detail}
         selected={(card.style ?? 'amber') === value} onPress={() => preferences.setStyle(cardKey, value)} />)}
     </> : <Label tone="dim" style={{ marginBottom: 10 }}>This platform is no longer saved.</Label>}
-    <View style={{ marginTop: 8 }}><Action primary onPress={navigation.goBack}>Done</Action></View>
+    <View style={{ marginTop: 16 }}><Action primary onPress={navigation.goBack}>Done</Action></View>
   </Surface>;
 }

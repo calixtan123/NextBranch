@@ -137,6 +137,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   onOpen?: () => void; onRetry: () => void; onReview: () => void;
 }) {
   const colors = usePalette();
+  const { fontScale } = useWindowDimensions();
+  const stackedHeader = fontScale > 1.35;
   const [width, setWidth] = useState(0);
   const name = byId.get(selection.stationId)?.name ?? selection.stationId;
   const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3);
@@ -147,14 +149,17 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const count = rows.length + (rows.length === 1 ? ' upcoming train' : ' upcoming trains');
   const unknown = expanded ? unassignedCount(state.snapshot, now) : 0;
   const content = <>
-    <View style={[ui.row, { minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8 }]}>
-      <View style={[ui.flex, { paddingVertical: 6, gap: 1 }]}>
-        <Label size={15} bold style={{ letterSpacing: -.25 }}>{name}</Label>
+    <View style={[ui.row, {
+      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8,
+      ...(stackedHeader && { flexDirection: 'column', alignItems: 'stretch', paddingBottom: 6 }),
+    }]}>
+      <View style={[!stackedHeader && ui.flex, { paddingVertical: 6, gap: 1 }]}>
+        <Label size={15} bold style={{ letterSpacing: -.25, fontWeight: '800' }}>{name}</Label>
         <Label size={11} tone="dim">{platformName(selection)}</Label>
       </View>
-      <View style={[ui.row, { gap: 5, maxWidth: '38%' }]}>
+      <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
         <LineMarker />
-        <Label size={10} tone="dim" bold style={{ flexShrink: 1, textAlign: 'right' }}>Northern line</Label>
+        <Label size={10} tone="dim" bold style={{ flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>Northern line</Label>
       </View>
     </View>
     <View style={{
