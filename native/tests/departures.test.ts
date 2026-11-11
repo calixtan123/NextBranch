@@ -3,7 +3,7 @@ import camden from '../assets/camden-mixed.json';
 import colindale from '../assets/colindale-mixed.json';
 import { createStationOwner, isStale } from '../src/station-owner';
 import { decodeSnapshot, httpTransport, type StationTransport } from '../src/api';
-import { boardRows, layoutFor, matrixWidth, unassignedCount, wrapMatrix } from '../src/board-model';
+import { boardRows, departureIdentity, layoutFor, matrixWidth, unassignedCount, wrapMatrix } from '../src/board-model';
 
 const C = camden.station.id;
 const L = colindale.station.id;
@@ -68,7 +68,10 @@ it('counts unassigned predictions through the exact 30-second grace boundary', (
 it('switches Amber to readable native text at accessibility sizes and preserves unsupported characters', () => {
   expect(layoutFor('amber', 1, 'Morden via Bank')).toBe('matrix');
   expect(layoutFor('amber', 2, 'Morden via Charing Cross')).toBe('text');
-  expect(layoutFor('amber', 1, 'Elephant & Castle')).toBe('text');
+  expect(layoutFor('amber', 1, 'Elephant & Castle')).toBe('matrix');
+  expect(layoutFor('amber', 1, 'München 🚆')).toBe('text');
+  expect(layoutFor('amber', 1, 'ß')).toBe('text');
+  expect(layoutFor('amber', 1, '')).toBe('text');
 });
 
 it('sizes Morden via Bank at the pinned Amber scale', () => {
@@ -306,4 +309,47 @@ it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting'
   expect(request.mock.calls.slice(3).map(([id]) => id).sort()).toEqual([C, L].sort());
   expect(isStale(owner.get('alias'), Date.now(), true)).toBe(true);
   owner.dispose();
+});
+
+
+it('renders each supported punctuation glyph with seven binary rows of five columns', async () => {
+  const { glyphs } = await import('../src/glyphs');
+  for (const character of "()&'‘’/, +?![]–—") {
+    expect(layoutFor('amber', 1, character)).toBe('matrix');
+    expect(glyphs[character]).toHaveLength(7);
+  }
+  for (const glyph of Object.values(glyphs)) {
+    expect(glyph).toHaveLength(7);
+    expect(glyph.every(row => /^[01]{5}$/.test(row))).toBe(true);
+  }
+  expect(layoutFor('modern', 1, 'Barking (Hammersmith & City)')).toBe('text');
+  expect(layoutFor('amber', 1.16, 'Barking (Hammersmith & City)')).toBe('text');
+});
+
+it.each([
+  ['hammersmith-city', ['hammersmith-city'], 'Barking', '', 'Barking (Hammersmith & City)'],
+  ['circle', ['circle'], 'Hammersmith', '', 'Hammersmith (Circle)'],
+  ['district', ['district', 'circle'], 'Ealing Broadway', '', 'Ealing Broadway (District)'],
+  ['northern', ['northern'], 'Morden', '', 'Morden'],
+  ['district', ['district', 'district'], 'Ealing Broadway', '', 'Ealing Broadway'],
+  ['district', ['district', 'national-rail'], 'Ealing Broadway', '', 'Ealing Broadway'],
+  [undefined, ['district', 'circle'], 'Barking', '', 'Barking'],
+  ['unknown', ['district', 'circle'], 'Barking', '', 'Barking'],
+  ['toString', ['district', 'circle'], 'Barking', '', 'Barking'],
+  ['circle', [], 'Hammersmith', '', 'Hammersmith (Circle)'],
+  ['circle', ['circle'], 'Hammersmith', 'via Paddington', 'Hammersmith (Circle) via Paddington'],
+  ['circle', ['circle'], 'Hammersmith via Paddington', '', 'Hammersmith (Circle) via Paddington'],
+  ['circle', ['circle'], 'Hammersmith (Circle) via Paddington', 'via Paddington', 'Hammersmith (Circle) via Paddington'],
+  ['circle', ['circle'], 'Edgware Road (Circle Line)', '', 'Edgware Road (Circle)'],
+  ['circle', ['circle'], 'Edgware Road (cIrClE lInE) via Paddington', '', 'Edgware Road (Circle) via Paddington'],
+  ['hammersmith-city', ['hammersmith-city'], 'Barking (Hammersmith & City Line)', '', 'Barking (Hammersmith & City)'],
+  ['hammersmith-city', ['hammersmith-city'], 'Barking (Hammersmith & City)', '', 'Barking (Hammersmith & City)'],
+  ['circle', ['circle'], 'Paddington (H&C)', '', 'Paddington (H&C) (Circle)'],
+  ['circle', ['circle'], 'Kensington (Olympia)', '', 'Kensington (Olympia) (Circle)'],
+])('formats actual %s identity using distinct memberships %j', (lineId, ids, destination, branch, expected) => {
+  const row = { ...boardRows(snapshot, a, now, 3)[0], lineId, destination, branch };
+  const services = ids.map(id => ({ line_id: id, line_name: id === 'circle' ? 'Circle' : id === 'district' ? 'District' : id === 'hammersmith-city' ? 'Hammersmith & City' : id }));
+  const before = JSON.stringify({ row, services });
+  expect(departureIdentity(row, services)).toBe(expected);
+  expect(JSON.stringify({ row, services })).toBe(before);
 });

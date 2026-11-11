@@ -7,7 +7,7 @@ import type { AppStation } from '../../src/lib/catalogue';
 import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { londonTime } from '../../src/lib/northern/time';
 import {
-  boardRows, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
+  boardRows, departureIdentity, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
 } from './board-model';
 import type { Selection } from './catalogue';
 import { LineLabels } from './LineLabels';
@@ -24,7 +24,7 @@ const glowPadding = 4;
 const dotRadius = matrixDotSize * .3;
 const dotEdge = matrixDotSize - 2 * dotRadius;
 const emptyCopy = 'No departures currently assigned to this platform';
-type Row = ReturnType<typeof boardRows>[number];
+type Row = ReturnType<typeof boardRows>[number] & { identity: string };
 type LiveState = ReturnType<ReturnType<typeof createStationOwner>['get']>;
 
 function roundedDot(x: number, y: number) {
@@ -68,17 +68,17 @@ const Led = memo(function Led({ value, scale }: { value: string; scale: number }
 });
 
 function rowLabel(row: Row, index: number, expanded: boolean) {
-  return [String(index + 1), row.destination, row.branch, row.countdown,
+  return [String(index + 1), row.identity, row.countdown,
     expanded ? `Expected at ${londonTime(row.expectedArrival)} London time` : null].filter(Boolean).join(', ');
 }
 
-function TrainRow({ row, index, style, width, expanded, last, lineName }: {
-  row: Row; index: number; style: Style; width: number; expanded: boolean; last: boolean; lineName?: string;
+function TrainRow({ row, index, style, width, expanded, last }: {
+  row: Row; index: number; style: Style; width: number; expanded: boolean; last: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const isAmber = style === 'amber';
   const board = isAmber ? amber : modern;
-  const text = [lineName, row.destination, row.branch].filter(Boolean).join(' ');
+  const text = row.identity;
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
   const scale = text.length > 28 ? .61 : text.length > 22 ? .68 : .78;
   const gap = isAmber ? 5 : 7;
@@ -88,7 +88,7 @@ function TrainRow({ row, index, style, width, expanded, last, lineName }: {
     ? row.countdown + 's' : row.countdown;
   const stacked = fontScale > 1.35;
   const font = isAmber ? 'Avenir Next' : 'GillSans-Light';
-  return <View accessible accessibilityLabel={[lineName, rowLabel(row, index, expanded)].filter(Boolean).join(', ')}
+  return <View accessible accessibilityLabel={rowLabel(row, index, expanded)}
     style={[ui.row, {
       minHeight: 37, paddingVertical: 3, gap, alignItems: stacked ? 'flex-start' : 'center',
       borderBottomWidth: last ? 0 : 1, borderBottomColor: board.rule,
@@ -146,7 +146,10 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const stackedHeader = fontScale > 1.35;
   const [width, setWidth] = useState(0);
   const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
-  const platform = station?.platforms.find(item => item.platform_id === selection.physicalPlatformId);
+  const matchingPlatforms = station?.platforms.filter(item => selection.physicalPlatformId
+    ? item.platform_id === selection.physicalPlatformId
+    : item.platform_number === selection.platform && item.cardinal_direction === selection.direction);
+  const platform = matchingPlatforms?.length === 1 ? matchingPlatforms[0] : undefined;
   const lineNames = platform ? [...new Set(platform.services.map(service => service.line_name))].join(' · ') : 'Northern line';
   const departureCoverage = platform?.services.some(service => service.line_id === 'national-rail')
     ? 'TfL departures only' : null;
@@ -163,7 +166,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       .filter(Boolean).join(' · ');
   });
   const caveats = [...new Set([departureCoverage, ...details ?? []].filter((detail): detail is string => Boolean(detail)))];
-  const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3);
+  const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3)
+    .map(row => ({ ...row, identity: departureIdentity(row, platform?.services) }));
   const board = style === 'amber' ? amber : modern;
   const warning = !online || Boolean(state.error) || isStale(state, now, online);
   const status = freshness(state, now, online, limited);
@@ -198,8 +202,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       </View>
       <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
-          width={width} expanded={expanded} last={index === rows.length - 1}
-          lineName={row.lineId && platform && platform.services.length > 1 ? platform.services.find(service => service.line_id === row.lineId)?.line_name ?? row.lineId : undefined} />)}
+          width={width} expanded={expanded} last={index === rows.length - 1} />)}
         {!rows.length && <Label size={12} style={{ color: board.text, padding: 8 }}>
           {state.snapshot ? emptyStatus : status}
         </Label>}

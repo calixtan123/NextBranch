@@ -7,10 +7,10 @@ import { PlatformBoard } from '../src/PlatformBoard';
 import { Label } from '../src/theme';
 import type { Snapshot } from '../src/api';
 
-const boundary = vi.hoisted(() => ({ fontScale: 1, light: false }));
+const boundary = vi.hoisted(() => ({ fontScale: 1, light: false, width: 0 }));
 vi.mock('react', async importOriginal => ({
   ...await importOriginal<typeof import('react')>(),
-  useState: (initial: unknown) => [initial, vi.fn()],
+  useState: (initial: unknown) => [typeof initial === 'number' ? boundary.width : initial, vi.fn()],
 }));
 vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator', Pressable: 'Pressable', Text: 'Text', View: 'View',
@@ -105,8 +105,8 @@ it('labels each shared-platform departure with its published line', async () => 
       platforms: [{ platform: platform.platform_number, direction: 'Eastbound', physicalPlatformId: platform.platform_id,
         departures: [{ id: 'train', lineId: 'district', destinationName: 'Ealing', expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60, towards: null }] }] } },
     now: Date.parse('2026-01-01T00:00:00Z'), online: true, limited: false, onRetry: () => {}, onReview: () => {} });
-  const row = elements(tree).find(node => (node.props as { row?: unknown }).row) as ReactElement<{ lineName?: string }> | undefined;
-  expect(row?.props.lineName).toBe('District');
+  const row = elements(tree).find(node => (node.props as { row?: unknown }).row) as ReactElement<{ row: { identity: string } }> | undefined;
+  expect(row?.props.row.identity).toBe('Ealing (District)');
 });
 
 it('shows temporary per-line failure separately from static verified support', async () => {
@@ -234,7 +234,7 @@ describe.each([
     const suffix = expanded ? ', Expected at 12:01 London time' : '';
     expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
       '1, Epping, 1 min' + suffix,
-      '2, Hainault, via Newbury Park, 1 min' + suffix,
+      '2, Hainault via Newbury Park, 1 min' + suffix,
       '3, Hainault via Newbury Park, 1 min' + suffix,
     ]);
     if (!expanded) {
@@ -300,4 +300,101 @@ it('deduplicates repeated service caveats in visible and accessible summaries', 
   const accessible = (button.props as { accessibilityLabel: string }).accessibilityLabel;
   expect(copy.match(/Platform matching awaits verification/g)).toHaveLength(1);
   expect(accessible.match(/Platform matching awaits verification/g)).toHaveLength(1);
+});
+
+
+it.each(['amber', 'modern'] as const)('shares formatted identity across %s Home and detail rows and summaries', async style => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const source = catalogue.stationsById.get('940GZZLUBST')!;
+  const platform = source.platforms.find(item => item.services.some(service => service.line_id === 'circle'))!;
+  const service = platform.services.find(item => item.line_id === 'circle')!;
+  const station = { ...source, platforms: [{ ...platform, services: [service] }] };
+  const observedAt = '2026-11-10T12:00:00Z';
+  const snapshot: Snapshot = { station: { id: station.station_id, name: station.station_name }, observedAt,
+    newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+    platforms: [{ platform: platform.platform_number, direction: platform.cardinal_direction || null,
+      physicalPlatformId: platform.platform_id, departures: [{ id: 'train', lineId: 'circle',
+        destinationName: 'Hammersmith Underground Station via Paddington', towards: 'Hammersmith via Paddington',
+        expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 }] }] };
+  const before = JSON.stringify({ snapshot, station });
+  for (const expanded of [false, true]) {
+    for (const fontScale of [1, 2]) {
+      boundary.fontScale = fontScale;
+      boundary.width = 390;
+      const tree = PlatformBoard({ station, selection: { stationId: station.station_id,
+        platform: platform.platform_number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+        style, now: Date.parse(observedAt), online: true, limited: false, expanded,
+        state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(),
+        onRetry: vi.fn(), onReview: vi.fn() });
+      const row = elements(tree).find(node => 'row' in node.props)!;
+      const render = row.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
+      const rendered = render(row.props);
+      const expected = 'Hammersmith (Circle) via Paddington';
+      expect(rendered.props.accessibilityLabel).toContain('1, ' + expected + ', 1 min');
+      if (expanded) expect(rendered.props.accessibilityLabel).toContain('Expected at 12:01 London time');
+      const descendants = elements(rendered);
+      if (style === 'amber' && fontScale === 1) {
+        const values = descendants.filter(node => 'value' in node.props).map(node => (node.props as { value: string }).value);
+        expect(values.join(' ')).toContain(expected);
+        expect(descendants.filter(node => node.type === 'Text').map(node => node.props.children)).not.toContain(expected);
+      } else {
+        expect(descendants.filter(node => node.type === 'Text').map(node => node.props.children)).toContain(expected);
+      }
+      if (!expanded) {
+        const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+        expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain('1, ' + expected + ', 1 min');
+      }
+    }
+  }
+  expect(JSON.stringify({ snapshot, station })).toBe(before);
+  boundary.width = 0;
+  boundary.fontScale = 1;
+});
+
+
+it.each([
+  ['hammersmith-city', ['hammersmith-city'], 'Barking', 'Barking (Hammersmith & City)'],
+  ['district', ['district', 'circle'], 'Ealing Broadway', 'Ealing Broadway (District)'],
+  ['northern', ['northern'], 'Morden', 'Morden'],
+  ['district', ['district', 'district'], 'Ealing Broadway', 'Ealing Broadway'],
+  ['district', ['district', 'national-rail'], 'Ealing Broadway', 'Ealing Broadway'],
+  [undefined, ['district', 'circle'], 'Barking', 'Barking'],
+  ['unknown', ['district', 'circle'], 'Barking', 'Barking'],
+] as const)('presents %s departure identity with %j platform memberships through PlatformBoard', async (lineId, ids, destinationName, expected) => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { lines } = await import('../../src/lib/catalogue/schema');
+  const source = catalogue.stationsById.get('940GZZLUBST')!;
+  const original = source.platforms[0];
+  const service = original.services[0];
+  const platform = { ...original, services: ids.map(id => ({ ...service, line_id: id, line_name: lines[id][0] })) };
+  const station = { ...source, platforms: [platform] };
+  const observedAt = '2026-11-10T12:00:00Z';
+  const snapshot: Snapshot = { station: { id: station.station_id, name: station.station_name }, observedAt,
+    newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+    platforms: [{ platform: platform.platform_number, direction: platform.cardinal_direction || null,
+      physicalPlatformId: platform.platform_id, departures: [{ id: 'train', lineId, destinationName, towards: null,
+        expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 }] }] };
+  for (const style of ['amber', 'modern'] as const) {
+    for (const expanded of [false, true]) {
+      for (const legacy of [false, true]) {
+        boundary.fontScale = 1;
+        boundary.width = 0;
+        const tree = PlatformBoard({ station, selection: { stationId: station.station_id,
+          platform: platform.platform_number, direction: platform.cardinal_direction,
+          physicalPlatformId: legacy ? undefined : platform.platform_id },
+          style, now: Date.parse(observedAt), online: true, limited: false, expanded,
+          state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(),
+          onRetry: vi.fn(), onReview: vi.fn() });
+        const row = elements(tree).find(node => 'row' in node.props)!;
+        const render = row.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
+        const rendered = render(row.props);
+        expect(elements(rendered).filter(node => node.type === 'Text').map(node => node.props.children)).toContain(expected);
+        expect(rendered.props.accessibilityLabel).toContain('1, ' + expected + ', 1 min');
+        if (!expanded) {
+          const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+          expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain('1, ' + expected + ', 1 min');
+        }
+      }
+    }
+  }
 });
