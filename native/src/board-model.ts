@@ -100,7 +100,8 @@ export function layoutFor(style: Style, fontScale: number, value: string): 'matr
 
 export const matrixDotSize = 1.72;
 const dotGap = .6;
-const glyphGap = 1.65;
+// Keep rendering, width measurement and wrapping on the same character spacing.
+const glyphGap = 3;
 export const matrixDotStep = matrixDotSize + dotGap;
 const glyphWidth = 5 * matrixDotSize + 4 * dotGap;
 export const glyphAdvance = glyphWidth + glyphGap;

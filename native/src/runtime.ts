@@ -24,8 +24,8 @@ export function createRuntime() {
   const discovery = createDiscovery();
   const catalogue: Catalogue = fixture?.catalogue ?? (discovery.catalogue ? createCanonicalCatalogue(discovery.catalogue) : createCatalogue(reviewedCatalogue));
   const now = fixture?.now ?? Date.now;
-  const fixturePreferencesKey = scenario === 'board-growth'
-    ? 'nextbranch.fixture.board-growth.preferences' : 'nextbranch.fixture.preferences';
+  const fixturePreferencesKey = scenario === 'board-growth' || scenario === 'glyph-readability'
+    ? `nextbranch.fixture.${scenario}.preferences` : 'nextbranch.fixture.preferences';
   return {
     now,
     catalogue,

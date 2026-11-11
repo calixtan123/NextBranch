@@ -16,11 +16,18 @@ const growthInitialRows = new Map([
 
 /** Provides an isolated replay for the two documented synthetic station paths. */
 export function fixtureRuntime(scenario: string, seed: boolean) {
-  const catalogue = createCatalogue({ version: 1, platforms: [...seedCards, extra] });
+  // Development-only synthetic typography specimens, isolated from live transport and saved cards.
+  const readability = scenario === 'glyph-readability';
+  const longStation = { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' as const };
+  const cards = readability ? [longStation, ...seedCards.slice(1)] : seedCards;
+  const catalogue = createCatalogue({ version: 1, platforms: [...cards, extra] });
   const bodies = new Map([
     [camden.station.id, scenario === 'empty-camden-a' ? emptyCamden : camden],
     [colindale.station.id, colindale],
   ]);
+  if (readability) bodies.set('940GZZLUKSX', { ...camden,
+    station: { ...camden.station, id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+  });
   let camdenRequests = 0;
   const growthRequests = new Map<string, number>();
   const transport: StationTransport = async id => {
@@ -30,6 +37,15 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
       camdenRequests += 1;
       if (camdenRequests === 2 && scenario === 'camden-outage') throw new RequestFailure('unavailable');
       if (camdenRequests === 2 && scenario === 'camden-rate-limited') throw new RequestFailure('limited');
+    }
+    if (readability) {
+      const destinations = ['Morden via Bank', 'Kennington via Charing Cross',
+        'Hammersmith (Hammersmith & City)', "King’s Cross/St. Pancras", 'Supercalifragilisticexpialidocious'];
+      return decodeSnapshot({ ...response, platforms: response.platforms.map(platform => ({
+        ...platform, departures: platform.departures.map((departure, index) => ({ ...departure,
+          destinationName: destinations[index % destinations.length], towards: null,
+        })),
+      })) }, id);
     }
     if (scenario === 'board-growth') {
       const request = (growthRequests.get(id) ?? 0) + 1;
@@ -44,5 +60,5 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     }
     return decodeSnapshot(response, id);
   };
-  return { catalogue, transport, now: () => clock, cards: seed ? seedCards : [], synthetic: true };
+  return { catalogue, transport, now: () => clock, cards: seed ? cards : [], synthetic: true };
 }

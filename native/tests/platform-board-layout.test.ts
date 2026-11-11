@@ -316,7 +316,6 @@ describe.each([
   });
 });
 
-
 it.each(['amber', 'modern'] as const)('omits redundant metadata for a verified real Baker Street platform in %s', async style => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get('940GZZLUBST')!;
@@ -372,7 +371,6 @@ it('deduplicates repeated service caveats in visible and accessible summaries', 
   expect(accessible.match(/Platform matching awaits verification/g)).toHaveLength(1);
 });
 
-
 it.each(['amber', 'modern'] as const)('shares formatted identity across %s Home and detail rows and summaries', async style => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const source = catalogue.stationsById.get('940GZZLUBST')!;
@@ -421,7 +419,6 @@ it.each(['amber', 'modern'] as const)('shares formatted identity across %s Home 
   boundary.fontScale = 1;
 });
 
-
 it.each([
   ['hammersmith-city', ['hammersmith-city'], 'Barking', 'Barking (Hammersmith & City)'],
   ['district', ['district', 'circle'], 'Ealing Broadway', 'Ealing Broadway (District)'],
@@ -469,7 +466,6 @@ it.each([
   }
 });
 
-
 describe.each(['amber', 'modern'] as const)('%s Elizabeth departure suffix', style => {
   it.each([
     { expanded: false, width: 0 }, { expanded: true, width: 0 },
@@ -515,4 +511,34 @@ describe.each(['amber', 'modern'] as const)('%s Elizabeth departure suffix', sty
     }
     boundary.width = 0;
   });
+});
+
+it.each([224, 274])('keeps Amber glyph size and destination columns consistent at %s points', destinationWidth => {
+  boundary.fontScale = 1;
+  boundary.width = destinationWidth + 16 + 62 + 10;
+  const observedAt = '2026-11-10T12:00:00Z';
+  const identities = ['Morden via Bank', 'Kennington via Charing Cross', 'Hammersmith (Hammersmith & City)'];
+  const snapshot: Snapshot = { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+    observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+    platforms: [{ platform: 'A', direction: 'Southbound', departures: identities.map((destinationName, index) => ({
+      id: String(index), destinationName, towards: null, expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60,
+    })) }] };
+  for (const expanded of [false, true]) {
+    const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Southbound' },
+      style: 'amber', now: Date.parse(observedAt), online: true, limited: false, expanded,
+      state: { pending: false, error: null, snapshot }, onReview: vi.fn() });
+    const rows = elements(tree).filter(node => 'row' in node.props);
+    rows.forEach((node, index) => {
+      const render = node.type as (props: Element['props']) => Element;
+      const row = render(node.props);
+      const [ordinal, destination, countdown] = Children.toArray(row.props.children) as Element[];
+      expect(flattenStyle(ordinal.props.style).width).toBe(16);
+      expect(flattenStyle(countdown.props.style)).toMatchObject({ width: 62, alignItems: 'flex-end' });
+      expect(flattenStyle(destination.props.style)).toMatchObject({ flex: 1, alignItems: 'flex-start', gap: 6 });
+      const glyphLines = elements(destination).filter(child => 'value' in child.props);
+      expect(glyphLines.map(child => (child.props as { value: string }).value).join(' ')).toBe(identities[index]);
+      glyphLines.forEach(child => expect((child.props as { scale: number }).scale).toBe(.85));
+    });
+  }
+  boundary.width = 0;
 });

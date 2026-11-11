@@ -102,12 +102,12 @@ it('switches Amber to readable native text at accessibility sizes and preserves 
 });
 
 it('sizes Morden via Bank at the pinned Amber scale', () => {
-  expect(matrixWidth('Morden via Bank', .78)).toBeCloseTo(146.718, 6);
+  expect(matrixWidth('Morden via Bank', .85)).toBeCloseTo(175.95, 6);
 });
 
 it('keeps Morden via Bank together at its pinned width and wraps just below it', () => {
-  expect(wrapMatrix('Morden via Bank', 146.718, .78)).toEqual(['Morden via Bank']);
-  expect(wrapMatrix('Morden via Bank', 146.717, .78)).toEqual(['Morden via', 'Bank']);
+  expect(wrapMatrix('Morden via Bank', 175.95, .85)).toEqual(['Morden via Bank']);
+  expect(wrapMatrix('Morden via Bank', 175.949, .85)).toEqual(['Morden via', 'Bank']);
 });
 
 it('accepts offset timestamps, rejects malformed and wrong-station responses and enforces release HTTPS', () => {
@@ -338,7 +338,6 @@ it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting'
   owner.dispose();
 });
 
-
 it('renders each supported punctuation glyph with seven binary rows of five columns', async () => {
   const { glyphs } = await import('../src/glyphs');
   for (const character of "()&'‘’/, +?![]–—") {
@@ -381,4 +380,13 @@ it.each([
   const before = JSON.stringify({ row, services });
   expect(departureIdentity(row, services)).toBe(expected);
   expect(JSON.stringify({ row, services })).toBe(before);
+});
+
+it.each(['Morden via Bank', 'Kennington via Charing Cross', 'Hammersmith (Hammersmith & City)', "King’s Cross/St. Pancras", 'Supercalifragilisticexpialidocious'])('wraps complete Amber identity %s within small and large destination columns', identity => {
+  for (const width of [184, 224, 274]) {
+    const wrapped = wrapMatrix(identity, width, .85);
+    expect(wrapped.length).toBeGreaterThan(0);
+    expect(wrapped.every(line => matrixWidth(line, .85) <= width)).toBe(true);
+    expect(wrapped.join('').replace(/\s/g, '')).toBe(identity.replace(/\s/g, ''));
+  }
 });
