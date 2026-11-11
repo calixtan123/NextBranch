@@ -47,3 +47,18 @@ it('replays a fresh empty exact platform with the other platform intact and Lond
   expect(londonTime(new Date(runtime.now()).toISOString())).toBe('13:00');
   expect(londonTime('2026-11-09T12:00:00Z')).toBe('12:00');
 });
+
+it('replays one, two and three rows before refresh grows wrapped arrival surfaces', async () => {
+  const runtime = fixtureRuntime('board-growth', true);
+  const firstColindale = await runtime.transport(colindale, signal);
+  const firstCamden = await runtime.transport(camden, signal);
+  expect(runtime.cards.map(card => boardRows(card.stationId === colindale ? firstColindale : firstCamden,
+    card, runtime.now(), 3).length)).toEqual([1, 2, 3]);
+  const grownColindale = await runtime.transport(colindale, signal);
+  const grownCamden = await runtime.transport(camden, signal);
+  expect(boardRows(grownColindale, runtime.cards[0], runtime.now(), 3)).toHaveLength(3);
+  expect(boardRows(grownCamden, runtime.cards[1], runtime.now(), 5)).toHaveLength(5);
+  expect(grownCamden.platforms[0].departures[0].towards).toContain('Charing Cross');
+  const ordinary = fixtureRuntime('three-card-home', true);
+  expect(boardRows(await ordinary.transport(colindale, signal), ordinary.cards[0], ordinary.now(), 3)).toHaveLength(3);
+});

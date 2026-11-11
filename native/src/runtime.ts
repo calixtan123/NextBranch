@@ -24,13 +24,15 @@ export function createRuntime() {
   const discovery = createDiscovery();
   const catalogue: Catalogue = fixture?.catalogue ?? (discovery.catalogue ? createCanonicalCatalogue(discovery.catalogue) : createCatalogue(reviewedCatalogue));
   const now = fixture?.now ?? Date.now;
+  const fixturePreferencesKey = scenario === 'board-growth'
+    ? 'nextbranch.fixture.board-growth.preferences' : 'nextbranch.fixture.preferences';
   return {
     now,
     catalogue,
     discovery,
     synthetic: Boolean(fixture),
     preferences: createPreferences(AsyncStorage, catalogue, Date.now,
-      fixture ? 'nextbranch.fixture.preferences' : 'nextbranch.preferences', fixture?.cards,
+      fixture ? fixturePreferencesKey : 'nextbranch.preferences', fixture?.cards,
       id => discovery.catalogue ? discovery.catalogue.stationsByAnyId.has(id) : Boolean(id.trim()),
       id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
     stations: createStationOwner(fixture?.transport ?? liveTransport(), Date.now, now,

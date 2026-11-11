@@ -7,10 +7,12 @@ import { PlatformBoard } from '../src/PlatformBoard';
 import { Label } from '../src/theme';
 import type { Snapshot } from '../src/api';
 
-const boundary = vi.hoisted(() => ({ fontScale: 1, light: false, width: 0 }));
+const boundary = vi.hoisted(() => ({ fontScale: 1, light: false, width: 0,
+  surface: { width: 0, height: 0 }, setSurface: vi.fn() }));
 vi.mock('react', async importOriginal => ({
   ...await importOriginal<typeof import('react')>(),
-  useState: (initial: unknown) => [typeof initial === 'number' ? boundary.width : initial, vi.fn()],
+  useState: (initial: unknown) => typeof initial === 'number' ? [boundary.width, vi.fn()]
+    : [boundary.surface, boundary.setSurface],
 }));
 vi.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator', Pressable: 'Pressable', Text: 'Text', View: 'View',
@@ -28,6 +30,31 @@ vi.mock('react-native-svg', () => ({
 }));
 
 type Element = ReactElement<{ children?: ReactNode; style?: unknown }>;
+
+it.each(['amber', 'modern'] as const)('sizes the %s dot rectangle from its measured native surface after layout changes', style => {
+  for (const surface of [{ width: 0, height: 0 }, { width: 368, height: 45 },
+    { width: 368, height: 168.5 }, { width: 418, height: 252 }, { width: 788, height: 97 }]) {
+    boundary.surface = surface;
+    const tree = PlatformBoard({ selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
+      style, state: { error: null, pending: true }, now: 0, online: true, limited: false, onReview: vi.fn() });
+    const background = elements(tree).find(node =>
+      (node.props as { importantForAccessibility?: string }).importantForAccessibility === 'no-hide-descendants')!;
+    expect(background.props).toMatchObject({ pointerEvents: 'none', accessible: false });
+    const onLayout = (background.props as { onLayout?: (event: unknown) => void }).onLayout;
+    expect(onLayout).toBeTypeOf('function');
+    boundary.setSurface.mockClear();
+    onLayout!({ nativeEvent: { layout: { width: 418, height: 268.25 } } });
+    expect(boundary.setSurface).toHaveBeenLastCalledWith({ width: 418, height: 268.25 });
+    const svg = elements(background).find(node => node.type === 'Svg');
+    if (!surface.width || !surface.height) {
+      expect(svg).toBeUndefined();
+    } else {
+      expect(svg!.props).toMatchObject({ ...surface, accessible: false });
+      expect(elements(svg).find(node => node.type === 'Rect')!.props).toMatchObject(surface);
+    }
+  }
+  boundary.surface = { width: 0, height: 0 };
+});
 
 /** Walks the component's element output without mounting native views. */
 function elements(node: ReactNode): Element[] {

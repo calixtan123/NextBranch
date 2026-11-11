@@ -8,6 +8,11 @@ import emptyCamden from '../assets/camden-selected-empty.json';
 const seedCards = manifest.homeSelections.flatMap(value => readSelection(value) ?? []);
 const extra = { stationId: colindale.station.id, platform: 'B', direction: 'Southbound' };
 const clock = Date.parse(manifest.frozenNow);
+const growthInitialRows = new Map([
+  [colindale.station.id + ':A', 1],
+  [camden.station.id + ':A', 2],
+  [camden.station.id + ':B', 3],
+]);
 
 /** Provides an isolated replay for the two documented synthetic station paths. */
 export function fixtureRuntime(scenario: string, seed: boolean) {
@@ -17,6 +22,7 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     [colindale.station.id, colindale],
   ]);
   let camdenRequests = 0;
+  const growthRequests = new Map<string, number>();
   const transport: StationTransport = async id => {
     const response = bodies.get(id);
     if (!response) throw new RequestFailure('unavailable');
@@ -24,6 +30,17 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
       camdenRequests += 1;
       if (camdenRequests === 2 && scenario === 'camden-outage') throw new RequestFailure('unavailable');
       if (camdenRequests === 2 && scenario === 'camden-rate-limited') throw new RequestFailure('limited');
+    }
+    if (scenario === 'board-growth') {
+      const request = (growthRequests.get(id) ?? 0) + 1;
+      growthRequests.set(id, request);
+      return decodeSnapshot({ ...response, platforms: response.platforms.map(platform => ({
+        ...platform,
+        departures: platform.departures.slice(0, request === 1
+          ? growthInitialRows.get(id + ':' + platform.platform) : undefined).map(departure => ({ ...departure,
+          towards: 'Morden via Charing Cross and Kennington',
+        })),
+      })) }, id);
     }
     return decodeSnapshot(response, id);
   };
