@@ -143,6 +143,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
 }) {
   const colors = usePalette();
   const [width, setWidth] = useState(0);
+  const [surface, setSurface] = useState({ width: 0, height: 0 });
   const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
   const matchingPlatforms = station?.platforms.filter(item => selection.physicalPlatformId
     ? item.platform_id === selection.physicalPlatformId
@@ -189,13 +190,18 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       backgroundColor: board.background, borderTopWidth: 1, borderBottomWidth: 1,
       borderColor: board.frame, paddingTop: 3, paddingBottom: 4, paddingHorizontal: 9,
     }}>
-      <View pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
-        <Svg width="100%" height="100%" accessible={false}>
+      <View pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}
+        onLayout={event => {
+          const { width, height } = event.nativeEvent.layout;
+          setSurface({ width, height });
+        }}>
+        {/* Numeric bounds invalidate the native SVG rectangle when arrival content grows or wraps. */}
+        {surface.width > 0 && surface.height > 0 && <Svg width={surface.width} height={surface.height} accessible={false}>
           <Defs><Pattern id="boardDots" patternUnits="userSpaceOnUse" width={board.step} height={board.step}>
             <Circle cx={board.step / 2} cy={board.step / 2} r={style === 'amber' ? .7 : 1} fill={board.dot} />
           </Pattern></Defs>
-          <Rect width="100%" height="100%" fill="url(#boardDots)" />
-        </Svg>
+          <Rect width={surface.width} height={surface.height} fill="url(#boardDots)" />
+        </Svg>}
       </View>
       <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
