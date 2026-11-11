@@ -137,13 +137,11 @@ function freshness(state: LiveState, now: number, online: boolean, limited: bool
 export const platformName = (selection: Selection) => platformPickerTitle(selection.direction, selection.platform);
 
 /** Shared Home and detail board, including stale or partial matching snapshots. */
-export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onRetry, onReview, station }: {
+export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onReview, station }: {
   selection: Selection; style: Style; state: LiveState; now: number; online: boolean; limited: boolean; expanded?: boolean;
-  onOpen?: () => void; onRetry: () => void; onReview: () => void; station?: AppStation;
+  onOpen?: () => void; onReview: () => void; station?: AppStation;
 }) {
   const colors = usePalette();
-  const { fontScale } = useWindowDimensions();
-  const stackedHeader = fontScale > 1.35;
   const [width, setWidth] = useState(0);
   const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
   const matchingPlatforms = station?.platforms.filter(item => selection.physicalPlatformId
@@ -176,15 +174,14 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const unknown = expanded ? unassignedCount(state.snapshot, now) : 0;
   const content = <>
     <View style={[ui.row, {
-      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
-      ...(stackedHeader && { flexDirection: 'column', alignItems: 'stretch', paddingBottom: 6 }),
+      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'nowrap',
     }]}>
-      <View style={[{ flexShrink: 0, maxWidth: '100%', paddingVertical: 6, gap: 1 }, !stackedHeader && { flexGrow: 1 }]}>
+      <View style={{ minWidth: 0, paddingVertical: 6, gap: 1, flex: 1 }}>
         <Label size={19} bold style={{ letterSpacing: -.25, fontWeight: '700' }}>{platformName(selection)}</Label>
         <Label size={14} tone="dim">{name}</Label>
       </View>
-      <View style={[ui.row, { gap: 5, flexShrink: 0, maxWidth: '100%' }]}>
-        <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={12} align={stackedHeader ? 'left' : 'right'}
+      <View style={[ui.row, { gap: 5, flexShrink: 0, maxWidth: '40%' }]}>
+        <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={12} align="right"
           textStyle={{ fontWeight: '700' }} />
       </View>
     </View>
@@ -235,9 +232,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
     {unknown > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
       {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.
     </Label>}
-    {online && state.error && state.error !== 'configuration' && <View style={{ paddingHorizontal: 11, paddingBottom: 7 }}>
-      {state.error === 'invalid' ? <Action onPress={onReview}>Review selection</Action> :
-        <Action onPress={onRetry} disabled={state.pending || limited}>Retry</Action>}
+    {online && state.error === 'invalid' && <View style={{ paddingHorizontal: 11, paddingBottom: 7 }}>
+      <Action onPress={onReview}>Review selection</Action>
     </View>}
   </View>;
 }

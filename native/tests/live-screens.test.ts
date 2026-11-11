@@ -57,3 +57,25 @@ it('returns Home for a duplicate save while preserving the existing saved identi
   expect(preferences.get().cards[1].style).toBe('modern');
   await preferences.flush();
 });
+
+/** Reads labels and controls through the shallow screen boundary. */
+function screenElements(node: ReactNode): Array<import('react').ReactElement<Record<string, any>>> {
+  return Children.toArray(node).flatMap(child => isValidElement<Record<string, any>>(child)
+    ? [child, ...screenElements(child.props.children)] : []);
+}
+
+it('offers one pull-to-refresh prompt for several failing saved cards without starting a refresh', async () => {
+  const { HomeScreen } = await import('../src/LiveScreens');
+  const cards = [
+    { stationId: 'first', platform: '1', direction: 'Eastbound' },
+    { stationId: 'second', platform: '2', direction: 'Westbound' },
+  ];
+  hooks.preferences.mockReturnValue({ cards, mode: 'amber' });
+  hooks.runtime.mockReturnValue({ catalogue: { has: () => true }, preferences: {},
+    stations: { get: () => ({ pending: false, error: 'unavailable' }), isOnline: () => true, isRateLimited: () => false } });
+  const screen = HomeScreen({ navigation: { navigate: vi.fn() } } as unknown as Screen<'Home'>);
+  const nodes = screenElements(screen);
+  expect(nodes.filter(node => node.props.children === 'Pull down to refresh')).toHaveLength(1);
+  expect(nodes.filter(node => node.type === 'PlatformBoard').every(node => !('onRetry' in node.props))).toBe(true);
+  expect(screen.props.refresh).toBeTypeOf('function');
+});
