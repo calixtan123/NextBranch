@@ -44,11 +44,11 @@ function flattenStyle(style: unknown): Record<string, unknown> {
 }
 
 /** Finds the header through its station identity, independently of board content. */
-function headerFor(fontScale: number, expanded: boolean) {
+function headerFor(fontScale: number, expanded: boolean, style: 'amber' | 'modern') {
   boundary.fontScale = fontScale;
   const tree = PlatformBoard({
     selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
-    style: 'amber', state: { error: null, pending: true }, now: 0, online: true, limited: false,
+    style, state: { error: null, pending: true }, now: 0, online: true, limited: false,
     expanded, onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn(),
   });
   expect(flattenStyle(tree.props.style).marginBottom).toBe(expanded ? 10 : 18);
@@ -60,13 +60,20 @@ function headerFor(fontScale: number, expanded: boolean) {
   const [identity, line] = Children.toArray(header!.props.children) as Element[];
   const lineLabel = elements(line.props.children).find(node => node.type === LineLabels);
   expect(lineLabel, 'the header exposes its line label').toBeDefined();
+  if (!expanded) {
+    const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button');
+    expect((button?.props as { accessibilityLabel?: string }).accessibilityLabel)
+      .toMatch(/^King's Cross St\. Pancras\. Southbound Platform A\. Northern line\./);
+  }
   return { header: header!, identity, line, lineLabel: lineLabel! };
 }
 
 describe.each([
-  { screen: 'Home card', expanded: false },
-  { screen: 'expanded departures', expanded: true },
-])('$screen header', ({ expanded }) => {
+  { screen: 'Home card', expanded: false, style: 'amber' },
+  { screen: 'Home card', expanded: false, style: 'modern' },
+  { screen: 'expanded departures', expanded: true, style: 'amber' },
+  { screen: 'expanded departures', expanded: true, style: 'modern' },
+] as const)('$style $screen header', ({ expanded, style }) => {
   it.each([
     { fontScale: 1, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
     { fontScale: 1.35, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
@@ -75,22 +82,25 @@ describe.each([
   ])('lays out identity and line for font scale $fontScale', ({
     fontScale, direction, alignment, identityFlex, lineWidth, textAlignment,
   }) => {
-    const { header, identity, line, lineLabel } = headerFor(fontScale, expanded);
+    const { header, identity, line, lineLabel } = headerFor(fontScale, expanded, style);
 
     expect(flattenStyle(header.props.style)).toMatchObject({ flexDirection: direction, alignItems: alignment });
     expect(flattenStyle(identity.props.style).flex).toBe(identityFlex);
     expect(elements(identity.props.children).filter(node => node.type === Label).map(node => node.props.children)).toEqual([
-      'Southbound Platform A', "King's Cross St. Pancras",
+      "King's Cross St. Pancras", 'Southbound Platform A',
     ]);
     expect(flattenStyle(line.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center', maxWidth: lineWidth });
     expect((lineLabel.props as { lines?: unknown }).lines).toEqual([{ id: 'northern', name: 'Northern line' }]);
     expect((lineLabel.props as { align?: unknown }).align).toBe(textAlignment);
     expect((lineLabel.props as { size?: number }).size).toBe(12);
-    const [heading, station] = elements(identity.props.children).filter(node => node.type === Label);
+    const [heading, platform] = elements(identity.props.children).filter(node => node.type === Label);
     expect(heading.props).toMatchObject({ size: 19, bold: true });
     expect(flattenStyle(heading.props.style)).toMatchObject({ fontWeight: '700' });
     expect(flattenStyle(heading.props.style).fontFamily).toBeUndefined();
-    expect(station.props).toMatchObject({ size: 14, tone: 'dim' });
+    expect(platform.props).toMatchObject({ size: 14, tone: 'dim' });
+    expect(heading.props).not.toHaveProperty('numberOfLines');
+    expect(heading.props).not.toHaveProperty('adjustsFontSizeToFit', true);
+    expect(heading.props).not.toHaveProperty('allowFontScaling', false);
   });
 });
 
@@ -210,6 +220,8 @@ it.each([
     expect(accessibleCopy).not.toMatch(/Live departures available|Towards not published/);
     expect(accessibleCopy).toContain(coveredLine);
     expect(accessibleCopy).toContain(otherLine);
+    expect(accessibleCopy!.indexOf('No departures currently assigned to this platform'))
+      .toBeLessThan(accessibleCopy!.lastIndexOf('. ' + otherLine + ' · '));
   }
 });
 

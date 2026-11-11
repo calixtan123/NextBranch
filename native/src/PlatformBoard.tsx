@@ -177,8 +177,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'nowrap',
     }]}>
       <View style={{ minWidth: 0, paddingVertical: 6, gap: 1, flex: 1 }}>
-        <Label size={19} bold style={{ letterSpacing: -.25, fontWeight: '700' }}>{platformName(selection)}</Label>
-        <Label size={14} tone="dim">{name}</Label>
+        <Label size={19} bold style={{ letterSpacing: -.25, fontWeight: '700' }}>{name}</Label>
+        <Label size={14} tone="dim">{platformName(selection)}</Label>
       </View>
       <View style={[ui.row, { gap: 5, flexShrink: 0, maxWidth: '40%' }]}>
         <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={12} align="right"
@@ -219,8 +219,8 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       {caveats.join('\n')}
     </Label>}
   </>;
-  const description = [...new Set([platformName(selection), name, lineNames, ...caveats, ...rows.map((row, index) => rowLabel(row, index, false)),
-    !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean))].join('. ');
+  const description = [...new Set([name, platformName(selection), lineNames, ...rows.map((row, index) => rowLabel(row, index, false)),
+    !rows.length && state.snapshot ? emptyStatus : null, ...caveats, status].filter(Boolean))].join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
     borderRadius: 10, overflow: 'hidden', marginBottom: expanded ? 10 : 18, boxShadow: '0 2px 8px #00000020',
