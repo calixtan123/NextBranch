@@ -75,7 +75,8 @@ export function departureIdentity(
   const viaStart = row.destination.search(/\s+via\s+/i);
   let destination = viaStart < 0 ? row.destination : row.destination.slice(0, viaStart);
   const embeddedVia = viaStart < 0 ? '' : row.destination.slice(viaStart).trim();
-  const existingSuffix = lineName && [lineName, `${lineName.replace(/ line$/i, '')} Line`]
+  const existingSuffix = lineName && [lineName, `${lineName.replace(/ line$/i, '')} Line`,
+    ...(id === 'hammersmith-city' ? ['H&C Line', 'H&C'] : [])]
     .map(name => ` (${name.toLowerCase()})`)
     .find(suffix => destination.toLowerCase().endsWith(suffix));
   if (existingSuffix) destination = destination.slice(0, -existingSuffix.length).trim();

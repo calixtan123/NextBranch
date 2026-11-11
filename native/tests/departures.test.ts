@@ -371,6 +371,8 @@ it.each([
   ['circle', ['circle'], 'Edgware Road (cIrClE lInE) via Paddington', '', 'Edgware Road (Circle) via Paddington'],
   ['hammersmith-city', ['hammersmith-city'], 'Barking (Hammersmith & City Line)', '', 'Barking (Hammersmith & City)'],
   ['hammersmith-city', ['hammersmith-city'], 'Barking (Hammersmith & City)', '', 'Barking (Hammersmith & City)'],
+  ['hammersmith-city', ['hammersmith-city'], 'Hammersmith (H&C Line)', '', 'Hammersmith (Hammersmith & City)'],
+  ['hammersmith-city', ['hammersmith-city'], 'Barking (h&c line) via Aldgate', '', 'Barking (Hammersmith & City) via Aldgate'],
   ['circle', ['circle'], 'Paddington (H&C)', '', 'Paddington (H&C) (Circle)'],
   ['circle', ['circle'], 'Kensington (Olympia)', '', 'Kensington (Olympia) (Circle)'],
 ])('formats actual %s identity using distinct memberships %j', (lineId, ids, destination, branch, expected) => {

@@ -49,7 +49,7 @@ function headerFor(fontScale: number, expanded: boolean) {
   const tree = PlatformBoard({
     selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
     style: 'amber', state: { error: null, pending: true }, now: 0, online: true, limited: false,
-    expanded, onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
+    expanded, onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn(),
   });
   expect(flattenStyle(tree.props.style).marginBottom).toBe(expanded ? 10 : 18);
   const header = elements(tree).find(node => node.type === View && Children.toArray(node.props.children).some(child =>
@@ -68,10 +68,10 @@ describe.each([
   { screen: 'expanded departures', expanded: true },
 ])('$screen header', ({ expanded }) => {
   it.each([
-    { fontScale: 1, direction: 'row', alignment: 'center', identityFlex: undefined, lineWidth: '100%', textAlignment: 'right' },
-    { fontScale: 1.35, direction: 'row', alignment: 'center', identityFlex: undefined, lineWidth: '100%', textAlignment: 'right' },
-    { fontScale: 1.36, direction: 'column', alignment: 'stretch', identityFlex: undefined, lineWidth: '100%', textAlignment: 'left' },
-    { fontScale: 3.12, direction: 'column', alignment: 'stretch', identityFlex: undefined, lineWidth: '100%', textAlignment: 'left' },
+    { fontScale: 1, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
+    { fontScale: 1.35, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
+    { fontScale: 1.36, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
+    { fontScale: 3.12, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '40%', textAlignment: 'right' },
   ])('lays out identity and line for font scale $fontScale', ({
     fontScale, direction, alignment, identityFlex, lineWidth, textAlignment,
   }) => {
@@ -94,7 +94,7 @@ describe.each([
   });
 });
 
-it.each([false, true])('lets a complete Hammersmith & City identity wrap below the platform before compressing it, expanded=%s', async expanded => {
+it.each([false, true])('keeps a complete Hammersmith & City identity in the right-hand column, expanded=%s', async expanded => {
   boundary.fontScale = 1;
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get('940GZZLUBST')!;
@@ -105,15 +105,15 @@ it.each([false, true])('lets a complete Hammersmith & City identity wrap below t
     selection: { stationId: station.station_id, platform: platform.platform_number,
       direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
     style: 'amber', state: { error: null, pending: true }, now: 0, online: true, limited: false,
-    expanded, onRetry: vi.fn(), onReview: vi.fn() });
+    expanded, onReview: vi.fn() });
   const header = elements(tree).find(node => node.type === View && Children.toArray(node.props.children).some(child =>
     isValidElement<Element['props']>(child) && Children.toArray(child.props.children).some(label =>
       isValidElement(label) && label.type === LineLabels)))!;
   const [identity, line] = Children.toArray(header.props.children) as Element[];
-  // Native flex wrapping moves the intact line group to another row when both identities cannot fit.
-  expect(flattenStyle(header.props.style).flexWrap).toBe('wrap');
-  expect(flattenStyle(identity.props.style)).toMatchObject({ flexGrow: 1, flexShrink: 0, maxWidth: '100%' });
-  expect(flattenStyle(line.props.style)).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
+  // The identity can wrap within its column while line names stay on the right.
+  expect(flattenStyle(header.props.style).flexWrap).toBe('nowrap');
+  expect(flattenStyle(identity.props.style)).toMatchObject({ flex: 1, minWidth: 0 });
+  expect(flattenStyle(line.props.style)).toMatchObject({ flexShrink: 0, maxWidth: '40%' });
   const lineLabel = elements(line.props.children).find(node => node.type === LineLabels)!;
   const rendered = LineLabels(lineLabel.props as Parameters<typeof LineLabels>[0]);
   const pair = Children.toArray(rendered.props.children)[0] as Element;
@@ -135,7 +135,7 @@ it('labels each shared-platform departure with its published line', async () => 
       observedAt: '2026-01-01T00:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
       platforms: [{ platform: platform.platform_number, direction: 'Eastbound', physicalPlatformId: platform.platform_id,
         departures: [{ id: 'train', lineId: 'district', destinationName: 'Ealing', expectedArrival: '2026-01-01T00:01:00Z', secondsToStation: 60, towards: null }] }] } },
-    now: Date.parse('2026-01-01T00:00:00Z'), online: true, limited: false, onRetry: () => {}, onReview: () => {} });
+    now: Date.parse('2026-01-01T00:00:00Z'), online: true, limited: false, onReview: () => {} });
   const row = elements(tree).find(node => (node.props as { row?: unknown }).row) as ReactElement<{ row: { identity: string } }> | undefined;
   expect(row?.props.row.identity).toBe('Ealing (District)');
 });
@@ -148,7 +148,7 @@ it('shows temporary per-line failure separately from static verified support', a
     station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded: true,
     state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [],
       catalogue: { stationId: station.station_id, liveState: 'partial', platforms: [], feeds: [{ lineId: 'district', stopAreaId: '940GZZLUACT', liveState: 'unavailable' }] } } },
-    onRetry: vi.fn(), onReview: vi.fn(),
+    onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('District');
@@ -168,7 +168,7 @@ it.each(['empty', 'outage'] as const)('shows official DLR blank direction and to
       snapshot: { station: { id: station.station_id, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z',
         newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [], catalogue: { stationId: station.station_id,
           liveState: 'empty', platforms: [], feeds: [{ lineId: 'dlr', stopAreaId: '940GZZDLCAN', liveState: 'empty' }] } } },
-    onRetry: vi.fn(), onReview: vi.fn(),
+    onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('Direction not published · Platform 3');
@@ -190,7 +190,7 @@ it.each([
   const tree = PlatformBoard({ selection: { stationId, platform: number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
     station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded,
     state: { pending: false, error: null, snapshot: { station: { id: stationId, name: station.station_name }, observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
-    onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
+    onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   const labels = elements(tree).find(node => node.type === LineLabels)!;
@@ -221,7 +221,7 @@ it.each([true, false])('renders verified Tram blank numbers without inventing la
     station, style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false, expanded,
     state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name },
       observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
-    onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn(),
+    onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('Eastbound · Platform number not published');
@@ -252,7 +252,7 @@ describe.each([
     const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Southbound' },
       style, now: Date.parse(observedAt), online: true, limited: false, expanded,
       state: { pending: false, error: null, snapshot },
-      onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+      onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
     const rows = elements(tree).filter(node => 'row' in node.props).map(node => {
       const render = node.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
       return render(node.props);
@@ -288,7 +288,7 @@ it.each(['amber', 'modern'] as const)('omits redundant metadata for a verified r
     style, now: Date.parse('2026-11-10T12:00:00Z'), online: true, limited: false,
     state: { pending: false, error: null, snapshot: { station: { id: station.station_id, name: station.station_name },
       observedAt: '2026-11-10T12:00:00Z', newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
-    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+    onOpen: vi.fn(), onReview: vi.fn() });
   const labels = elements(tree).filter(node => node.type === Label);
   expect(labels.map(node => Children.toArray(node.props.children).join('')).join(' '))
     .not.toMatch(/TfL departures|Live departures available|Towards|Platform description/);
@@ -308,7 +308,7 @@ it.each([
     style: 'modern', now: Date.parse('2026-11-10T12:00:00Z'), online, limited,
     state: { pending: false, error, snapshot: { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
       observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
-    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+    onOpen: vi.fn(), onReview: vi.fn() });
   const copy = elements(tree).filter(node => node.type === Label)
     .map(node => Children.toArray(node.props.children).join('')).join(' ');
   const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
@@ -324,7 +324,7 @@ it('deduplicates repeated service caveats in visible and accessible summaries', 
   const tree = PlatformBoard({ station, selection: { stationId: station.station_id, platform: platform.platform_number,
     direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, style: 'amber',
     state: { pending: false, error: null }, now: 0, online: true, limited: false,
-    onOpen: vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+    onOpen: vi.fn(), onReview: vi.fn() });
   const copy = elements(tree).filter(node => node.type === Label)
     .map(node => Children.toArray(node.props.children).join('')).join(' ');
   const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
@@ -356,7 +356,7 @@ it.each(['amber', 'modern'] as const)('shares formatted identity across %s Home 
         platform: platform.platform_number, direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
         style, now: Date.parse(observedAt), online: true, limited: false, expanded,
         state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(),
-        onRetry: vi.fn(), onReview: vi.fn() });
+        onReview: vi.fn() });
       const row = elements(tree).find(node => 'row' in node.props)!;
       const render = row.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
       const rendered = render(row.props);
@@ -415,7 +415,7 @@ it.each([
           physicalPlatformId: legacy ? undefined : platform.platform_id },
           style, now: Date.parse(observedAt), online: true, limited: false, expanded,
           state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(),
-          onRetry: vi.fn(), onReview: vi.fn() });
+          onReview: vi.fn() });
         const row = elements(tree).find(node => 'row' in node.props)!;
         const render = row.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
         const rendered = render(row.props);
@@ -450,7 +450,7 @@ describe.each(['amber', 'modern'] as const)('%s Elizabeth departure suffix', sty
     const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Westbound' },
       style, now: Date.parse(observedAt), online: true, limited: false, expanded,
       state: { pending: false, error: null, snapshot },
-      onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+      onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
     const rows = elements(tree).filter(node => 'row' in node.props).map(node => {
       const render = node.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
       return render(node.props);

@@ -44,13 +44,18 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
         <IconButton icon="settings" label="Settings" size={16} tone="dim" onPress={() => navigation.navigate('Settings')} />
       </View>
     </View>
+    {online && !limited && ids.some(id => {
+      const state = stations.get(id);
+      return Boolean(state.error && state.error !== 'invalid') ||
+        state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable');
+    }) && <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Pull down to refresh</Label>}
     {cards.map(card => {
       const review = () => navigation.navigate('Picker', { stationId: card.stationId });
       return catalogue.has(card)
         ? <PlatformBoard key={selectionKey(card)} selection={card} station={discovery?.catalogue?.stationsByAnyId.get(card.stationId)} style={effectiveStyle(mode, card)}
           state={stations.get(card.stationId)} now={now} online={online} limited={limited}
           onOpen={() => navigation.navigate('Departures', { selection: card })}
-          onRetry={() => void refresh([card.stationId])} onReview={review} />
+          onReview={review} />
         : <ReviewCard key={selectionKey(card)} stationId={card.stationId} platform={card.platform} onPress={review} />;
     })}
     {!cards.length && <Label tone="dim" style={{ marginBottom: 10 }}>
@@ -78,13 +83,17 @@ export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
   const limited = stations.isRateLimited();
   const count = boardRows(state.snapshot, selection, now, 5).length;
   const review = () => navigation.navigate('Picker', { stationId: selection.stationId });
-  return <Surface title="Platform departures" onBack={navigation.goBack}>
+  return <Surface title="Platform departures" onBack={navigation.goBack}
+    refresh={online && !limited ? () => void refresh([selection.stationId]) : undefined} refreshing={refreshing}>
     {catalogue.has(selection) ? <>
       <Label size={11} tone="dim" style={{ marginBottom: 10 }}>
         Selected physical platform{state.snapshot ? ` · ${count} upcoming` : ''}
       </Label>
+      {online && !limited && (state.error && state.error !== 'invalid' ||
+        state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable')) &&
+        <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Pull down to refresh</Label>}
       <PlatformBoard selection={selection} station={discovery?.catalogue?.stationsByAnyId.get(selection.stationId)} style={effectiveStyle(mode, saved)} state={state} now={now}
-        online={online} limited={limited} expanded onReview={review} onRetry={() => void refresh([selection.stationId])} />
+        online={online} limited={limited} expanded onReview={review} />
       <View style={ui.wrap}>
         <Action primary onPress={() => {
           const result = preferences.save(selection);
