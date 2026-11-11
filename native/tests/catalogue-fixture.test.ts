@@ -62,3 +62,23 @@ it('replays one, two and three rows before refresh grows wrapped arrival surface
   const ordinary = fixtureRuntime('three-card-home', true);
   expect(boardRows(await ordinary.transport(colindale, signal), ordinary.cards[0], ordinary.now(), 3)).toHaveLength(3);
 });
+
+it('isolates synthetic glyph readability specimens while preserving ordinary fixture rows', async () => {
+  const runtime = fixtureRuntime('glyph-readability', true);
+  expect(runtime.synthetic).toBe(true);
+  expect(runtime.cards).toHaveLength(3);
+  const longStation = runtime.cards[0];
+  expect(longStation.stationId).toBe('940GZZLUKSX');
+  expect(runtime.catalogue.has(longStation)).toBe(true);
+  const snapshot = await runtime.transport(longStation.stationId, signal);
+  expect(snapshot.station.name).toBe("King's Cross St. Pancras");
+  expect(boardRows(snapshot, longStation, runtime.now(), 5).map(row => row.destination)).toEqual([
+    'Morden via Bank', 'Kennington via Charing Cross', 'Hammersmith (Hammersmith & City)',
+    'King’s Cross/St. Pancras', 'Supercalifragilisticexpialidocious',
+  ]);
+  await expect(runtime.transport('unknown', signal)).rejects.toMatchObject({ kind: 'unavailable' });
+  const ordinary = fixtureRuntime('three-card-home', true);
+  expect(ordinary.cards[0].stationId).toBe(colindale);
+  expect((await ordinary.transport(camden, signal)).platforms[0].departures[0].destinationName)
+    .not.toBe('Morden via Bank');
+});

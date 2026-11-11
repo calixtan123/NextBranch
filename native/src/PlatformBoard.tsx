@@ -80,7 +80,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
   const board = isAmber ? amber : modern;
   const text = row.identity;
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
-  const scale = text.length > 28 ? .61 : text.length > 22 ? .68 : .78;
+  const scale = .85;
   const gap = isAmber ? 5 : 7;
   const ordinalWidth = isAmber ? 16 : 20;
   const timeWidth = isAmber ? 62 : 73;
@@ -97,7 +97,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
       {matrix ? <Led value={String(index + 1)} scale={.81} /> :
         <Text style={{ color: isAmber ? board.text : '#B6E5FF', fontFamily: font, fontSize: 16 }}>{index + 1}.</Text>}
     </View>
-    <View style={[ui.flex, { gap: stacked ? 3 : 1 }]}>
+    <View style={[ui.flex, { alignItems: 'flex-start', gap: matrix ? 6 : stacked ? 3 : 1 }]}>
       {matrix ? wrapMatrix(text, width - ordinalWidth - timeWidth - 2 * gap, scale)
         .map((line, part) => <Led key={part} value={line} scale={scale} />)
         : <Text style={[!isAmber && styles.modernGlow,
