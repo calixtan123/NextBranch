@@ -76,9 +76,317 @@ describe("departures API", () => {
   it("maps TfL configuration and malformed-arrivals upstream failures to explicit no-store responses", async () => {
     const configuration = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("config", "missing"); } });
     const upstream = createDeparturesHandler({ now: () => now, arrivals: async () => { throw new TflError("upstream", "TfL arrivals payload invalid"); } });
-    expect(await (await configuration(request(`?station=${station}`))).json()).toEqual({ error: "CONFIGURATION_ERROR" });
+    expect(await (await configuration(request(`?station=${station}`))).json()).toMatchObject({ error: "CONFIGURATION_ERROR" });
     expect((await configuration(request(`?station=${station}`))).status).toBe(500);
     expect((await upstream(request(`?station=${station}`))).status).toBe(503);
-    expect(await (await upstream(request(`?station=${station}`))).json()).toEqual({ error: "TFL_UNAVAILABLE" });
+    expect(await (await upstream(request(`?station=${station}`))).json()).toMatchObject({ error: "TFL_UNAVAILABLE" });
   });
+});
+
+it("resolves a Northern hub ID to the service stop area while preserving requested identity", async () => {
+  const arrivals = vi.fn(async () => []);
+  const get = createDeparturesHandler({ arrivals, now: () => now });
+  const result = await get(request("?station=HUBEUS"));
+  expect(result.status).toBe(200);
+  expect(arrivals).toHaveBeenCalledWith("940GZZLUEUS");
+  expect(await result.json()).toMatchObject({ station: { id: "HUBEUS", name: "Euston" }, catalogue: { stationId: "HUBEUS" } });
+});
+
+it.each(["HUBEUS", "940GZZLUEUS"])("preserves request identity and decoder compatibility for %s", async id => {
+  const arrivals = vi.fn(async () => [arrival({ naptanId: "940GZZLUEUS", platformName: "Southbound - Platform 2" })]);
+  const get = createDeparturesHandler({ arrivals, now: () => now });
+  const body = await (await get(request(`?station=${id}`))).json();
+  expect(body.station.id).toBe(id);
+  expect(body.catalogue.stationId).toBe("HUBEUS");
+  expect(body.platforms[0]).toMatchObject({ platform: "2", direction: "Southbound", departures: [{ lineId: "northern" }] });
+});
+
+it("preserves the exact legacy King's Cross station display name", async () => {
+  const arrivals = vi.fn(async () => []);
+  const get = createDeparturesHandler({ arrivals, now: () => now });
+  const result = await get(request("?station=940GZZLUKSX"));
+  expect(result.status).toBe(200);
+  expect(arrivals).toHaveBeenCalledWith("940GZZLUKSX");
+  expect(await result.json()).toMatchObject({
+    station: { id: "940GZZLUKSX", name: "King's Cross St. Pancras" },
+    catalogue: { stationId: "HUBKGX" },
+  });
+});
+
+it("assigns Colindale solely by exact published number and cardinal pair despite duplicate NaPTAN", async () => {
+  const get = createDeparturesHandler({ now: () => now, arrivals: async () => [
+    arrival({ id: "north", naptanId: "940GZZLUCND", platformName: "Northbound - Platform 1" }),
+    arrival({ id: "south", naptanId: "940GZZLUCND", platformName: "Southbound - Platform 2" }),
+    arrival({ id: "contradiction", naptanId: "940GZZLUCND", platformName: "Southbound - Platform 1", destinationName: "Edgware" }),
+    arrival({ id: "direction-only", naptanId: "940GZZLUCND", platformName: undefined }),
+  ] });
+  const body = await (await get(request("?station=940GZZLUCND"))).json();
+  expect(body.platforms.find((p: { platform: string; direction: string }) => p.platform === "1" && p.direction === "Northbound").physicalPlatformId).toBe("940GZZLUCND-Plat01-NB-northern");
+  expect(body.platforms.find((p: { platform: string }) => p.platform === "2").physicalPlatformId).toBe("940GZZLUCND-Plat02-SB-northern");
+  expect(body.platforms.find((p: { platform: string; direction: string }) => p.platform === "1" && p.direction === "Southbound").physicalPlatformId).toBeNull();
+  expect(body.platforms.find((p: { platform: string | null }) => p.platform === null).physicalPlatformId).toBeNull();
+  expect(new Set(body.catalogue.platforms.map((p: { platformNaptanCode: string }) => p.platformNaptanCode)).size).toBe(1);
+});
+
+it("maps all four Camden platforms without inventing missing published branch wording", async () => {
+  const get = createDeparturesHandler({ now: () => now, arrivals: async () => [1, 2, 3, 4].map(number => arrival({ id: String(number), platformName: `${number % 2 ? "Northbound" : "Southbound"} - Platform ${number}` })) });
+  const body = await (await get(request(`?station=${station}`))).json();
+  expect(body.platforms.every((p: { physicalPlatformId: string | null }) => p.physicalPlatformId)).toBe(true);
+  expect(body.catalogue.platforms.filter((p: { direction: string }) => p.direction === "Southbound").every((p: { services: { towards: string }[] }) => p.services.every(s => s.towards === ""))).toBe(true);
+});
+
+it("keeps both supported Kew Gardens service feeds discoverable in an empty snapshot", async () => {
+  const arrivals = vi.fn(async () => []);
+  const get = createDeparturesHandler({ arrivals, now: () => now });
+  const result = await get(request("?station=HUBKWG"));
+  expect(result.status).toBe(200);
+  const body = await result.json();
+  expect(body.platforms).toEqual([]);
+  expect(body.catalogue.liveState).toBe("empty");
+  expect(body.catalogue.platforms).toHaveLength(2);
+  expect(body.catalogue.platforms[0].services.map((s: { lineId: string }) => s.lineId).sort()).toEqual(["district", "mildmay"]);
+  expect(body.catalogue.platforms[0].services.find((s: { lineId: string }) => s.lineId === "district").capability.feed).toBe("supported");
+  expect(body.catalogue.platforms[0].services.find((s: { lineId: string }) => s.lineId === "mildmay").capability.feed).toBe("supported");
+  expect(arrivals).toHaveBeenCalledWith("940GZZLUKWG");
+});
+
+it("exposes immutable supported capability separately for empty and failed Northern snapshots", async () => {
+  const empty = createDeparturesHandler({ arrivals: async () => [], now: () => now });
+  const failed = createDeparturesHandler({ arrivals: async () => { throw new TflError("upstream", "failure"); }, now: () => now });
+  const emptyBody = await (await empty(request(`?station=${station}`))).json();
+  const failedBody = await (await failed(request(`?station=${station}`))).json();
+  expect(emptyBody.catalogue.liveState).toBe("empty");
+  expect(failedBody.catalogue.liveState).toBe("unavailable");
+  expect(emptyBody.catalogue.platforms).toEqual(failedBody.catalogue.platforms);
+  expect(emptyBody.catalogue.platforms.every((p: { services: { capability: { feed: string } }[] }) => p.services.some(s => s.capability.feed === "supported"))).toBe(true);
+});
+
+it("fetches exact rail service feeds for hubs and preserves distinct physical groups and all line identities", async () => {
+  const { catalogue } = await import("@/lib/catalogue");
+  const { serviceCapability } = await import("@/lib/catalogue/capability");
+  const selected = catalogue.stationsById.get("HUBEUS")!;
+  const lineArrivals = vi.fn(async (lineId: string, stop: string) => selected.platforms.flatMap(platform => platform.services.filter(s => s.line_id === lineId && serviceCapability(selected, platform, s).mapping === "supported").map(() => arrival({
+    id: platform.platform_id, lineId, naptanId: stop, platformName: lineId === "lioness" ? `Platform ${platform.platform_number}` : `${platform.cardinal_direction} - Platform ${platform.platform_number}`,
+  }))).concat([arrival({ id: "wrong-line", lineId: "district", naptanId: stop }), arrival({ id: "wrong-stop", lineId, naptanId: "other" })]));
+  const get = createDeparturesHandler({ lineArrivals, now: () => now });
+  const result = await get(request("?station=HUBEUS"));
+  expect(result.status).toBe(200);
+  expect(lineArrivals.mock.calls).toEqual([["lioness", "910GEUSTON"], ["northern", "940GZZLUEUS"], ["victoria", "940GZZLUEUS"]]);
+  const body = await result.json();
+  expect(body.platforms).toHaveLength(7);
+  expect(new Set(body.platforms.map((p: { physicalPlatformId: string }) => p.physicalPlatformId)).size).toBe(7);
+  expect(body.platforms.flatMap((p: { departures: { lineId: string }[] }) => p.departures).map((d: { lineId: string }) => d.lineId).sort()).toEqual(["lioness", "northern", "northern", "northern", "northern", "victoria", "victoria"]);
+});
+
+it("keeps successful Underground feeds usable when another service feed fails", async () => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async line => {
+    if (line === "northern") throw new TflError("upstream", "unavailable");
+    return [arrival({ id: "victoria", lineId: "victoria", naptanId: "940GZZLUEUS", platformName: "Northbound - Platform 4" })];
+  } });
+  const result = await get(request("?station=HUBEUS"));
+  expect(result.status).toBe(200);
+  const body = await result.json();
+  expect(body.platforms).toHaveLength(1);
+  expect(body.catalogue.liveState).toBe("partial");
+  expect(body.catalogue.feeds).toEqual([
+    { lineId: "lioness", stopAreaId: "910GEUSTON", liveState: "empty" },
+    { lineId: "northern", stopAreaId: "940GZZLUEUS", liveState: "unavailable" },
+    { lineId: "victoria", stopAreaId: "940GZZLUEUS", liveState: "available" },
+  ]);
+});
+
+it.each(["bakerloo", "central", "circle", "district", "hammersmith-city", "jubilee", "metropolitan", "northern", "piccadilly", "victoria", "waterloo-city"])("serves a verified %s platform through the handler and public decoder", async lineId => {
+  const { catalogue } = await import("@/lib/catalogue");
+  const { serviceCapability } = await import("@/lib/catalogue/capability");
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
+  const match = catalogue.stations.flatMap(station => station.platforms.flatMap(platform => platform.services.filter(service => service.line_id === lineId && serviceCapability(station, platform, service).mapping === "supported").map(service => ({ station, platform, service })) ))[0]!;
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async (line, stop) => line === lineId && stop === match.service.stop_area_naptan_code ? [arrival({ lineId, naptanId: stop, platformName: `${match.platform.cardinal_direction} - Platform ${match.platform.platform_number}` })] : [] });
+  const result = await get(request(`?station=${match.station.station_id}`));
+  const parsed = parseDeparturesResponse(await result.json(), match.station.station_id)!;
+  expect(result.status).toBe(200);
+  expect(parsed.platforms).toHaveLength(1);
+  expect(parsed.platforms[0]).toMatchObject({ physicalPlatformId: match.platform.platform_id, direction: match.platform.cardinal_direction, departures: [{ lineId }] });
+});
+
+it("serves the DLR service stop beneath a hub, retains source blanks and prevents cross-feed/platform leakage", async () => {
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
+  const lineArrivals = vi.fn(async (lineId: string) => lineId !== "dlr" ? [] : [
+    arrival({ id: "three", lineId: "dlr", naptanId: "940GZZDLCAN", platformName: "Platform 3", destinationName: "", towards: "" }),
+    arrival({ id: "four", lineId: "dlr", naptanId: "940GZZDLCAN", platformName: "Platform 4" }),
+    arrival({ id: "unassigned", lineId: "dlr", naptanId: "940GZZDLCAN", platformName: undefined, direction: "inbound" }),
+    arrival({ id: "wrong-stop", lineId: "dlr", naptanId: "other", platformName: "Platform 3" }),
+    arrival({ id: "wrong-line", lineId: "jubilee", naptanId: "940GZZDLCAN", platformName: "Platform 3" }),
+  ]);
+  const get = createDeparturesHandler({ now: () => now, lineArrivals });
+  const result = await get(request("?station=HUBCAW"));
+  const body = parseDeparturesResponse(await result.json(), "HUBCAW")!;
+  expect(result.status).toBe(200);
+  expect(lineArrivals.mock.calls).toEqual([["dlr", "940GZZDLCAN"], ["elizabeth", "910GCANWHRF"], ["jubilee", "940GZZLUCYF"]]);
+  expect(body.platforms).toHaveLength(3);
+  expect(body.platforms[0]).toMatchObject({ physicalPlatformId: "HUBCAW-Plat03-dlr", platform: "3", direction: null, departures: [{ lineId: "dlr", destinationName: "", towards: "" }] });
+  expect(body.platforms[1].physicalPlatformId).not.toBe(body.platforms[0].physicalPlatformId);
+  expect(body.platforms[2].physicalPlatformId).toBeNull();
+  expect(body.catalogue!.platforms.find(p => p.platformNumber === "3")).toMatchObject({ direction: "", services: [{ lineId: "dlr", towards: "" }] });
+});
+it.each(["empty", "outage"])("retains static DLR mapping during %s snapshots", async condition => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => { if (condition === "outage") throw new TflError("upstream", "unavailable"); return []; } });
+  const result = await get(request("?station=HUBCAW"));
+  const body = await result.json();
+  expect(result.status).toBe(condition === "outage" ? 503 : 200);
+  expect(body.catalogue.liveState).toBe(condition === "outage" ? "unavailable" : "empty");
+  expect(body.catalogue.platforms.find((p: { platformNumber: string }) => p.platformNumber === "3").services[0].capability).toMatchObject({ feed: "supported", mapping: "supported" });
+});
+
+it("maps all official DLR fixture records and displays only each matched physical platform's published direction", async () => {
+  const fixture = (await import("../../../../data/tfl-dlr-canary-wharf-fixture.json")).default;
+  const { parseArrivals } = await import("@/lib/northern/schemas");
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
+  const get = createDeparturesHandler({ now: () => new Date("2026-11-10T18:58:00Z"), lineArrivals: async lineId => lineId === "dlr" ? parseArrivals(fixture.predictions) : [] });
+  const result = await get(request("?station=HUBCAW"));
+  const body = parseDeparturesResponse(await result.json(), "HUBCAW")!;
+  expect(result.status).toBe(200);
+  expect(body.platforms).toHaveLength(6);
+  expect(body.platforms.flatMap(p => p.departures)).toHaveLength(18);
+  expect(body.platforms.map(p => [p.platform, p.direction, p.departures.length])).toEqual([
+    ["1", "Southbound", 3], ["2", "Southbound", 3], ["3", null, 3], ["4", null, 3], ["5", "Northbound", 3], ["6", "Northbound", 3],
+  ]);
+});
+
+it('serves all six current Overground fixture feeds with exact hub/service resolution and conservative grouping', async () => {
+  const fixture = (await import('../../../../data/tfl-overground-fixtures.json')).default;
+  const { parseArrivals } = await import('@/lib/northern/schemas');
+  const { parseDeparturesResponse } = await import('@/lib/departure-view');
+  for (const feed of fixture.feeds) {
+    const lineArrivals = vi.fn(async (lineId: string, stopAreaId: string) => lineId === feed.lineId && stopAreaId === feed.stopAreaId ? parseArrivals(feed.predictions) : []);
+    const get = createDeparturesHandler({ now: () => new Date(feed.observedAt), lineArrivals });
+    const result = await get(request('?station=' + feed.stationId));
+    expect(result.status, feed.lineId).toBe(200);
+    const body = parseDeparturesResponse(await result.json(), feed.stationId)!;
+    expect(lineArrivals).toHaveBeenCalledWith(feed.lineId, feed.stopAreaId);
+    const trains = body.platforms.flatMap(platform => platform.departures);
+    expect(trains.length, feed.lineId).toBeGreaterThan(0);
+    expect(trains.every(train => train.lineId === feed.lineId)).toBe(true);
+    expect(body.platforms.some(platform => platform.physicalPlatformId)).toBe(true);
+  }
+});
+
+it('keeps Kew partial coverage explicit and combines verified District and Mildmay while excluding wrong feeds and unknown labels', async () => {
+  const lineArrivals = vi.fn(async (lineId: string, stopAreaId: string) => [
+    arrival({ id: lineId, lineId, naptanId: stopAreaId, platformName: lineId === 'district' ? 'Eastbound - Platform 1' : 'Platform 1' }),
+    arrival({ id: 'unknown', lineId, naptanId: stopAreaId, platformName: 'Platform Unknown', direction: 'outbound', destinationName: 'Stratford' }),
+    arrival({ id: 'other-stop', lineId, naptanId: 'wrong-stop', platformName: 'Platform 1' }),
+    arrival({ id: 'historical', lineId: 'london-overground', naptanId: stopAreaId, platformName: 'Platform 1' }),
+  ]);
+  const body = await (await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=HUBKWG'))).json();
+  expect(lineArrivals.mock.calls).toEqual([['district', '940GZZLUKWG'], ['mildmay', '910GKEWGRDN']]);
+  const assigned = body.platforms.filter((p: { physicalPlatformId: string | null }) => p.physicalPlatformId);
+  expect(assigned).toHaveLength(1);
+  expect(assigned[0]).toMatchObject({ physicalPlatformId: 'HUBKWG-Plat01-EB-district|london-overground', direction: 'Eastbound' });
+  expect(assigned[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['district', 'mildmay']);
+  expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { mapping: string } }) => [s.lineId, s.capability.mapping])).toEqual([['district', 'supported'], ['mildmay', 'supported']]);
+  expect(body.platforms.filter((p: { physicalPlatformId: string | null }) => !p.physicalPlatformId).flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(2);
+});
+
+it('retains static Overground capability during empty and failed exact service feeds for every named line', async () => {
+  const fixtures = (await import('../../../../data/tfl-overground-fixtures.json')).default;
+  for (const feed of fixtures.feeds) {
+    const empty = await createDeparturesHandler({ now: () => now, lineArrivals: async () => [] })(request('?station=' + feed.stationId));
+    const failed = await createDeparturesHandler({ now: () => now, lineArrivals: async lineId => {
+      if (lineId === feed.lineId) throw new TflError('upstream', 'temporary outage');
+      return [];
+    } })(request('?station=' + feed.stationId));
+    const emptyBody = await empty.json();
+    const failedBody = await failed.json();
+    expect(emptyBody.catalogue.platforms, feed.lineId).toEqual(failedBody.catalogue.platforms);
+    expect(emptyBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'empty' });
+    expect(failedBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'unavailable' });
+  }
+});
+
+it.each(['empty', 'outage'])('keeps Elizabeth verified, unverified and unsupported capability independent of %s live state', async condition => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => {
+    if (condition === 'outage') throw new TflError('upstream', 'temporary outage');
+    return [];
+  } });
+  const result = await get(request('?station=910GRDNGSTN'));
+  const body = await result.json();
+  expect(result.status).toBe(condition === 'outage' ? 503 : 200);
+  expect(body.catalogue.liveState).toBe(condition === 'outage' ? 'unavailable' : 'empty');
+  expect(body.catalogue.feeds).toEqual([{ lineId: 'elizabeth', stopAreaId: '910GRDNGSTN', liveState: condition === 'outage' ? 'unavailable' : 'empty' }]);
+  expect(body.catalogue.platforms).toHaveLength(1);
+  expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { feed: string, mapping: string } }) => [s.lineId, s.capability.feed, s.capability.mapping])).toEqual([
+    ['elizabeth', 'supported', 'supported'], ['national-rail', 'unsupported', 'unsupported'],
+  ]);
+});
+
+it('rejects wrong Elizabeth line/stop records and leaves missing labels unassigned despite destination and API direction', async () => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => [
+    arrival({ id: 'correct', lineId: 'elizabeth', naptanId: '910GABWDXR', platformName: 'Platform 3', destinationName: '', towards: '' }),
+    arrival({ id: 'unknown', lineId: 'elizabeth', naptanId: '910GABWDXR', platformName: 'Platform Unknown', direction: 'outbound', destinationName: 'Paddington' }),
+    arrival({ id: 'wrong-stop', lineId: 'elizabeth', naptanId: '910GABWD', platformName: 'Platform 3' }),
+    arrival({ id: 'wrong-line', lineId: 'national-rail', naptanId: '910GABWDXR', platformName: 'Platform 3' }),
+  ] });
+  const body = await (await get(request('?station=HUBABW'))).json();
+  expect(body.platforms).toHaveLength(2);
+  expect(body.platforms[0]).toMatchObject({ platform: '3', direction: 'Westbound', physicalPlatformId: 'HUBABW-Plat03-WB-elizabeth', departures: [{ lineId: 'elizabeth', destinationName: '', towards: '' }] });
+  expect(body.platforms[1]).toMatchObject({ physicalPlatformId: null, platform: null, direction: null, departures: [{ lineId: 'elizabeth' }] });
+  expect(body.catalogue.platforms).toHaveLength(2);
+});
+
+it.each(['empty', 'outage'])('retains verified blank-number Tram saving capability during %s', async condition => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => {
+    if (condition === 'outage') throw new TflError('upstream', 'temporary outage');
+    return [];
+  } });
+  const result = await get(request('?station=940GZZCRADD'));
+  const body = await result.json();
+  expect(result.status).toBe(condition === 'outage' ? 503 : 200);
+  expect(body.catalogue.liveState).toBe(condition === 'outage' ? 'unavailable' : 'empty');
+  expect(body.catalogue.platforms.map((p: { platformNumber: string; services: { capability: { feed: string; mapping: string } }[] }) => [p.platformNumber, p.services[0].capability.feed, p.services[0].capability.mapping])).toEqual([
+    ['', 'supported', 'supported'], ['', 'supported', 'supported'],
+  ]);
+});
+it('filters exact Tram feed records and keeps numbered or unknown labels unassigned to blank physical platforms', async () => {
+  const lineArrivals = vi.fn(async () => [
+    arrival({ id: 'blank', lineId: 'tram', naptanId: '940GZZCRADD', platformName: 'Eastbound Platform', destinationName: '', towards: '' }),
+    arrival({ id: 'numbered', lineId: 'tram', naptanId: '940GZZCRADD', platformName: 'Eastbound - Platform 1' }),
+    arrival({ id: 'unknown', lineId: 'tram', naptanId: '940GZZCRADD', platformName: undefined, direction: 'inbound', destinationName: 'Wimbledon' }),
+    arrival({ id: 'wrong-stop', lineId: 'tram', naptanId: '940GZZCRADV', platformName: 'Eastbound Platform' }),
+    arrival({ id: 'wrong-line', lineId: 'northern', naptanId: '940GZZCRADD', platformName: 'Eastbound Platform' }),
+  ]);
+  const body = await (await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=940GZZCRADD'))).json();
+  expect(lineArrivals.mock.calls).toHaveLength(1);
+  expect(lineArrivals).toHaveBeenCalledWith('tram', '940GZZCRADD');
+  expect(body.platforms.flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(3);
+  expect(body.platforms.find((p: { physicalPlatformId: string | null }) => p.physicalPlatformId)).toMatchObject({
+    platform: '', direction: 'Eastbound', physicalPlatformId: '940GZZCRADD-EB-tram', departures: [{ lineId: 'tram', destinationName: '', towards: '' }],
+  });
+  expect(body.platforms.filter((p: { physicalPlatformId: string | null }) => !p.physicalPlatformId)).toHaveLength(2);
+});
+it.each(['940GZZALGWP', '940GZZALRDK'])('returns browse-only metadata without requesting unverified cable-car %s feeds', async id => {
+  const lineArrivals = vi.fn(async () => []);
+  const result = await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=' + id));
+  const body = await result.json();
+  expect(result.status).toBe(200);
+  expect(body.catalogue.liveState).toBe('unverified');
+  expect(body.catalogue.platforms[0]).toMatchObject({ platformNumber: '', services: [{ capability: { feed: 'unverified', mapping: 'unverified' } }] });
+  expect(body.platforms).toEqual([]);
+  expect(lineArrivals).not.toHaveBeenCalled();
+});
+
+it('combines verified shared-platform lines once, deduplicates repeated feed records and isolates the opposite platform', async () => {
+  const lineArrivals = vi.fn(async (lineId: string, stopAreaId: string) => {
+    const east = arrival({ id: 'shared-id', lineId, naptanId: stopAreaId, platformName: 'Westbound - Platform 1' });
+    return [east, east,
+      arrival({ id: 'opposite', lineId, naptanId: stopAreaId, platformName: 'Eastbound - Platform 4' }),
+      arrival({ id: 'wrong-stop', lineId, naptanId: 'wrong-stop', platformName: 'Westbound - Platform 1' }),
+    ];
+  });
+  const body = await (await createDeparturesHandler({ now: () => now, lineArrivals })(request('?station=940GZZLUACT'))).json();
+  expect(lineArrivals.mock.calls).toEqual([['district', '940GZZLUACT'], ['piccadilly', '940GZZLUACT']]);
+  const east = body.platforms.filter((p: { platform: string }) => p.platform === '1');
+  expect(east).toHaveLength(1);
+  expect(east[0].physicalPlatformId).toBe('940GZZLUACT-Plat01-WB-district|piccadilly');
+  expect(east[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['district', 'piccadilly']);
+  expect(body.platforms.flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(4);
 });

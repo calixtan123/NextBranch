@@ -1,0 +1,1910 @@
+{
+  "retrievedOn": "2026-11-10",
+  "source": "Official TfL Unified API arrivals, line and stop metadata, and byte-identical official physical station archive. Empty cable-car responses do not establish unsupported capability.",
+  "mappingRule": "Tram requires a unique exact service line + stop area + published platform number (including empty string) + explicit cardinal direction. Exact Eastbound Platform and Westbound Platform labels retain empty numbers. Numbered live labels never match blank published numbers, and a direction-only label never matches a numbered platform. Destinations, API inbound/outbound, branches and historical platform IDs are not used.",
+  "cableCarReview": {
+    "feed": "unverified",
+    "mapping": "unverified",
+    "reason": "Official line metadata identifies London Cable Car, but line-wide and both exact-stop arrivals returned empty arrays. No reviewed prediction or official unsupported declaration establishes live-feed capability or physical matching. Retain both physical records browse-only."
+  },
+  "feeds": [
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals",
+      "retrievedAt": "2026-11-10T20:10:10.810445+00:00",
+      "sha256": "95c3d7080a80629e9154e697067ceed528662135b28fe2878ed2e9a275c5a752",
+      "originalPath": "/private/tmp/nb12-evidence/tram-arrivals.json",
+      "predictionCount": 208,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADD",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADV",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADV",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRAMP",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRAMP",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRARA",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRARA",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRAVE",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRAVE",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBED",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBED",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBEK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBGV",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBGV",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBIR",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBLA",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBLA",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBRD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRCEN",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRCHR",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRCOO",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRCOO",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRCTR",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRDDR",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRDDR",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRECR",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRECR",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRELM",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRFLD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRFLD",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRGRA",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRGRA",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRHAR",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRHAR",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRKGH",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRKGH",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRLEB",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRLEB",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRLOY",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRLOY",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMCH",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMCH",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMDN",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMDN",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMJT",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMJT",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMTP",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRMTP",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRNWA",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRNWA",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRPHI",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRPHI",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRRVC",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRSAN",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRSAN",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRTPA",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRTPA",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWAD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWAD",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWAN",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWAN",
+          "platformName": "Westbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWCR",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWEL",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWMB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWMB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWOD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWOD",
+          "platformName": "Westbound Platform"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRADD",
+      "retrievedAt": "2026-11-10T20:11:06.162788+00:00",
+      "sha256": "79e56dbd22f0d5796fcc979a2f5724d32ae6c6bc3503ff340d0c325d79d5d25b",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRADD.raw",
+      "predictionCount": 8,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADD",
+          "platformName": "Eastbound Platform"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRADD",
+          "platformName": "Westbound Platform"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRECR",
+      "retrievedAt": "2026-11-10T20:11:06.263327+00:00",
+      "sha256": "506282a54d6cf7899939790eda35ffe61de1692156d6a2ee9c94e79c433bd374",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRECR.raw",
+      "predictionCount": 9,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRECR",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRECR",
+          "platformName": "Westbound - Platform 3"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRELM",
+      "retrievedAt": "2026-11-10T20:11:07.444829+00:00",
+      "sha256": "2027f005ec7b4d82fbe01eb517dbca50541ecfd0886efa9db7a46118c5127d06",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRELM.raw",
+      "predictionCount": 2,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRELM",
+          "platformName": "Westbound Platform"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRBEK",
+      "retrievedAt": "2026-11-10T20:11:07.629817+00:00",
+      "sha256": "a2790efc0d26f95e583eeb2bc14712f19ffbe21628ec3fce0246d1a16eae176b",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRBEK.raw",
+      "predictionCount": 3,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBEK",
+          "platformName": "Eastbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRWMB",
+      "retrievedAt": "2026-11-10T20:11:07.914211+00:00",
+      "sha256": "74df72bd4a88104f2e452409a53d4e8c2ce2f9045a75426ff34210c1acca0d40",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRWMB.raw",
+      "predictionCount": 4,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWMB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRWMB",
+          "platformName": "Westbound - Platform 1"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRNWA",
+      "retrievedAt": "2026-11-10T20:11:08.212863+00:00",
+      "sha256": "1a4c42cb188641d05bd731acee6d91753d5086aa1cebdc1474a9095683193daf",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRNWA.raw",
+      "predictionCount": 3,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRNWA",
+          "platformName": "Eastbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRBIR",
+      "retrievedAt": "2026-11-10T20:11:08.324326+00:00",
+      "sha256": "db078e7a2882407eb06e4cb2be6cfdfc23739fbdc9aeb567d092b9e455519220",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRBIR.raw",
+      "predictionCount": 3,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBIR",
+          "platformName": "Eastbound Platform"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/tram/Arrivals/940GZZCRBRD",
+      "retrievedAt": "2026-11-10T20:11:08.462207+00:00",
+      "sha256": "4e4523ecc9a163f85a3193aff6f2569a08257eaaf1400f96e5e3407f791a6a65",
+      "originalPath": "/private/tmp/nb12-evidence/940GZZCRBRD.raw",
+      "predictionCount": 3,
+      "lineId": "tram",
+      "labels": [
+        {
+          "lineId": "tram",
+          "stopAreaId": "940GZZCRBRD",
+          "platformName": "Eastbound Platform"
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/london-cable-car/Arrivals",
+      "retrievedAt": "2026-11-10T20:10:43.262298+00:00",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "originalPath": "/private/tmp/nb12-evidence/cable-arrivals.raw",
+      "predictionCount": 0,
+      "lineId": "london-cable-car",
+      "labels": []
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/london-cable-car/Arrivals/940GZZALGWP",
+      "retrievedAt": "2026-11-10T20:10:43.789092+00:00",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "originalPath": "/private/tmp/nb12-evidence/cable-greenwich.raw",
+      "predictionCount": 0,
+      "lineId": "london-cable-car",
+      "labels": []
+    },
+    {
+      "url": "https://api.tfl.gov.uk/Line/london-cable-car/Arrivals/940GZZALRDK",
+      "retrievedAt": "2026-11-10T20:10:43.908325+00:00",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "originalPath": "/private/tmp/nb12-evidence/cable-royal.raw",
+      "predictionCount": 0,
+      "lineId": "london-cable-car",
+      "labels": []
+    }
+  ],
+  "physicalSource": {
+    "url": "https://api.tfl.gov.uk/stationdata/tfl-stationdata-detailed.zip",
+    "retrievedAt": "2026-11-10T20:10:44.812601+00:00",
+    "sha256": "9107a1ed212bcc1fe9ae6b89dc9ad0dc40b14295271983c14272ba7763c6d2df",
+    "originalPath": "/private/tmp/nb12-evidence/archive.raw",
+    "stationCount": 509,
+    "platformCount": 1584,
+    "platformServiceCount": 1878,
+    "retainedPlatforms": [
+      {
+        "stationId": "940GZZCRADV",
+        "stationName": "Addington Village",
+        "platform_id": "940GZZCRADV-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRADV"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRADV",
+        "stationName": "Addington Village",
+        "platform_id": "940GZZCRADV-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRADV"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRADD",
+        "stationName": "Addiscombe",
+        "platform_id": "940GZZCRADD-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRADD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRADD",
+        "stationName": "Addiscombe",
+        "platform_id": "940GZZCRADD-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRADD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRAMP",
+        "stationName": "Ampere Way",
+        "platform_id": "940GZZCRAMP-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRAMP"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRAMP",
+        "stationName": "Ampere Way",
+        "platform_id": "940GZZCRAMP-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRAMP"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRARA",
+        "stationName": "Arena",
+        "platform_id": "940GZZCRARA-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRARA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRARA",
+        "stationName": "Arena",
+        "platform_id": "940GZZCRARA-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRARA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRAVE",
+        "stationName": "Avenue Road",
+        "platform_id": "940GZZCRAVE-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRAVE"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRAVE",
+        "stationName": "Avenue Road",
+        "platform_id": "940GZZCRAVE-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRAVE"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBBEK",
+        "stationName": "Beckenham Junction",
+        "platform_id": "HUBBEK-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBEK"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBRD",
+        "stationName": "Beckenham Road",
+        "platform_id": "940GZZCRBRD-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBRD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBRD",
+        "stationName": "Beckenham Road",
+        "platform_id": "940GZZCRBRD-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBRD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBED",
+        "stationName": "Beddington Lane",
+        "platform_id": "940GZZCRBED-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBED"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBED",
+        "stationName": "Beddington Lane",
+        "platform_id": "940GZZCRBED-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBED"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBGV",
+        "stationName": "Belgrave Walk",
+        "platform_id": "940GZZCRBGV-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBGV"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBGV",
+        "stationName": "Belgrave Walk",
+        "platform_id": "940GZZCRBGV-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBGV"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBBIR",
+        "stationName": "Birkbeck",
+        "platform_id": "HUBBIR-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBIR"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBBIR",
+        "stationName": "Birkbeck",
+        "platform_id": "HUBBIR-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBIR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBLA",
+        "stationName": "Blackhorse Lane",
+        "platform_id": "940GZZCRBLA-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBLA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRBLA",
+        "stationName": "Blackhorse Lane",
+        "platform_id": "940GZZCRBLA-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRBLA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRCTR",
+        "stationName": "Centrale",
+        "platform_id": "940GZZCRCTR-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRCTR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRCHR",
+        "stationName": "Church Street",
+        "platform_id": "940GZZCRCHR-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRCHR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRCOO",
+        "stationName": "Coombe Lane",
+        "platform_id": "940GZZCRCOO-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRCOO"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRCOO",
+        "stationName": "Coombe Lane",
+        "platform_id": "940GZZCRCOO-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRCOO"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRDDR",
+        "stationName": "Dundonald Road",
+        "platform_id": "940GZZCRDDR-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRDDR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRDDR",
+        "stationName": "Dundonald Road",
+        "platform_id": "940GZZCRDDR-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRDDR"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBECY",
+        "stationName": "East Croydon",
+        "platform_id": "HUBECY-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRECR"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBECY",
+        "stationName": "East Croydon",
+        "platform_id": "HUBECY-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRECR"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBELM",
+        "stationName": "Elmers End",
+        "platform_id": "HUBELM-Plat01-WB-tram",
+        "platform_number": "1",
+        "friendly_name": "Westbound Platform 1",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRELM"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRFLD",
+        "stationName": "Fieldway",
+        "platform_id": "940GZZCRFLD-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRFLD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRFLD",
+        "stationName": "Fieldway",
+        "platform_id": "940GZZCRFLD-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRFLD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRCEN",
+        "stationName": "George Street",
+        "platform_id": "940GZZCRCEN-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRCEN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRGRA",
+        "stationName": "Gravel Hill",
+        "platform_id": "940GZZCRGRA-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRGRA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRGRA",
+        "stationName": "Gravel Hill",
+        "platform_id": "940GZZCRGRA-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRGRA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZALGWP",
+        "stationName": "Greenwich Peninsula",
+        "platform_id": "940GZZALGWP-NB-london-cable-car",
+        "platform_number": "",
+        "friendly_name": "Northbound",
+        "cardinal_direction": "Northbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "london-cable-car",
+            "line_name": "London Cable Car",
+            "mode": "cableCar",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZALGWP"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRHAR",
+        "stationName": "Harrington Road",
+        "platform_id": "940GZZCRHAR-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRHAR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRHAR",
+        "stationName": "Harrington Road",
+        "platform_id": "940GZZCRHAR-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRHAR"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRKGH",
+        "stationName": "King Henry's Drive",
+        "platform_id": "940GZZCRKGH-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRKGH"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRKGH",
+        "stationName": "King Henry's Drive",
+        "platform_id": "940GZZCRKGH-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRKGH"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRLEB",
+        "stationName": "Lebanon Road",
+        "platform_id": "940GZZCRLEB-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRLEB"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRLEB",
+        "stationName": "Lebanon Road",
+        "platform_id": "940GZZCRLEB-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRLEB"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRLOY",
+        "stationName": "Lloyd Park",
+        "platform_id": "940GZZCRLOY-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRLOY"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRLOY",
+        "stationName": "Lloyd Park",
+        "platform_id": "940GZZCRLOY-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRLOY"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMTP",
+        "stationName": "Merton Park",
+        "platform_id": "940GZZCRMTP-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMTP"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMTP",
+        "stationName": "Merton Park",
+        "platform_id": "940GZZCRMTP-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMTP"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMCH",
+        "stationName": "Mitcham",
+        "platform_id": "940GZZCRMCH-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMCH"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMCH",
+        "stationName": "Mitcham",
+        "platform_id": "940GZZCRMCH-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMCH"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBMJT",
+        "stationName": "Mitcham Junction",
+        "platform_id": "HUBMJT-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMJT"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBMJT",
+        "stationName": "Mitcham Junction",
+        "platform_id": "HUBMJT-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMJT"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMDN",
+        "stationName": "Morden Road",
+        "platform_id": "940GZZCRMDN-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMDN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRMDN",
+        "stationName": "Morden Road",
+        "platform_id": "940GZZCRMDN-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRMDN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRNWA",
+        "stationName": "New Addington",
+        "platform_id": "940GZZCRNWA-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRNWA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRPHI",
+        "stationName": "Phipps Bridge",
+        "platform_id": "940GZZCRPHI-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRPHI"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRPHI",
+        "stationName": "Phipps Bridge",
+        "platform_id": "940GZZCRPHI-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRPHI"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRRVC",
+        "stationName": "Reeves Corner",
+        "platform_id": "940GZZCRRVC-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRRVC"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZALRDK",
+        "stationName": "Royal Docks",
+        "platform_id": "940GZZALRDK-SB-london-cable-car",
+        "platform_number": "",
+        "friendly_name": "Southbound",
+        "cardinal_direction": "Southbound",
+        "platform_naptan_code": "9400ZZALRDK1",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "london-cable-car",
+            "line_name": "London Cable Car",
+            "mode": "cableCar",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZALRDK"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRSAN",
+        "stationName": "Sandilands",
+        "platform_id": "940GZZCRSAN-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRSAN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRSAN",
+        "stationName": "Sandilands",
+        "platform_id": "940GZZCRSAN-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRSAN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRTPA",
+        "stationName": "Therapia Lane",
+        "platform_id": "940GZZCRTPA-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRTPA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRTPA",
+        "stationName": "Therapia Lane",
+        "platform_id": "940GZZCRTPA-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRTPA"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWAD",
+        "stationName": "Waddon Marsh",
+        "platform_id": "940GZZCRWAD-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWAD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWAD",
+        "stationName": "Waddon Marsh",
+        "platform_id": "940GZZCRWAD-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWAD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWAN",
+        "stationName": "Wandle Park",
+        "platform_id": "940GZZCRWAN-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWAN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWAN",
+        "stationName": "Wandle Park",
+        "platform_id": "940GZZCRWAN-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWAN"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWEL",
+        "stationName": "Wellesley Road",
+        "platform_id": "940GZZCRWEL-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWEL"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBWCY",
+        "stationName": "West Croydon",
+        "platform_id": "HUBWCY-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWCR"
+          }
+        ]
+      },
+      {
+        "stationId": "HUBWIM",
+        "stationName": "Wimbledon",
+        "platform_id": "HUBWIM-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWMB"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWOD",
+        "stationName": "Woodside",
+        "platform_id": "940GZZCRWOD-EB-tram",
+        "platform_number": "",
+        "friendly_name": "Eastbound",
+        "cardinal_direction": "Eastbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWOD"
+          }
+        ]
+      },
+      {
+        "stationId": "940GZZCRWOD",
+        "stationName": "Woodside",
+        "platform_id": "940GZZCRWOD-WB-tram",
+        "platform_number": "",
+        "friendly_name": "Westbound",
+        "cardinal_direction": "Westbound",
+        "platform_naptan_code": "",
+        "is_customer_facing": true,
+        "services": [
+          {
+            "line_id": "tram",
+            "line_name": "Tram",
+            "mode": "tram",
+            "direction_towards": "",
+            "stop_area_naptan_code": "940GZZCRWOD"
+          }
+        ]
+      }
+    ]
+  },
+  "otherSources": [
+    {
+      "url": "https://api.tfl.gov.uk/Line/london-cable-car",
+      "retrievedAt": "2026-11-10T20:10:38.352868+00:00",
+      "sha256": "051b6c1dd4505002f3968d618ced9ac8f5a85822ffaba4bb6f37a5f9fbb0950b",
+      "originalPath": "/private/tmp/nb12-evidence/cable-line.raw",
+      "projection": [
+        {
+          "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+          "id": "london-cable-car",
+          "name": "London Cable Car",
+          "modeName": "cable-car",
+          "disruptions": [],
+          "created": "2026-09-22T09:53:41.037Z",
+          "modified": "2026-09-22T09:53:41.037Z",
+          "lineStatuses": [],
+          "routeSections": [],
+          "serviceTypes": [
+            {
+              "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+              "name": "Regular",
+              "uri": "/Line/Route?ids=London Cable Car&serviceTypes=Regular"
+            }
+          ],
+          "crowding": {
+            "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://api.tfl.gov.uk/StopPoint/940GZZCRADD",
+      "retrievedAt": "2026-11-10T20:10:44.404265+00:00",
+      "sha256": "25f1265c8a70f908b76423aa4a3dd7522ac9c217b9114b118368aa8497abb11c",
+      "originalPath": "/private/tmp/nb12-evidence/tram-stop.raw",
+      "naptanId": "940GZZCRADD"
+    },
+    {
+      "url": "https://api.tfl.gov.uk/StopPoint/940GZZALGWP",
+      "retrievedAt": "2026-11-10T20:10:44.202553+00:00",
+      "sha256": "a2218f36befed04ed73ba7e180ea9c580a7209c812800195f13442de28fbd16d",
+      "originalPath": "/private/tmp/nb12-evidence/cable-stop.raw",
+      "naptanId": "HUBNGW"
+    }
+  ]
+}

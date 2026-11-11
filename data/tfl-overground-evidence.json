@@ -1,0 +1,1685 @@
+{
+  "retrievedOn": "2026-11-10",
+  "source": "Official TfL Unified API line-wide arrivals for the six named London Overground lines. Exact current line, service stop area and live labels are preserved, including Platform Unknown.",
+  "mappingRule": "Unique published platform number within the exact current service line and stop area, matched to an observed explicit numeric or single-letter live label. Duplicate physical records with the same number remain unverified. Cardinal direction, API inbound/outbound, destinations, historical platform IDs and unconfirmed stop aliases never establish membership.",
+  "feeds": [
+    {
+      "lineId": "liberty",
+      "url": "https://api.tfl.gov.uk/Line/liberty/Arrivals",
+      "sha256": "2498786211ada27c7232525b12fe321d591d789e96ba4b4e3fbb71cd02a306bf",
+      "predictionCount": 25,
+      "labels": [
+        {
+          "lineId": "liberty",
+          "stopAreaId": "910GEMRSPKH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "liberty",
+          "stopAreaId": "910GROMFORD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "liberty",
+          "stopAreaId": "910GUPMNSTR",
+          "platformName": "Platform 6"
+        }
+      ]
+    },
+    {
+      "lineId": "lioness",
+      "url": "https://api.tfl.gov.uk/Line/lioness/Arrivals",
+      "sha256": "a0c0a9c3b480983e2445420de1637a3a94e45554b415f1c626b8abc06730b8c7",
+      "predictionCount": 311,
+      "labels": [
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GBUSHYDC",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GBUSHYDC",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GCRPNDPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GCRPNDPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GCRPNDPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GEUSTON",
+          "platformName": "Platform 9"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GEUSTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHARLSDN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHARLSDN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHARLSDN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHEDSTNL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHEDSTNL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHEDSTNL",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHROW",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHROW",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHROW",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHTCHEND",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHTCHEND",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GHTCHEND",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKENSLG",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKENSLG",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKENSLG",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKLBRNHR",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKLBRNHR",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKLBRNHR",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GKTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GNWEMBLY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GNWEMBLY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GNWEMBLY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GQPRK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GQPRK",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GQPRK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSHMPSTD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSHMPSTD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSHMPSTD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSKENTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSKENTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSKENTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSTNBGPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSTNBGPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GSTNBGPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFDHS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFDHS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFDHS",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFJDC",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFJDC",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFJDC",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWATFJDC",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWMBY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWMBY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "lioness",
+          "stopAreaId": "910GWMBY",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    },
+    {
+      "lineId": "mildmay",
+      "url": "https://api.tfl.gov.uk/Line/mildmay/Arrivals",
+      "sha256": "c02e1e883b67899f5f649c7cc18a3db0d4f34a1e0dac1d2f79ce11c7e87659cd",
+      "predictionCount": 869,
+      "labels": [
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GACTNCTL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GACTNCTL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GACTNCTL",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBYPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBYPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GBRBYPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLDNNRB",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLDNNRB",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLDNNRB",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJ1",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJ1",
+          "platformName": "Platform 17"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJ1",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJC",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJC",
+          "platformName": "Platform 17"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCLPHMJC",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCMDNRD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCMDNRD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCMDNRD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCSEAH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCSEAH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GCSEAH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GDALSKLD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GDALSKLD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GDALSKLD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GFNCHLYR",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GFNCHLYR",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GFNCHLYR",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGNRSBRY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGNRSBRY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGNRSBRY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGOSPLOK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGOSPLOK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GGOSPLOK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYC",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYC",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYC",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYW",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYW",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHACKNYW",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform 7"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform 8"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHMPSTDH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHMPSTDH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHMPSTDH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHOMRTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHOMRTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GHOMRTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENOLYM",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENOLYM",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENOLYM",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENR",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENR",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKENR",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKEWGRDN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKNTSHTW",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKNTSHTW",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GKNTSHTW",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GRICHMND",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GRICHMND",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GRICHMND",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSACTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSACTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSACTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSHPDSB",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSHPDSB",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSHPDSB",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWBRMPTN",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWBRMPTN",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWBRMPTN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWHMDSTD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWHMDSTD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWHMDSTD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "mildmay",
+          "stopAreaId": "910GWLSDJHL",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    },
+    {
+      "lineId": "suffragette",
+      "url": "https://api.tfl.gov.uk/Line/suffragette/Arrivals",
+      "sha256": "03dd96fbb799fda097ca7c2a6341a07a5c8f21e7ceddb2cb02865121fccf378c",
+      "predictionCount": 36,
+      "labels": [
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GCROUCHH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GCROUCHH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GCROUCHH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GGOSPLOK",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GGOSPLOK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GHRGYGL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GHRGYGL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GHRGYGL",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GSTOTNHM",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GSTOTNHM",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GUPRHLWY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GUPRHLWY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "suffragette",
+          "stopAreaId": "910GUPRHLWY",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    },
+    {
+      "lineId": "weaver",
+      "url": "https://api.tfl.gov.uk/Line/weaver/Arrivals",
+      "sha256": "5d80d27b389fe7f18bb68b54ac0f4ccafecd2b1c7902f3419e907ce8b7269362",
+      "predictionCount": 381,
+      "labels": [
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBHILLPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBHILLPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBHILLPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBRUCGRV",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBRUCGRV",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBRUCGRV",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBTHNLGR",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBTHNLGR",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GBTHNLGR",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCAMHTH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCAMHTH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCAMHTH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCHESHNT",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCHINGFD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCHINGFD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCHINGFD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCLAPTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCLAPTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GCLAPTON",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GEDMNGRN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GEDMNGRN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GEDMNGRN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GENFLDTN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GENFLDTN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHAKNYNM",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHAKNYNM",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHAKNYNM",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHAKNYNM",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHAKNYNM",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHGHMSPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHGHMSPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GHGHMSPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 6"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 7"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLIVST",
+          "platformName": "Platform 8"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLONFLDS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLONFLDS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GLONFLDS",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GRCTRYRD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GRCTRYRD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GRCTRYRD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSBURY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSBURY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSBURY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSEVNSIS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSEVNSIS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSEVNSIS",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSIVRST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSIVRST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSIVRST",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTJMSST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTJMSST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTJMSST",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTKNWNG",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTKNWNG",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTKNWNG",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTMFDHL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTMFDHL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GSTMFDHL",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTHBLDSG",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTHBLDSG",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTHBLDSG",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTURKYST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTURKYST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GTURKYST",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWDST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWDST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWDST",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWHHRTLA",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWHHRTLA",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWHHRTLA",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWLTWCEN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWLTWCEN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "weaver",
+          "stopAreaId": "910GWLTWCEN",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    },
+    {
+      "lineId": "windrush",
+      "url": "https://api.tfl.gov.uk/Line/windrush/Arrivals",
+      "sha256": "d9a8557976f5873b5b4ae627af6bcc8d224ac046d9940b24798515678a11c7eb",
+      "predictionCount": 1054,
+      "labels": [
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GANERLEY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GANERLEY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GANERLEY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GBROCKLY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GBROCKLY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GBROCKLY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCLPHHS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCLPHHS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCLPHHS",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCLPHMJ1",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCLPHMJ1",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCNDAW",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCNDAW",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCNNB",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCRYSTLP",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCRYSTLP",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GCRYSTLP",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDALS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDALS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDALS",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDALS",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDENMRKH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDENMRKH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GDENMRKH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GFORESTH",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GFORESTH",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GFORESTH",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHAGGERS",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHAGGERS",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHGHI",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHONROPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHONROPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHONROPK",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHOXTON",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GHOXTON",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNEWXGTE",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNEWXGTE",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNEWXGTE",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNORWDJ",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNORWDJ",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNORWDJ",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GNWCRELL",
+          "platformName": "D"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMQD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMQD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMQD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMRY",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMRY",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPCKHMRY",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPENEW",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPENEW",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GPENEW",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GRTHERHI",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GRTHERHI",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSHADWEL",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSHADWEL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSHRDHST",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSHRDHST",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSURREYQ",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSURREYQ",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSYDENHM",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSYDENHM",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GSYDENHM",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWAPPING",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWAPPING",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWCHAPEL",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWCHAPEL",
+          "platformName": "Platform 6"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWCROYDN",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWCROYDN",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWNDSWRD",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWNDSWRD",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "windrush",
+          "stopAreaId": "910GWNDSWRD",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    }
+  ],
+  "endpointChecks": [
+    {
+      "lineId": "liberty",
+      "stopAreaId": "910GUPMNSTR",
+      "url": "https://api.tfl.gov.uk/Line/liberty/Arrivals/910GUPMNSTR",
+      "sha256": "447a106c54d23938d5d24abb31ea319aabe6870bb4cdad231b4f488baea27934",
+      "predictionCount": 8,
+      "labels": [
+        "Platform 6"
+      ]
+    },
+    {
+      "lineId": "lioness",
+      "stopAreaId": "910GEUSTON",
+      "url": "https://api.tfl.gov.uk/Line/lioness/Arrivals/910GEUSTON",
+      "sha256": "bc46e550b0230b14b09bc6f80c67f23688cf5b1a81873b8e68f8aa962d84d6af",
+      "predictionCount": 17,
+      "labels": [
+        "Platform Unknown"
+      ]
+    },
+    {
+      "lineId": "mildmay",
+      "stopAreaId": "910GKEWGRDN",
+      "url": "https://api.tfl.gov.uk/Line/mildmay/Arrivals/910GKEWGRDN",
+      "sha256": "9abf31e75d50a99262e96b10afb93ae7df2f6dff675bcc64964d5dc897562f1e",
+      "predictionCount": 18,
+      "labels": [
+        "Platform 1",
+        "Platform 2",
+        "Platform Unknown"
+      ]
+    },
+    {
+      "lineId": "suffragette",
+      "stopAreaId": "910GCROUCHH",
+      "url": "https://api.tfl.gov.uk/Line/suffragette/Arrivals/910GCROUCHH",
+      "sha256": "6330feba16e889274b579ff2496dc6389cf69a925d6fd5d6f1ef4c37bcc0860d",
+      "predictionCount": 8,
+      "labels": [
+        "Platform 1",
+        "Platform 2",
+        "Platform Unknown"
+      ]
+    },
+    {
+      "lineId": "weaver",
+      "stopAreaId": "910GLIVST",
+      "url": "https://api.tfl.gov.uk/Line/weaver/Arrivals/910GLIVST",
+      "sha256": "b7068daeb449125d6b8e87eee071f23a7ad871146a41ba39b3b07bd92ad8efcc",
+      "predictionCount": 28,
+      "labels": [
+        "Platform 1",
+        "Platform 2",
+        "Platform 3",
+        "Platform 5",
+        "Platform 6",
+        "Platform 7",
+        "Platform 8",
+        "Platform Unknown"
+      ]
+    },
+    {
+      "lineId": "windrush",
+      "stopAreaId": "910GANERLEY",
+      "url": "https://api.tfl.gov.uk/Line/windrush/Arrivals/910GANERLEY",
+      "sha256": "15cc129f4ca132fb4f72e87a9b82d91b679e9ffc2feae3908fc240d9768eaa83",
+      "predictionCount": 16,
+      "labels": [
+        "Platform 1",
+        "Platform 2",
+        "Platform Unknown"
+      ]
+    }
+  ]
+}

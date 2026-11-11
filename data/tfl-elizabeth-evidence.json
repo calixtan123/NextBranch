@@ -1,0 +1,671 @@
+{
+  "retrievedOn": "2026-11-10",
+  "source": "Official TfL Unified API Elizabeth line-wide and exact service-stop arrivals. Exact labels and source stop IDs are retained, including Platform Unknown and duplicated central/mainline stop labels.",
+  "mappingRule": "Unique published physical platform number or letter within the exact Elizabeth service stop area matched to explicit reviewed live labels. No hub/stop alias substitution, cardinal direction inference, destination, branch or historical platform ID establishes membership. A/B returned at mainline stop IDs do not verify numbered mainline platforms.",
+  "feeds": [
+    {
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals",
+      "retrievedAt": "2026-11-10T19:52:25.215057+00:00",
+      "sha256": "f927204f603d593feda1d7ac314ea93da03c2648ae1ef6c13b8dcce9234edbb1",
+      "predictionCount": 1482,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWDXR",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWDXR",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GACTONML",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GACTONML",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBNHAM",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBNHAM",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBONDST",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBONDST",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBRTWOOD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GBRTWOOD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCANWHRF",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCANWHRF",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCHDWLHT",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCHDWLHT",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCUSTMHS",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GCUSTMHS",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GEALINGB",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GEALINGB",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDNLT",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDNLT",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDXR",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDXR",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRSTGT",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRSTGT",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GGIDEAPK",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GGIDEAPK",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GGODMAYS",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GGODMAYS",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHANWELL",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHANWELL",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHAYESAH",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHAYESAH",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHRLDWOD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHRLDWOD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWAPT",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWAPT",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWAPT",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM4",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM4",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM4",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM5",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM5",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GILFORD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GILFORD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GIVER",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GIVER",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLANGLEY",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLANGLEY",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVST",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVST",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVSTLL",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVSTLL",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMANRPK",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMANRPK",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMDNHEAD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMDNHEAD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMRYLAND",
+          "platformName": "Platform 1"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GMRYLAND",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTLL",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTLL",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTON",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTON",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GROMFORD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GROMFORD",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSLOUGH",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSLOUGH",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform 8"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSTFD",
+          "platformName": "Platform Unknown"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSTHALL",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSTHALL",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSVNKNGS",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSVNKNGS",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTAPLOW",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTAPLOW",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTOTCTRD",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTOTCTRD",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTWYFORD",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GTWYFORD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWCHAPEL",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWCHAPEL",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWCHAPXR",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWCHAPXR",
+          "platformName": "B"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWDRYTON",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWDRYTON",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWEALING",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWEALING",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWOLWXR",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GWOLWXR",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GABWDXR",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GABWDXR",
+      "retrievedAt": "2026-11-10T19:52:54.661255+00:00",
+      "sha256": "49b7e6d1e0105b26720bc51d71cfa16e38700e2621d2da9242971f2ae12300fb",
+      "predictionCount": 32,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWDXR",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GABWDXR",
+          "platformName": "Platform 4"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GFRNDXR",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GFRNDXR",
+      "retrievedAt": "2026-11-10T19:52:54.765254+00:00",
+      "sha256": "cda7f988c1ab9b896b07ae6114f18f2a6ab26b16bdb1d3a6954022f5ee2f3bbb",
+      "predictionCount": 65,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDXR",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GFRNDXR",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GLIVSTLL",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GLIVSTLL",
+      "retrievedAt": "2026-11-10T19:52:59.244542+00:00",
+      "sha256": "fbb4e1327de110aa76539bcded8c1a8e1009e6f7a35ce8a0a469504ca2d0a85f",
+      "predictionCount": 55,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVSTLL",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVSTLL",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GLIVST",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GLIVST",
+      "retrievedAt": "2026-11-10T19:52:59.451267+00:00",
+      "sha256": "55e386906c84b1f902c96e25c237af8198a8b13bceaf74eaf76611178b5ea392",
+      "predictionCount": 55,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVST",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GLIVST",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GPADTLL",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GPADTLL",
+      "retrievedAt": "2026-11-10T19:52:59.604921+00:00",
+      "sha256": "5ba9ef1b3b913058c3245bd539f19feff8778572c5cd7767ac34246593b1d0e1",
+      "predictionCount": 66,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTLL",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTLL",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GPADTON",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GPADTON",
+      "retrievedAt": "2026-11-10T19:52:59.763306+00:00",
+      "sha256": "87ec8a23b62e65c0e25ff5483a846e70e0d4181321305d423cb5dbde26b4b860",
+      "predictionCount": 66,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTON",
+          "platformName": "A"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GPADTON",
+          "platformName": "B"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GEALINGB",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GEALINGB",
+      "retrievedAt": "2026-11-10T19:52:59.929576+00:00",
+      "sha256": "e82afbadb6366a062792a0bf3c7f306a5a7c3ddbee51823ec48558116685dc70",
+      "predictionCount": 41,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GEALINGB",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GEALINGB",
+          "platformName": "Platform 4"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GRDNGSTN",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GRDNGSTN",
+      "retrievedAt": "2026-11-10T19:53:01.264744+00:00",
+      "sha256": "4239daec10e883c3c225643d90b6042663b0a6678add5f74548e3b953e6bc600",
+      "predictionCount": 8,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GRDNGSTN",
+          "platformName": "Platform 14"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GSHENFLD",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GSHENFLD",
+      "retrievedAt": "2026-11-10T19:53:01.597692+00:00",
+      "sha256": "08fbdf657d5ff0ad9657ef9a34e32afd75340228b08d54fa5ca76186b6cee6f9",
+      "predictionCount": 35,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSHENFLD",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSHENFLD",
+          "platformName": "Platform 5"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GSHENFLD",
+          "platformName": "Platform 6"
+        }
+      ]
+    },
+    {
+      "stopAreaId": "910GHTRWTM5",
+      "url": "https://api.tfl.gov.uk/Line/elizabeth/Arrivals/910GHTRWTM5",
+      "retrievedAt": "2026-11-10T19:53:01.748402+00:00",
+      "sha256": "46c1ceeaa29045a7d0554717660d2fbd1a6c13a2cea30420c887131800ff0b8a",
+      "predictionCount": 8,
+      "lineId": "elizabeth",
+      "labels": [
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM5",
+          "platformName": "Platform 4"
+        },
+        {
+          "lineId": "elizabeth",
+          "stopAreaId": "910GHTRWTM5",
+          "platformName": "Platform Unknown"
+        }
+      ]
+    }
+  ]
+}
