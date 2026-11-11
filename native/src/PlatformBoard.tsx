@@ -176,14 +176,14 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const unknown = expanded ? unassignedCount(state.snapshot, now) : 0;
   const content = <>
     <View style={[ui.row, {
-      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8,
+      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
       ...(stackedHeader && { flexDirection: 'column', alignItems: 'stretch', paddingBottom: 6 }),
     }]}>
-      <View style={[!stackedHeader && ui.flex, { paddingVertical: 6, gap: 1 }]}>
+      <View style={[{ flexShrink: 0, maxWidth: '100%', paddingVertical: 6, gap: 1 }, !stackedHeader && { flexGrow: 1 }]}>
         <Label size={19} bold style={{ letterSpacing: -.25, fontWeight: '700' }}>{platformName(selection)}</Label>
         <Label size={14} tone="dim">{name}</Label>
       </View>
-      <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
+      <View style={[ui.row, { gap: 5, flexShrink: 0, maxWidth: '100%' }]}>
         <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={12} align={stackedHeader ? 'left' : 'right'}
           textStyle={{ fontWeight: '700' }} />
       </View>

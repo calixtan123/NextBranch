@@ -68,8 +68,8 @@ describe.each([
   { screen: 'expanded departures', expanded: true },
 ])('$screen header', ({ expanded }) => {
   it.each([
-    { fontScale: 1, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '38%', textAlignment: 'right' },
-    { fontScale: 1.35, direction: 'row', alignment: 'center', identityFlex: 1, lineWidth: '38%', textAlignment: 'right' },
+    { fontScale: 1, direction: 'row', alignment: 'center', identityFlex: undefined, lineWidth: '100%', textAlignment: 'right' },
+    { fontScale: 1.35, direction: 'row', alignment: 'center', identityFlex: undefined, lineWidth: '100%', textAlignment: 'right' },
     { fontScale: 1.36, direction: 'column', alignment: 'stretch', identityFlex: undefined, lineWidth: '100%', textAlignment: 'left' },
     { fontScale: 3.12, direction: 'column', alignment: 'stretch', identityFlex: undefined, lineWidth: '100%', textAlignment: 'left' },
   ])('lays out identity and line for font scale $fontScale', ({
@@ -92,6 +92,37 @@ describe.each([
     expect(flattenStyle(heading.props.style).fontFamily).toBeUndefined();
     expect(station.props).toMatchObject({ size: 14, tone: 'dim' });
   });
+});
+
+it.each([false, true])('lets a complete Hammersmith & City identity wrap below the platform before compressing it, expanded=%s', async expanded => {
+  boundary.fontScale = 1;
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('940GZZLUBST')!;
+  const original = station.platforms[0];
+  const platform = { ...original, services: [{ ...original.services[0], line_id: 'hammersmith-city' as const,
+    line_name: 'Hammersmith & City' }] };
+  const tree = PlatformBoard({ station: { ...station, platforms: [platform] },
+    selection: { stationId: station.station_id, platform: platform.platform_number,
+      direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    style: 'amber', state: { error: null, pending: true }, now: 0, online: true, limited: false,
+    expanded, onRetry: vi.fn(), onReview: vi.fn() });
+  const header = elements(tree).find(node => node.type === View && Children.toArray(node.props.children).some(child =>
+    isValidElement<Element['props']>(child) && Children.toArray(child.props.children).some(label =>
+      isValidElement(label) && label.type === LineLabels)))!;
+  const [identity, line] = Children.toArray(header.props.children) as Element[];
+  // Native flex wrapping moves the intact line group to another row when both identities cannot fit.
+  expect(flattenStyle(header.props.style).flexWrap).toBe('wrap');
+  expect(flattenStyle(identity.props.style)).toMatchObject({ flexGrow: 1, flexShrink: 0, maxWidth: '100%' });
+  expect(flattenStyle(line.props.style)).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
+  const lineLabel = elements(line.props.children).find(node => node.type === LineLabels)!;
+  const rendered = LineLabels(lineLabel.props as Parameters<typeof LineLabels>[0]);
+  const pair = Children.toArray(rendered.props.children)[0] as Element;
+  const label = elements(pair.props.children).find(node => node.type === Label)!;
+  expect(label.props.children).toBe('Hammersmith & City');
+  const text = label as ReactElement<Parameters<typeof Label>[0]>;
+  expect(text.props.numberOfLines).toBeUndefined();
+  expect(text.props.adjustsFontSizeToFit).not.toBe(true);
+  expect(text.props.allowFontScaling).not.toBe(false);
 });
 
 it('labels each shared-platform departure with its published line', async () => {
