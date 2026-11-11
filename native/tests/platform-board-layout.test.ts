@@ -429,3 +429,51 @@ it.each([
     }
   }
 });
+
+
+describe.each(['amber', 'modern'] as const)('%s Elizabeth departure suffix', style => {
+  it.each([
+    { expanded: false, width: 0 }, { expanded: true, width: 0 },
+    { expanded: false, width: 390 }, { expanded: true, width: 390 },
+  ])('uses concise visible and accessible destinations with expanded=$expanded and width=$width', ({ expanded, width }) => {
+    boundary.fontScale = 1;
+    boundary.width = width;
+    boundary.light = false;
+    const observedAt = '2026-11-10T12:00:00Z';
+    const snapshot: Snapshot = { station: { id: '910GWHITECP', name: 'Whitechapel' },
+      observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: 'A', direction: 'Westbound', departures: [
+        { id: '1-paddington', destinationName: 'Paddington Rail Station', towards: null },
+        { id: '2-reading', destinationName: 'Reading Rail Station', towards: 'Reading via Ealing Broadway' },
+        { id: '3-embedded', destinationName: '  Paddington  rAiL  StAtIoN  VIA Ealing Broadway ', towards: 'Paddington via Ealing Broadway' },
+      ].map(row => ({ ...row, lineId: 'elizabeth', expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 })) }] };
+    const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Westbound' },
+      style, now: Date.parse(observedAt), online: true, limited: false, expanded,
+      state: { pending: false, error: null, snapshot },
+      onOpen: expanded ? undefined : vi.fn(), onRetry: vi.fn(), onReview: vi.fn() });
+    const rows = elements(tree).filter(node => 'row' in node.props).map(node => {
+      const render = node.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
+      return render(node.props);
+    });
+    const identities = ['Paddington', 'Reading via Ealing Broadway', 'Paddington VIA Ealing Broadway'];
+    rows.forEach((row, index) => {
+      const descendants = elements(row);
+      if (style === 'amber' && width > 0) {
+        const values = descendants.filter(node => 'value' in node.props).map(node => (node.props as { value: string }).value);
+        expect(values.join(' ')).toContain(identities[index]);
+      } else {
+        expect(descendants.filter(node => node.type === 'Text').map(node => node.props.children)).toContain(identities[index]);
+      }
+      expect(row.props.accessibilityLabel).toBe(`${index + 1}, ${identities[index]}, 1 min` +
+        (expanded ? ', Expected at 12:01 London time' : ''));
+    });
+    expect(rows).toHaveLength(3);
+    if (!expanded) {
+      const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+      const label = (button.props as { accessibilityLabel: string }).accessibilityLabel;
+      identities.forEach((identity, index) => expect(label).toContain(`${index + 1}, ${identity}, 1 min`));
+      expect(label).not.toMatch(/Rail Station/i);
+    }
+    boundary.width = 0;
+  });
+});

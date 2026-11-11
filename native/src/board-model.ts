@@ -31,7 +31,8 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
     .slice(0, limit)
     .map(row => {
       const destination = row.destinationName?.trim().replace(/\s+/g, ' ')
-        .replace(/(?:^|\s+)Underground Station(?=\s*(?:via\b|$))/i, '').trim() || 'Unknown destination';
+        .replace(/(?:^|\s+)(?:Underground|Rail) Station(?=\s*(?:via\b|$))/i, (suffix, offset, name) =>
+          /\bvia\b/i.test(name.slice(0, offset)) ? suffix : '').trim() || 'Unknown destination';
       const via = displayVia(row.towards);
       const branch = via.toLowerCase() === displayVia(destination).toLowerCase() ? '' : via;
       return {

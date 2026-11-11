@@ -58,6 +58,33 @@ it.each([
   expect(JSON.stringify(input)).toBe(before);
 });
 
+it.each([
+  ['Paddington Rail Station', null, 'Paddington', ''],
+  ['  Paddington  rAiL   StAtIoN  ', null, 'Paddington', ''],
+  ['Paddington Rail Station via Ealing Broadway', 'Paddington via Ealing Broadway', 'Paddington via Ealing Broadway', ''],
+  ['  Paddington  rAiL   StAtIoN  VIA  Ealing Broadway  ', 'Paddington via ealing broadway', 'Paddington VIA Ealing Broadway', ''],
+  ['Reading Rail Station', 'Reading via Ealing Broadway', 'Reading', 'via Ealing Broadway'],
+  ['Paddington Rail Station via Ealing Broadway', 'Paddington via Stratford', 'Paddington via Ealing Broadway', 'via Stratford'],
+  ['Rail Station Road', null, 'Rail Station Road', ''],
+  ['Old Rail Station Approach', null, 'Old Rail Station Approach', ''],
+  ['Paddington via Rail Station Road', null, 'Paddington via Rail Station Road', ''],
+  ['Paddington via Custom Rail Station', null, 'Paddington via Custom Rail Station', ''],
+  ['Rail Station', null, 'Unknown destination', ''],
+  ['  ', null, 'Unknown destination', ''],
+  [null, null, 'Unknown destination', ''],
+])('shortens Elizabeth destination %s while preserving route %s and source identity', (destinationName, towards, destination, branch) => {
+  const input: typeof snapshot = { ...snapshot, platforms: [{ platform: 'A', direction: 'Southbound', departures: [{
+    ...snapshot.platforms[0].departures[0], lineId: 'elizabeth', destinationName, towards,
+  }] }] };
+  const before = JSON.stringify(input);
+
+  const rows = boardRows(input, a, now, 3);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ destination, branch, lineId: 'elizabeth', id: input.platforms[0].departures[0].id });
+  expect(JSON.stringify(input)).toBe(before);
+});
+
 it('counts unassigned predictions through the exact 30-second grace boundary', () => {
   const unassigned = snapshot.platforms.find(group => group.platform === null)!.departures[0];
   const arrival = Date.parse(unassigned.expectedArrival);
