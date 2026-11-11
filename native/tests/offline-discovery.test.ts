@@ -7,6 +7,7 @@ import { createCatalogue, createCanonicalCatalogue } from '../src/catalogue';
 import { createDiscovery, reviewedSelection } from '../src/discovery';
 import { createPreferences } from '../src/preferences';
 import { serviceCapability } from '../../src/lib/catalogue/capability';
+import { LineLabels } from '../src/LineLabels';
 import { SearchScreen, PickerScreen, PlatformDetailsScreen } from '../src/SearchScreens';
 import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
 import type { Screen } from '../src/navigation';
@@ -35,6 +36,8 @@ const reviewed = createCatalogue({ version: 1, platforms: [
 ] });
 const navigation = () => ({ goBack: vi.fn(), navigate: vi.fn() });
 const picker = (stationId: string, nav = navigation()) => PickerScreen({ navigation: nav, route: { params: { stationId } } } as unknown as Screen<'Picker'>);
+/** Locates a physical row by stable identity instead of its changing display copy. */
+const platformRow = (tree: ReactNode, platformId: string) => nodes(tree).find(node => node.type === 'Result' && node.key?.endsWith(platformId))!;
 const details = (stationId: string, platformId: string) => PlatformDetailsScreen({ navigation: navigation(), route: { params: { stationId, platformId } } } as unknown as Screen<'PlatformDetails'>);
 
 beforeEach(() => {
@@ -60,8 +63,7 @@ it('searches outside Northern, aliases and punctuation deterministically through
   const nav = navigation();
   const tree = SearchScreen({ navigation: nav } as unknown as Screen<'Search'>);
   const result = nodes(tree).find(node => node.props.title === 'Kew Gardens')!;
-  expect(result.props.detail).toContain('District');
-  expect(result.props.detail).toContain('Mildmay');
+  expect(nodes(result).find(node => node.type === LineLabels)?.props.lines).toEqual([{ id: 'district', name: 'District' }, { id: 'mildmay', name: 'Mildmay' }]);
   result.props.onPress();
   expect(hooks.runtime().preferences.selectStation).toHaveBeenCalledWith('HUBKWG');
   expect(nav.navigate).toHaveBeenCalledWith('Picker', { stationId: 'HUBKWG' });
@@ -125,6 +127,8 @@ it('retains tram blank numbers and unknown fields and excludes National Rail-onl
   expect(rows).toHaveLength(2);
   expect(text(tree)).not.toMatch(/Platform [0-9]/);
   expect(text(tree)).toContain('Platform number not published');
+  expect(text(tree)).not.toContain('Towards not published');
+  expect(rows.every(row => row.props.detail === '')).toBe(true);
   const tram = shared.catalogue.stationsById.get('HUBECY')!.platforms[0];
   expect(text(details('HUBECY', tram.platform_id))).toContain('Towards not published');
   const unknown = shared.catalogue.stations.find(station => station.platforms.some(platform => !platform.cardinal_direction))!;
@@ -142,14 +146,16 @@ it('keeps reviewed Northern navigation and synthetic fixture platforms working',
   expect(reviewedSelection(station, station.platforms[1], reviewed)).toBeNull();
   const nav = navigation();
   const tree = picker(station.station_id, nav);
-  nodes(tree).find(node => node.props.title === 'Platform 1')!.props.onPress();
+  platformRow(tree, first.platform_id).props.onPress();
   expect(nav.navigate).toHaveBeenCalledWith('Departures', { selection: { stationId: station.station_id, physicalPlatformId: first.platform_id, platform: '1', direction: 'Northbound' } });
   const fixture = createCatalogue({ version: 1, platforms: [{ stationId: station.station_id, platform: 'A', direction: 'Southbound' }] });
   hooks.runtime.mockReturnValue({ ...hooks.runtime(), catalogue: fixture, synthetic: true });
   const synthetic = picker(station.station_id, nav);
   expect(text(synthetic)).toContain('Platform A');
   expect(text(synthetic)).not.toContain('Platform 1');
-  nodes(synthetic).find(node => node.props.title === 'Platform A')!.props.onPress();
+  expect(text(synthetic)).not.toContain('Towards not published');
+  expect(nodes(synthetic).find(node => node.props.title === 'Southbound Platform A')!.props.detail).toBe('');
+  nodes(synthetic).find(node => node.props.title === 'Southbound Platform A')!.props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('Departures', { selection: { stationId: station.station_id, platform: 'A', direction: 'Southbound' } });
 });
 
@@ -261,7 +267,7 @@ it.each(verifiedWalkthroughs)('searches, saves, restores and reopens $line durin
   hooks.query = station.station_name;
   nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.props.title === station.station_name)!.props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
-  nodes(picker(stationId, nav)).find(node => node.props.title === (platformNumber ? 'Platform ' + platformNumber : 'Platform number not published') && node.props.detail.includes(platform.friendly_name))!.props.onPress();
+  platformRow(picker(stationId, nav), platform.platform_id).props.onPress();
   const [route, params] = nav.navigate.mock.lastCall!;
   expect(route).toBe('Departures');
   expect(params.selection).toMatchObject({ stationId, physicalPlatformId: platform.platform_id, direction: platform.cardinal_direction });
@@ -284,7 +290,7 @@ it.each([['HUBLEW', '5'], ['HUBTOG', '1']])('keeps uncaptured DLR %s platform %s
   const catalog = createCanonicalCatalogue(shared.catalogue);
   const nav = navigation();
   expect(catalog.selection(station, platform)).toBeNull();
-  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number)!.props.onPress();
+  platformRow(picker(stationId, nav), platform.platform_id).props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
   const tree = details(stationId, platform.platform_id);
   expect(text(tree)).toContain('DLR: Platform matching awaits verification');
@@ -298,7 +304,7 @@ it.each([['910GEMRSPKH', '1'], ['HUBBSH', '1'], ['HUBWFJ', '1'], ['HUBBKG', '7']
   const catalog = createCanonicalCatalogue(shared.catalogue);
   expect(catalog.selection(station, platform)).toBeNull();
   const nav = navigation();
-  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number)!.props.onPress();
+  platformRow(picker(stationId, nav), platform.platform_id).props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
   const tree = details(stationId, platform.platform_id);
   expect(text(tree)).toContain('Platform matching awaits verification');
@@ -313,7 +319,7 @@ it.each([['HUBPAD', '1'], ['HUBLST', '15'], ['HUBEAL', '1'], ['HUBHX5', '3']])('
   const catalog = createCanonicalCatalogue(shared.catalogue);
   const nav = navigation();
   expect(catalog.selection(station, platform)).toBeNull();
-  nodes(picker(stationId, nav)).find(node => node.props.title === 'Platform ' + number && node.props.detail.includes('Elizabeth'))!.props.onPress();
+  platformRow(picker(stationId, nav), platform.platform_id).props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
   const tree = details(stationId, platform.platform_id);
   expect(text(tree)).toContain('Elizabeth line: Platform matching awaits verification');
@@ -333,11 +339,50 @@ it.each(['HUBECY', 'HUBELM', 'HUBBEK', '940GZZALGWP', '940GZZALRDK'])('keeps unv
   expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
   const tree = picker(stationId, nav);
   const title = platform.platform_number ? 'Platform ' + platform.platform_number : 'Platform number not published';
-  nodes(tree).find(node => node.props.title === title && node.props.detail.includes(platform.friendly_name))!.props.onPress();
+  platformRow(tree, platform.platform_id).props.onPress();
   expect(nav.navigate).toHaveBeenLastCalledWith('PlatformDetails', { stationId, platformId: platform.platform_id });
   const detailTree = details(stationId, platform.platform_id);
   expect(text(detailTree)).toContain(title);
   expect(text(detailTree)).toContain(platform.cardinal_direction || 'Direction unavailable');
   expect(text(detailTree)).toContain(stationId.startsWith('940GZZAL') ? 'Live feed and platform matching await verification' : 'Platform matching awaits verification');
   expect(nodes(detailTree).some(node => node.props.children === 'Save platform')).toBe(false);
+});
+
+
+it('renders Northern, Central and Elizabeth headings at TCR with complete explicit-direction rows', () => {
+  const station = shared.catalogue.stations.find(item => item.station_name === 'Tottenham Court Road')!;
+  const tree = picker(station.station_id);
+  const headings = nodes(tree).filter(node => node.type === LineLabels && node.props.heading);
+  expect(headings.map(node => node.props.lines.map((line: { id: string }) => line.id))).toEqual([['northern'], ['central'], ['elizabeth']]);
+  const rows = nodes(tree).filter(node => node.type === 'Result');
+  expect(rows).toHaveLength(station.platforms.length);
+  for (const platform of station.platforms) {
+    const row = rows.find(node => node.key?.endsWith(platform.platform_id))!;
+    expect(row).toBeDefined();
+    expect(row.props.title).toBe(`${platform.cardinal_direction} Platform ${platform.platform_number}`);
+    expect(row.props.titleEmphasis).toBe(true);
+    expect(row.props.detail).not.toContain(platform.cardinal_direction || 'Direction not published');
+    expect(row.props.detail).not.toContain(platform.friendly_name);
+    expect(row.props.detail).toBe(platform.services[0].direction_towards ? 'Towards ' + platform.services[0].direction_towards : '');
+  }
+});
+
+it('renders one shared heading at Kew and published-service markers in browse details', () => {
+  const tree = picker('HUBKWG');
+  const headings = nodes(tree).filter(node => node.type === LineLabels && node.props.heading);
+  expect(headings).toHaveLength(1);
+  expect(headings[0].props.lines).toEqual([{ id: 'district', name: 'District' }, { id: 'mildmay', name: 'Mildmay' }]);
+  const platform = shared.catalogue.stationsById.get('HUBKWG')!.platforms[0];
+  expect(nodes(details('HUBKWG', platform.platform_id)).find(node => node.type === LineLabels)?.props.lines).toEqual(headings[0].props.lines);
+});
+
+
+it('renders Camden Town northbound heading and destination once while retaining published details', () => {
+  const station = shared.catalogue.stationsByAnyId.get('940GZZLUCTN')!;
+  const platform = station.platforms.find(item => item.platform_number === '1')!;
+  const row = platformRow(picker(station.station_id), platform.platform_id);
+  expect(row.props.title).toBe('Northbound Platform 1');
+  expect(row.props.detail).toBe('Towards Edgware');
+  expect(row.props.titleEmphasis).toBe(true);
+  expect(text(details(station.station_id, platform.platform_id))).toContain(platform.friendly_name);
 });

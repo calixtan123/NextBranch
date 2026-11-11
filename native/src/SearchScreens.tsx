@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Keyboard, TextInput, View } from 'react-native';
 import { byId, searchStations } from '../../src/lib/northern/stations';
 import type { CataloguePlatform } from '../../src/lib/catalogue/schema';
+import { LineLabels } from './LineLabels';
+import { lineLabels, platformLineGroups, platformPickerTitle, platformPickerDestination } from './line-presentation';
 import { GlassSurface } from './GlassControls';
 import { majorityStyle } from './preferences';
 import { selectionKey } from './catalogue';
@@ -29,9 +31,9 @@ export function SearchScreen({ navigation }: Screen<'Search'>) {
   const missing = !synthetic && result.state === 'missing-catalogue';
   const legacy = synthetic ? (searching ? searchStations(query) : recent.flatMap(id => byId.get(id) ?? [])) : [];
   const stations = searching ? result.stations : recent.flatMap(id => discovery.catalogue?.stationsByAnyId.get(id) ?? []);
-  const rows = synthetic ? legacy.map(station => ({ id: station.id, name: station.name, detail: 'Northern line' }))
+  const rows = synthetic ? legacy.map(station => ({ id: station.id, name: station.name, lines: [{ id: 'northern', name: 'Northern line' }] }))
     : stations.map(station => ({ id: station.station_id, name: station.station_name,
-      detail: [...new Set(station.platforms.flatMap(platform => platform.services.map(service => service.line_name)))].join(' · ') }));
+      lines: lineLabels(station.platforms.flatMap(platform => platform.services)) }));
   return <Surface title="Search stations" onBack={navigation.goBack}
     headerAction={<TextAction label="Cancel" onPress={navigation.goBack} />}>
     <GlassSurface accent={accent} style={[ui.row, {
@@ -48,11 +50,11 @@ export function SearchScreen({ navigation }: Screen<'Search'>) {
     <Label accessibilityRole="header" tone="dim" size={15} style={{ marginTop: 5, marginBottom: 9, marginHorizontal: 4 }}>
       {searching ? 'Search results' : 'Recent searches'}
     </Label>
-    {!missing && rows.map(station => <Result key={station.id} title={station.name} detail={station.detail} onPress={() => {
+    {!missing && rows.map(station => <Result key={station.id} title={station.name} detail="" onPress={() => {
       Keyboard.dismiss();
       preferences.selectStation(station.id);
       navigation.navigate('Picker', { stationId: station.id });
-    }} />)}
+    }}><LineLabels lines={station.lines} /></Result>)}
     {missing ? <Label tone="dim" accessibilityRole="alert">
       Station catalogue is unavailable. Close and reopen the app to retry. If this continues, update or reinstall the app.
     </Label> : !rows.length && <Label tone="dim">
@@ -73,22 +75,26 @@ export function PickerScreen({ navigation, route }: Screen<'Picker'>) {
   return <Surface title="Select platform" onBack={navigation.goBack}>
     <Label size={22} bold accessibilityRole="header" style={{ marginVertical: 5 }}>{name}</Label>
     <Label tone="dim">Select a physical platform to inspect its details.</Label>
+    {platformLineGroups(platforms).map(group => <View key={group.key}>
+      <View style={{ marginTop: 24, marginBottom: 8, marginHorizontal: 4 }}>
+        <LineLabels lines={group.lines} heading />
+      </View>
+      {group.platforms.map(platform => {
+        const selection = catalogue.selection?.(station!, platform);
+        return <Result key={platform.platform_id}
+          title={platformPickerTitle(platform.cardinal_direction, platform.platform_number)} titleEmphasis
+          detail={platformPickerDestination(platform.services)}
+          onPress={() => selection ? navigation.navigate('Departures', { selection })
+            : navigation.navigate('PlatformDetails', { stationId: station!.station_id, platformId: platform.platform_id })} />;
+      })}
+    </View>)}
     {directions.map(direction => {
-      const matching = platforms.filter(platform => platform.cardinal_direction === direction);
       const fixtures = fixturePlatforms.filter(platform => platform.direction === direction);
-      return (matching.length > 0 || fixtures.length > 0) && <View key={direction}>
+      return fixtures.length > 0 && <View key={direction}>
         <Label tone="dim" size={15} accessibilityRole="header"
           style={{ marginTop: 24, marginBottom: 8, marginHorizontal: 4 }}>{direction || 'Direction not published'}</Label>
-        {matching.map(platform => {
-          const selection = catalogue.selection?.(station!, platform);
-          return <Result key={platform.platform_id}
-            title={platform.platform_number ? 'Platform ' + platform.platform_number : 'Platform number not published'}
-            detail={[platform.friendly_name, services(platform)].filter(Boolean).join('\n')}
-            onPress={() => selection ? navigation.navigate('Departures', { selection })
-              : navigation.navigate('PlatformDetails', { stationId: station!.station_id, platformId: platform.platform_id })} />;
-        })}
-        {fixtures.map(selection => <Result key={selectionKey(selection)} title={'Platform ' + selection.platform}
-          detail={selection.direction} onPress={() => navigation.navigate('Departures', { selection })} />)}
+        {fixtures.map(selection => <Result key={selectionKey(selection)} title={platformPickerTitle(selection.direction, selection.platform)} titleEmphasis
+          detail="" onPress={() => navigation.navigate('Departures', { selection })} />)}
       </View>;
     })}
     {!platforms.length && !fixturePlatforms.length && <View style={{ marginTop: 16, gap: 12 }}>
@@ -111,6 +117,7 @@ export function PlatformDetailsScreen({ navigation, route }: Screen<'PlatformDet
       <Label>{platform.cardinal_direction || 'Direction unavailable'}</Label>
       <Label>{platform.friendly_name || 'Platform description not published'}</Label>
       <Label bold accessibilityRole="header">Published services</Label>
+      <LineLabels lines={lineLabels(platform.services)} />
       <Label>{services(platform)}</Label>
       <Label tone="dim">{platform.services.map(service => {
         const capability = serviceCapability(station, platform, service);
