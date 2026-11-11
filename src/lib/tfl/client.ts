@@ -95,12 +95,12 @@ async function diagnose<T>(operation: DiagnosticOperation, work: () => Promise<T
   }
 }
 
-async function fetchArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]> {
+async function fetchArrivals(lineId: string, id: string, signal?: AbortSignal): Promise<Arrival[]> {
   return diagnose("arrivals", async () => {
     try {
       return parseArrivals(
-        await get(`/Line/northern/Arrivals/${encodeURIComponent(id)}`, "live", signal),
-      ).filter((arrival) => arrival.naptanId === id);
+        await get(`/Line/${encodeURIComponent(lineId)}/Arrivals/${encodeURIComponent(id)}`, "live", signal),
+      ).filter((arrival) => arrival.naptanId === id && arrival.lineId === lineId);
     } catch (error) {
       if (error instanceof TflError) throw error;
       throw new TflError("upstream", "TfL arrivals payload invalid");
@@ -129,14 +129,41 @@ async function fetchArrivals(id: string, signal?: AbortSignal): Promise<Arrival[
  *     Validated arrivals for the requested station.
  */
 export function getArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]> {
-  if (signal) return fetchArrivals(id, signal);
-  const existing = inFlightArrivals.get(id);
+  return getLineArrivals("northern", id, signal);
+}
+
+/**
+ * Fetches one exact line/stop feed while sharing only overlapping requests.
+ *
+ * Parameters
+ * ----------
+ * lineId : string
+ *     Exact TfL line identifier selected by the verified capability boundary.
+ * id : string
+ *     Published service stop-area identifier.
+ * signal : AbortSignal, optional
+ *     Caller cancellation. These requests are isolated from shared requests.
+ *
+ * Returns
+ * -------
+ * Promise[Arrival[]]
+ *     Validated records belonging to both the requested line and stop area.
+ *
+ * Raises
+ * ------
+ * TflError
+ *     For configuration, transport, timeout or malformed upstream payloads.
+ */
+export function getLineArrivals(lineId: string, id: string, signal?: AbortSignal): Promise<Arrival[]> {
+  if (signal) return fetchArrivals(lineId, id, signal);
+  const key = JSON.stringify([lineId, id]);
+  const existing = inFlightArrivals.get(key);
   if (existing) return existing;
-  const request = fetchArrivals(id);
-  inFlightArrivals.set(id, request);
+  const request = fetchArrivals(lineId, id);
+  inFlightArrivals.set(key, request);
   request.then(
-    () => { if (inFlightArrivals.get(id) === request) inFlightArrivals.delete(id); },
-    () => { if (inFlightArrivals.get(id) === request) inFlightArrivals.delete(id); },
+    () => { if (inFlightArrivals.get(key) === request) inFlightArrivals.delete(key); },
+    () => { if (inFlightArrivals.get(key) === request) inFlightArrivals.delete(key); },
   );
   return request;
 }

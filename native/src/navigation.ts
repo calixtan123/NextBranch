@@ -7,6 +7,7 @@ export type Routes = {
   Search: undefined;
   Picker: { stationId: string };
   Departures: { selection: Selection };
+  PlatformDetails: { stationId: string; platformId: string };
   Manage: { replacement?: Selection; undo?: boolean } | undefined;
   Settings: undefined;
   Appearance: undefined;

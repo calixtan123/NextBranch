@@ -1,16 +1,21 @@
+/** Saved and expanded physical-platform boards with live arrival and coverage state. */
 import { memo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, FeGaussianBlur, Filter, Path, Pattern, Rect } from 'react-native-svg';
 import { byId } from '../../src/lib/northern/stations';
+import type { AppStation } from '../../src/lib/catalogue';
+import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { londonTime } from '../../src/lib/northern/time';
 import {
-  boardRows, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
+  boardRows, departureIdentity, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
 } from './board-model';
 import type { Selection } from './catalogue';
+import { LineLabels } from './LineLabels';
+import { lineLabels, platformPickerTitle } from './line-presentation';
 import { glyphs } from './glyphs';
 import type { Style } from './preferences';
 import { isStale, type createStationOwner } from './station-owner';
-import { Action, Label, LineMarker, ui, usePalette } from './theme';
+import { Action, Label, ui, usePalette } from './theme';
 
 const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '#251F15', text: '#FFAA25', step: 6 };
 const modern = { background: '#080C10', dot: '#29303B', frame: '#1B3444', rule: '#4F9BBB', text: '#BDEBFF', step: 7 };
@@ -19,7 +24,7 @@ const glowPadding = 4;
 const dotRadius = matrixDotSize * .3;
 const dotEdge = matrixDotSize - 2 * dotRadius;
 const emptyCopy = 'No departures currently assigned to this platform';
-type Row = ReturnType<typeof boardRows>[number];
+type Row = ReturnType<typeof boardRows>[number] & { identity: string };
 type LiveState = ReturnType<ReturnType<typeof createStationOwner>['get']>;
 
 function roundedDot(x: number, y: number) {
@@ -63,7 +68,7 @@ const Led = memo(function Led({ value, scale }: { value: string; scale: number }
 });
 
 function rowLabel(row: Row, index: number, expanded: boolean) {
-  return [String(index + 1), row.destination, row.branch, row.countdown,
+  return [String(index + 1), row.identity, row.countdown,
     expanded ? `Expected at ${londonTime(row.expectedArrival)} London time` : null].filter(Boolean).join(', ');
 }
 
@@ -73,7 +78,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
   const { fontScale } = useWindowDimensions();
   const isAmber = style === 'amber';
   const board = isAmber ? amber : modern;
-  const text = row.destination + ' ' + row.branch;
+  const text = row.identity;
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
   const scale = text.length > 28 ? .61 : text.length > 22 ? .68 : .78;
   const gap = isAmber ? 5 : 7;
@@ -129,19 +134,40 @@ function freshness(state: LiveState, now: number, online: boolean, limited: bool
 }
 
 /** Formats a catalogue selection independently of feed content. */
-export const platformName = (selection: Selection) => `${selection.direction} · Platform ${selection.platform}`;
+export const platformName = (selection: Selection) => platformPickerTitle(selection.direction, selection.platform);
 
 /** Shared Home and detail board, including stale or partial matching snapshots. */
-export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onRetry, onReview }: {
+export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onRetry, onReview, station }: {
   selection: Selection; style: Style; state: LiveState; now: number; online: boolean; limited: boolean; expanded?: boolean;
-  onOpen?: () => void; onRetry: () => void; onReview: () => void;
+  onOpen?: () => void; onRetry: () => void; onReview: () => void; station?: AppStation;
 }) {
   const colors = usePalette();
   const { fontScale } = useWindowDimensions();
   const stackedHeader = fontScale > 1.35;
   const [width, setWidth] = useState(0);
-  const name = byId.get(selection.stationId)?.name ?? selection.stationId;
-  const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3);
+  const name = station?.station_name ?? byId.get(selection.stationId)?.name ?? selection.stationId;
+  const matchingPlatforms = station?.platforms.filter(item => selection.physicalPlatformId
+    ? item.platform_id === selection.physicalPlatformId
+    : item.platform_number === selection.platform && item.cardinal_direction === selection.direction);
+  const platform = matchingPlatforms?.length === 1 ? matchingPlatforms[0] : undefined;
+  const lineNames = platform ? [...new Set(platform.services.map(service => service.line_name))].join(' · ') : 'Northern line';
+  const departureCoverage = platform?.services.some(service => service.line_id === 'national-rail')
+    ? 'TfL departures only' : null;
+  const details = platform?.services.map(service => {
+    const capability = serviceCapability(station!, platform, service);
+    const feedState = state.snapshot?.catalogue?.feeds?.find(feed => feed.lineId === service.line_id && feed.stopAreaId === service.stop_area_naptan_code)?.liveState;
+    const supportedCopy = feedState === 'unavailable' || state.error ? 'Live departures temporarily unavailable'
+      : feedState === 'empty' ? 'No upcoming departures' : null;
+    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? supportedCopy :
+      capability.feed === 'unsupported' ? 'Live departures unsupported' :
+        capability.feed === 'supported' ? 'Platform matching awaits verification' : 'Live departures or platform matching await verification';
+    if (!coverage) return null;
+    return [service.line_name, service.direction_towards.trim() ? 'Towards ' + service.direction_towards : null, coverage]
+      .filter(Boolean).join(' · ');
+  });
+  const caveats = [...new Set([departureCoverage, ...details ?? []].filter((detail): detail is string => Boolean(detail)))];
+  const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3)
+    .map(row => ({ ...row, identity: departureIdentity(row, platform?.services) }));
   const board = style === 'amber' ? amber : modern;
   const warning = !online || Boolean(state.error) || isStale(state, now, online);
   const status = freshness(state, now, online, limited);
@@ -150,16 +176,16 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const unknown = expanded ? unassignedCount(state.snapshot, now) : 0;
   const content = <>
     <View style={[ui.row, {
-      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8,
+      minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
       ...(stackedHeader && { flexDirection: 'column', alignItems: 'stretch', paddingBottom: 6 }),
     }]}>
-      <View style={[!stackedHeader && ui.flex, { paddingVertical: 6, gap: 1 }]}>
-        <Label size={15} bold style={{ fontFamily: 'Avenir Next', letterSpacing: -.25, fontWeight: '800' }}>{name}</Label>
-        <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{platformName(selection)}</Label>
+      <View style={[{ flexShrink: 0, maxWidth: '100%', paddingVertical: 6, gap: 1 }, !stackedHeader && { flexGrow: 1 }]}>
+        <Label size={19} bold style={{ letterSpacing: -.25, fontWeight: '700' }}>{platformName(selection)}</Label>
+        <Label size={14} tone="dim">{name}</Label>
       </View>
-      <View style={[ui.row, { gap: 5, maxWidth: stackedHeader ? '100%' : '38%' }]}>
-        <LineMarker />
-        <Label size={10} tone="dim" bold style={{ fontFamily: 'Avenir Next', fontWeight: '700', flexShrink: 1, textAlign: stackedHeader ? 'left' : 'right' }}>Northern line</Label>
+      <View style={[ui.row, { gap: 5, flexShrink: 0, maxWidth: '100%' }]}>
+        <LineLabels lines={platform ? lineLabels(platform.services) : [{ id: 'northern', name: 'Northern line' }]} size={12} align={stackedHeader ? 'left' : 'right'}
+          textStyle={{ fontWeight: '700' }} />
       </View>
     </View>
     <View style={{
@@ -177,24 +203,27 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
           width={width} expanded={expanded} last={index === rows.length - 1} />)}
-        {!rows.length && <Text style={{ color: board.text, padding: 8, fontSize: 12, fontFamily: 'Avenir Next' }}>
+        {!rows.length && <Label size={12} style={{ color: board.text, padding: 8 }}>
           {state.snapshot ? emptyStatus : status}
-        </Text>}
+        </Label>}
       </View>
     </View>
     <View style={[ui.wrap, { minHeight: 23, paddingHorizontal: 11, paddingVertical: 3, justifyContent: 'space-between' }]}>
       <View style={[ui.row, { gap: 4, flexShrink: 1 }]}>
         {state.pending && <ActivityIndicator size="small" color={colors.dim} />}
-        <Label size={10} tone={warning ? 'warning' : 'dim'} style={{ fontFamily: 'Avenir Next', flexShrink: 1 }}>
+        <Label size={10} tone={warning ? 'warning' : 'dim'} style={{ flexShrink: 1 }}>
           {warning ? '⚠ ' : state.snapshot ? '● ' : ''}{status}
           {state.pending && state.snapshot ? ' · Updating…' : ''}
         </Label>
       </View>
-      {expanded && state.snapshot && <Label size={10} tone="dim" style={{ fontFamily: 'Avenir Next' }}>{count}</Label>}
+      {expanded && state.snapshot && <Label size={10} tone="dim">{count}</Label>}
     </View>
+    {caveats.length > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+      {caveats.join('\n')}
+    </Label>}
   </>;
-  const description = [name, platformName(selection), 'Northern line', ...rows.map((row, index) => rowLabel(row, index, false)),
-    !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean).join('. ');
+  const description = [...new Set([platformName(selection), name, lineNames, ...caveats, ...rows.map((row, index) => rowLabel(row, index, false)),
+    !rows.length && state.snapshot ? emptyStatus : null, status].filter(Boolean))].join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
     borderRadius: 10, overflow: 'hidden', marginBottom: expanded ? 10 : 18, boxShadow: '0 2px 8px #00000020',
@@ -203,7 +232,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
       accessibilityHint="Opens platform departures" style={({ pressed }) => ({ opacity: pressed ? .68 : 1 })}>
       {content}
     </Pressable> : content}
-    {unknown > 0 && <Label size={11} tone="dim" style={{ fontFamily: 'Avenir Next', paddingHorizontal: 11, paddingVertical: 6 }}>
+    {unknown > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
       {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.
     </Label>}
     {online && state.error && state.error !== 'configuration' && <View style={{ paddingHorizontal: 11, paddingBottom: 7 }}>

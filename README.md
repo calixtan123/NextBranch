@@ -172,6 +172,14 @@ node scripts/analyze-northern-station-accessibility.mjs \
 
 The raw CSV export remains ignored and must not be committed.
 
+## Station and platform catalogue
+
+The [TfL station and platform catalogue](docs/TFL_STATION_PLATFORM_CATALOGUE.md)
+records the official source, schema, coverage and integration caveats for the
+reference snapshot in `data/tfl-station-platform-inventory/`. JSON, CSV and XLSX
+representations contain 509 stations, 1,584 platforms and 1,878 platform-service
+relationships, including the published platform directions and shared-line platforms.
+
 ## Project map
 
 - `src/app/page.tsx`, `src/components/`: App Router page and accessible UI.

@@ -18,7 +18,7 @@ export function ReviewCard({ stationId, platform, onPress }: { stationId: string
 
 /** Shows the ordered saved platform boards and Home actions. */
 export function HomeScreen({ navigation }: Screen<'Home'>) {
-  const { stations, catalogue, preferences } = useRuntime();
+  const { stations, catalogue, preferences, discovery } = useRuntime();
   const { cards, mode, removal } = usePreferences();
   const accent = majorityStyle(mode, cards);
   const now = useBoardTime();
@@ -47,14 +47,14 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
     {cards.map(card => {
       const review = () => navigation.navigate('Picker', { stationId: card.stationId });
       return catalogue.has(card)
-        ? <PlatformBoard key={selectionKey(card)} selection={card} style={effectiveStyle(mode, card)}
+        ? <PlatformBoard key={selectionKey(card)} selection={card} station={discovery?.catalogue?.stationsByAnyId.get(card.stationId)} style={effectiveStyle(mode, card)}
           state={stations.get(card.stationId)} now={now} online={online} limited={limited}
           onOpen={() => navigation.navigate('Departures', { selection: card })}
           onRetry={() => void refresh([card.stationId])} onReview={review} />
         : <ReviewCard key={selectionKey(card)} stationId={card.stationId} platform={card.platform} onPress={review} />;
     })}
     {!cards.length && <Label tone="dim" style={{ marginBottom: 10 }}>
-      Add a Northern line platform to see its next departures here.
+      Add a TfL platform to see its next departures here.
     </Label>}
     <View style={ui.wrap}>
       {cards.length < 3 && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}
@@ -67,7 +67,7 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
 
 /** Shows a single physical platform with its expanded board and save actions. */
 export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
-  const { catalogue, preferences, stations } = useRuntime();
+  const { catalogue, preferences, stations, discovery } = useRuntime();
   const { cards, mode } = usePreferences();
   const { selection } = route.params;
   const saved = cards.find(card => selectionKey(card) === selectionKey(selection));
@@ -83,7 +83,7 @@ export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
       <Label size={11} tone="dim" style={{ marginBottom: 10 }}>
         Selected physical platform{state.snapshot ? ` · ${count} upcoming` : ''}
       </Label>
-      <PlatformBoard selection={selection} style={effectiveStyle(mode, saved)} state={state} now={now}
+      <PlatformBoard selection={selection} station={discovery?.catalogue?.stationsByAnyId.get(selection.stationId)} style={effectiveStyle(mode, saved)} state={state} now={now}
         online={online} limited={limited} expanded onReview={review} onRetry={() => void refresh([selection.stationId])} />
       <View style={ui.wrap}>
         <Action primary onPress={() => {

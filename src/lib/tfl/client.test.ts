@@ -294,3 +294,30 @@ describe("TfL arrivals boundary", () => {
     ).rejects.toMatchObject({ code: "timetable" });
   });
 });
+
+it("isolates concurrent exact line/stop feeds and filters both identities at the boundary", async () => {
+  const { getLineArrivals } = await import("./client");
+  process.env.TFL_API_KEY = "test-key";
+  const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => [
+    { ...arrival[0], lineId: url.includes('/Line/central/') ? "central" : "district" },
+    { ...arrival[0], lineId: "victoria" },
+    { ...arrival[0], lineId: "central", naptanId: "other" },
+  ] }));
+  vi.stubGlobal("fetch", fetcher);
+  try {
+    const [central, duplicate, district] = await Promise.all([
+      getLineArrivals("central", "940GZZLUCTN"), getLineArrivals("central", "940GZZLUCTN"), getLineArrivals("district", "940GZZLUCTN"),
+    ]);
+    expect(central.map(a => a.lineId)).toEqual(["central"]);
+    expect(duplicate).toEqual(central);
+    expect(district.map(a => a.lineId)).toEqual(["district"]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls.map(call => call[0])).toEqual(expect.arrayContaining([
+      expect.stringContaining("/Line/central/Arrivals/940GZZLUCTN"), expect.stringContaining("/Line/district/Arrivals/940GZZLUCTN"),
+    ]));
+  } finally {
+    vi.unstubAllGlobals();
+    if (originalKey === undefined) delete process.env.TFL_API_KEY;
+    else process.env.TFL_API_KEY = originalKey;
+  }
+});

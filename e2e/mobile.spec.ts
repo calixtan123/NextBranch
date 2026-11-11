@@ -201,7 +201,7 @@ for (const view of ["departures", "journey"] as const) {
   test(`${view}: empty predictions explain the absence of trains`, async ({ page, api }) => {
     api.mode = "empty";
     await page.goto(url);
-    await expect(page.getByText(view === "departures" ? "No current Northern line departures are predicted." : "No suitable trains are currently predicted.")).toBeVisible();
+    await expect(page.getByText(view === "departures" ? "No current TfL departures are predicted." : "No suitable trains are currently predicted.")).toBeVisible();
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   });
 }

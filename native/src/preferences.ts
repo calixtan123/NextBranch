@@ -23,19 +23,20 @@ const MAX = 3;
 const style = (value: unknown): Style | undefined => value === 'amber' || value === 'modern' ? value : undefined;
 const persistenceWarning = 'Changes may only be available for this session.';
 
-function decode(raw: string | null): Partial<State> {
+function decode(raw: string | null, isKnownStation: (id: string) => boolean, canonicalStationId: (id: string) => string, catalogue: Catalogue): Partial<State> {
   if (raw === null) return {};
   const data = JSON.parse(raw);
   if (data?.version !== 1) throw new Error('Unsupported preference version');
   const cards = new Map<string, Card>();
   for (const item of Array.isArray(data.cards) ? data.cards : []) {
-    const selection = readSelection(item);
+    const parsed = readSelection(item);
+    const selection = parsed ? catalogue.resolve?.(parsed) ?? parsed : null;
     if (selection && !cards.has(selectionKey(selection))) {
       cards.set(selectionKey(selection), { ...selection, style: style(item.style) });
     }
   }
   const recent = Array.isArray(data.recent)
-    ? [...new Set<string>(data.recent.filter((id: unknown) => typeof id === 'string' && byId.has(id)))].slice(0, 2)
+    ? [...new Set<string>(data.recent.filter((id: unknown) => typeof id === 'string' && isKnownStation(id)).map(canonicalStationId))].slice(0, 2)
     : [];
   return { cards: [...cards.values()].slice(0, MAX), mode: style(data.mode) ?? (data.mode === 'custom' ? 'custom' : 'amber'), recent,
     interfaceTheme: data.interfaceTheme === 'light' || data.interfaceTheme === 'dark' ? data.interfaceTheme : undefined };
@@ -60,6 +61,8 @@ export function createPreferences(
   now = Date.now,
   storageKey = 'nextbranch.preferences',
   initialCards: readonly Card[] = [],
+  isKnownStation: (id: string) => boolean = id => byId.has(id),
+  canonicalStationId: (id: string) => string = id => id,
 ) {
   let state: State = { ready: false, cards: [], mode: 'amber', recent: [], warning: null, removal: null };
   let writeQueue = Promise.resolve();
@@ -96,7 +99,7 @@ export function createPreferences(
     load: () => loading ??= (async () => {
       try {
         const raw = await storage.getItem(storageKey);
-        const decoded = decode(raw);
+        const decoded = decode(raw, isKnownStation, canonicalStationId, catalogue);
         publish({ cards: initialCards, ...decoded, ready: true });
       } catch {
         writable = false;
@@ -189,8 +192,10 @@ export function createPreferences(
       commit({ cards, mode: 'custom' });
     },
     selectStation(id: string) {
-      if (!state.ready || !byId.has(id) || state.recent[0] === id) return;
-      commit({ recent: [id, ...state.recent.filter(item => item !== id)].slice(0, 2) });
+      if (!state.ready || !isKnownStation(id)) return;
+      const stationId = canonicalStationId(id);
+      if (state.recent[0] === stationId) return;
+      commit({ recent: [stationId, ...state.recent.filter(item => item !== stationId)].slice(0, 2) });
     },
   };
 }

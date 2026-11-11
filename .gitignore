@@ -25,6 +25,9 @@ skills-lock.json
 # Isolated feature worktrees created by local development tooling
 .worktrees/
 
+# Python catalogue refresh verification
+__pycache__/
+.pytest_cache/
 # Expo generated native project and local output
 /native/.expo/
 /native/dist/

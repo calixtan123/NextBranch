@@ -1,3 +1,4 @@
+/** Coordinates live request ownership, cancellation, freshness and shared cooldown. */
 import { REFRESH_SECONDS } from '../../src/lib/northern/time';
 import type { FailureKind, Snapshot, StationTransport } from './api';
 
@@ -23,8 +24,28 @@ export function isStale(state: StationState, now: number, online: boolean): bool
   return Boolean(state.snapshot && (!online || state.error || now - Date.parse(state.snapshot.observedAt) > FRESH_FOR));
 }
 
-/** Coordinates one request, snapshot and polling timer for each visible station. */
-export function createStationOwner(transport: StationTransport, now = Date.now, observationNow = now) {
+/**
+ * Coordinates one request, snapshot and polling timer per resolved station.
+ *
+ * Parameters
+ * ----------
+ * transport : StationTransport
+ *     Transport receiving the resolved canonical station identifier.
+ * now : function, optional
+ *     Request scheduling clock.
+ * observationNow : function, optional
+ *     Snapshot freshness clock.
+ * resolveStation : function, optional
+ *     Maps service aliases to the canonical station owning their underlying feeds.
+ *     The identity default preserves existing transport callers.
+ *
+ * Returns
+ * -------
+ * object
+ *     Visible-consumer ownership and shared request state. Alias reads retain
+ *     their requested station identity after canonical response validation.
+ */
+export function createStationOwner(transport: StationTransport, now = Date.now, observationNow = now, resolveStation: (id: string) => string = id => id) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
   let owned = new Set<string>();
@@ -133,14 +154,17 @@ export function createStationOwner(transport: StationTransport, now = Date.now, 
       return () => { listeners.delete(listener); };
     },
     get(id: string): StationState {
-      const entry = entries.get(id);
-      return entry ? { snapshot: entry.snapshot, error: entry.error, pending: Boolean(entry.flight) } : idle;
+      const canonicalId = resolveStation(id);
+      const entry = entries.get(canonicalId);
+      const snapshot = entry?.snapshot;
+      const requestedSnapshot = snapshot && canonicalId !== id ? { ...snapshot, station: { ...snapshot.station, id } } : snapshot;
+      return entry ? { snapshot: requestedSnapshot, error: entry.error, pending: Boolean(entry.flight) } : idle;
     },
     isOnline: () => online,
     isActive: () => active,
     isRateLimited: () => now() < retryAt,
     own(ids: readonly string[]) {
-      const next = new Set(ids);
+      const next = new Set(ids.map(resolveStation));
       const previous = owned;
       if (next.size === previous.size && [...next].every(id => previous.has(id))) return;
       owned = next;
@@ -173,7 +197,7 @@ export function createStationOwner(transport: StationTransport, now = Date.now, 
       const startedAt = now();
       if (startedAt < retryAt) return null;
       const jobs: Promise<Outcome>[] = [];
-      new Set(ids).forEach(id => {
+      new Set(ids.map(resolveStation)).forEach(id => {
         const entry = entryFor(id);
         if (!canRun(id) || startedAt < entry.manualAt || entry.error === 'invalid' || entry.error === 'configuration') return;
         entry.manualAt = startedAt + MANUAL_COOLDOWN;

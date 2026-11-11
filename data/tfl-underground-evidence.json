@@ -1,0 +1,3889 @@
+{
+  "retrievedOn": "2026-11-10",
+  "source": "Official TfL Unified API line arrivals. Observed labels only, no inferred direction or platform.",
+  "feeds": [
+    {
+      "lineId": "bakerloo",
+      "url": "https://api.tfl.gov.uk/Line/bakerloo/Arrivals",
+      "sha256": "7b1b60447bbc4112d38d8991179dafc0233c1fe8f10c5aa21f3cac6970cc8f60",
+      "predictionCount": 217,
+      "labels": [
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 9"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Southbound - Platform 8"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUCHX",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUCHX",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUEAC",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUEAC",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Northbound - Platform 5"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Southbound - Platform 6"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUERB",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUERB",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUHAW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUHAW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUHSN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUHSN",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKEN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKEN",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKPK",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKPK",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKSL",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUKSL",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLULBN",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUMVL",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUMVL",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUMYB",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUMYB",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUNWY",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUNWY",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUPCC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUPCC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUQPS",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUQPS",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLURGP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLURGP",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUSGP",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUSGP",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUSKT",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUSKT",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWJN",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWJN",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWKA",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWKA",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWYC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "bakerloo",
+          "stopAreaId": "940GZZLUWYC",
+          "platformName": "Southbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "central",
+      "url": "https://api.tfl.gov.uk/Line/central/Arrivals",
+      "sha256": "e278f647db49f97d0dea902c9e931153957abe882f1534533ab468214272569b",
+      "predictionCount": 606,
+      "labels": [
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBKE",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBKH",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBKH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBLG",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBLG",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBND",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBND",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUCHL",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUCHL",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUCWL",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUCWL",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUDBN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUDBN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEAN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEAN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEBY",
+          "platformName": "Eastbound - Platform 5"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEBY",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEPG",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUEPG",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUFLP",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGFD",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGFD",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGGH",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGGH",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGTH",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUGTH",
+          "platformName": "Outer Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHBN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHBN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHGR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHGR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHLT",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHLT",
+          "platformName": "Inner Rail - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHLT",
+          "platformName": "Outer Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHPK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUHPK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULGN",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULGN",
+          "platformName": "Platform 2/3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULGN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULGT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULGT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULYN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULYN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULYS",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLULYS",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUMBA",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUMBA",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNAN",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNAN",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNAN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNBP",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNHG",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNHG",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNHT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUNHT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUPVL",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUPVL",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUQWY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUQWY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURBG",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURBG",
+          "platformName": "Outer Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURSG",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURSG",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURVY",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLURVY",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSBC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSBC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSNB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSNB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSPU",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSPU",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSRP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSRP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSTD",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSTD",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSWF",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUSWF",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUTCR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUTCR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUTHB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUTHB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWCY",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWCY",
+          "platformName": "Platform 2/3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWCY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWOF",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWOF",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWRP",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWRP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWSD",
+          "platformName": "Inner Rail - Platform 2"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWSD",
+          "platformName": "Outer Rail - Platform 1"
+        },
+        {
+          "lineId": "central",
+          "stopAreaId": "940GZZLUWTA",
+          "platformName": "Westbound - Platform 1"
+        }
+      ]
+    },
+    {
+      "lineId": "circle",
+      "url": "https://api.tfl.gov.uk/Line/circle/Arrivals",
+      "sha256": "75b018114ef82d8fa2202d9c98aa6ed9314ed0de356ce3584ec3d0295344f847",
+      "predictionCount": 143,
+      "labels": [
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUBBN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUBKF",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUBKF",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Eastbound - Platform 5"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUBWT",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUCST",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUCST",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUESQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUFCN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUGHK",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUGPS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUGTR",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUGTR",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUHSK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUHSK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLULAD",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLULRD",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUMMT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUMMT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUMSH",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUMSH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUNHG",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUPAH",
+          "platformName": "Eastbound - Platform 16"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSBM",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSJP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSJP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSSQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUSSQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUTMP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUTMP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Eastbound - Platform 2 "
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUWLA",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "circle",
+          "stopAreaId": "940GZZLUWSP",
+          "platformName": "Eastbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "district",
+      "url": "https://api.tfl.gov.uk/Line/district/Arrivals",
+      "sha256": "46d0bd81200a36d9fe08fcf5b5fd80ed2336e35576a058e5d63c277b2366fa8d",
+      "predictionCount": 445,
+      "labels": [
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUACT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUADE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUADE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBBB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBBB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBEC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBEC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBKF",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBKF",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Westbound - Platform 6"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBSC",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBSC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBWR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUBWR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUCST",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUCST",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUCWP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUDGE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUDGE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUDGY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUDGY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEBY",
+          "platformName": "Eastbound - Platform 7"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEBY",
+          "platformName": "Eastbound - Platform 8"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEBY",
+          "platformName": "Eastbound - Platform 9"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUECM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUECT",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUECT",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEHM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEHM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEPK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEPK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEPY",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUEPY",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUFBY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUFBY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUGBY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUGTR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUHCH",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUHCH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUHSD",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUHSD",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUHSK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMMT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMMT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMSH",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUMSH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPLW",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPLW",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPSG",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPSG",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPYB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUPYB",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLURMD",
+          "platformName": "Eastbound - Platform 7"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLURVP",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLURVP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSFB",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSFS",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSFS",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSGN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSGN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSJP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSJP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSSQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUSSQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTMP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTMP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTNG",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPM",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPM",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPM",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUUPY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Eastbound - Platform 2 "
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWBN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWBN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIM",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIM",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIM",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIP",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWIP",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWKN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWPL",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWPL",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "district",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Westbound - Platform 1"
+        }
+      ]
+    },
+    {
+      "lineId": "hammersmith-city",
+      "url": "https://api.tfl.gov.uk/Line/hammersmith-city/Arrivals",
+      "sha256": "85e103139e1e3ad1a0fb76ec050f4429697d48f5533ec93d70d7b5673744dac1",
+      "predictionCount": 276,
+      "labels": [
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUADE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUADE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBBB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBBB",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBBN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBBN",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBKF",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBKG",
+          "platformName": "Westbound - Platform 6"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Eastbound - Platform 5"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Westbound - Platform 6"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBWR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBWR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUBWT",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUCST",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUEHM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUEHM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Platform 3"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUERC",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUESQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUESQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUFCN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUFCN",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUFYR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUGHK",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUGPS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUGPS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUHSC",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUHSC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUHSC",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUHSK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLULAD",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLULAD",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLULRD",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMED",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMMT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUMSH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUNHG",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Inner Rail - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPAC",
+          "platformName": "Outer Rail - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPAH",
+          "platformName": "Eastbound - Platform 16"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPAH",
+          "platformName": "Westbound - Platform 15"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPLW",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUPLW",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLURYO",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLURYO",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUSBM",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUSGN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUSGN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUSSQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUTWH",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUUPK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUUPK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWLA",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWPL",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWPL",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWSP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWSP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "hammersmith-city",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Northbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "jubilee",
+      "url": "https://api.tfl.gov.uk/Line/jubilee/Arrivals",
+      "sha256": "2c422ec826963a66acd95eaf7f1abaf5226f5ebfc5fd840deb1da9f92add17a1",
+      "predictionCount": 419,
+      "labels": [
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBMY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBMY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBND",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBND",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 10"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Southbound - Platform 7"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCGT",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCGT",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCPK",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCWR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCWR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCYF",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUCYF",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUDOH",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUDOH",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUFYR",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUFYR",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Northbound - Platform 5"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Southbound - Platform 6"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUKBN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUKBN",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUKBY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLULNB",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLULNB",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUNDN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUNDN",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUNGW",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUNGW",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUQBY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSJW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSJW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTD",
+          "platformName": "Westbound - Platform 13"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTD",
+          "platformName": "Westbound - Platform 14"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTD",
+          "platformName": "Westbound - Platform 15"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTM",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTM",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSTM",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSWC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSWC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSWK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUSWK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWHM",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWHP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWHP",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWIG",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWIG",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWSM",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "jubilee",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Southbound - Platform 4"
+        }
+      ]
+    },
+    {
+      "lineId": "metropolitan",
+      "url": "https://api.tfl.gov.uk/Line/metropolitan/Arrivals",
+      "sha256": "f81cb31096a506fb5aad40533d1a2e41131af087c22707fa40905aa0e54313e6",
+      "predictionCount": 258,
+      "labels": [
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUALD",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUAMS",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUAMS",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUAMS",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBBN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBBN",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUBST",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUCAL",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUCSM",
+          "platformName": "North / South"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUCXY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUCYD",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUCYD",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUEAE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUEAE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUESQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUESQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUFCN",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUFCN",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUFYR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUFYR",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUGPS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUGPS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHGD",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHOH",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHOH",
+          "platformName": "Northbound Fast - Platform 3"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHOH",
+          "platformName": "Northbound Main - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHOH",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUHOH",
+          "platformName": "Southbound Fast - Platform 6"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUICK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLULVT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUMPK",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUMPK",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUMPK",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNDN",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNHA",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNHA",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNKP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNOW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNOW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNWH",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUNWH",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUPNR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUPNR",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUPRD",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUPRD",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURKW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURKW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURSM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURSM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURSP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURSP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURYL",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLURYL",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWAF",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWAF",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWHW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWHW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWIG",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "metropolitan",
+          "stopAreaId": "940GZZLUWYP",
+          "platformName": "Southbound - Platform 6"
+        }
+      ]
+    },
+    {
+      "lineId": "northern",
+      "url": "https://api.tfl.gov.uk/Line/northern/Arrivals",
+      "sha256": "4401a3e6628343b1dca1672991c6b536d6e3c52474bf6aa45e57177de8a6ccbf",
+      "predictionCount": 966,
+      "labels": [
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZBPSUST",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZBPSUST",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUACY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUACY",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUAGL",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUAGL",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBLM",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBLM",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBOR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBOR",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBTK",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBTX",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBTX",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBZP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUBZP",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCFM",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCFM",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCHX",
+          "platformName": "Northbound - Platform 5"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCHX",
+          "platformName": "Southbound - Platform 6"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCND",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCND",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPN",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPS",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCPS",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCSD",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCSD",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCTN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCTN",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCTN",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUCTN",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEAC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEAC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEFY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEFY",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEGW",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEGW",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEMB",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Southbound - Platform 6"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUFYC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUFYC",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUGDG",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUGDG",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUGGN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUGGN",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUGGN",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHBT",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHBT",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHBT",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHCL",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHCL",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHGT",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHGT",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHTD",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUHTD",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKNG",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKNG",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKNG",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKNG",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKSH",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKSH",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Northbound - Platform 7"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Southbound - Platform 8"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLULNB",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLULNB",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLULSQ",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLULSQ",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMDN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMDN",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMDN",
+          "platformName": "Northbound - Platform 5"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Northbound - Platform 7"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMGT",
+          "platformName": "Southbound - Platform 8"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMHL",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMTC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUMTC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUODS",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUODS",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUOVL",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUOVL",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUSKW",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUSKW",
+          "platformName": "Southbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUSWN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUSWN",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTAW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTBC",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTBC",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTBY",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTBY",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTCR",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTCR",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTFP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUTFP",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWFN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWOP",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWRR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZLUWRR",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZNEUGST",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "northern",
+          "stopAreaId": "940GZZNEUGST",
+          "platformName": "Southbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "piccadilly",
+      "url": "https://api.tfl.gov.uk/Line/piccadilly/Arrivals",
+      "sha256": "995bb7430d1299df4cddfbd4d7b91eb15b472a2f38d61aa1a34a24933b0c37d1",
+      "predictionCount": 633,
+      "labels": [
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUACT",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUACT",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUACT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUACT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUALP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUALP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUASG",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUASG",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUASL",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUASL",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBDS",
+          "platformName": "EastBound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBDS",
+          "platformName": "WestBound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBOS",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBOS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBSC",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUBSC",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCAR",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCAR",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCGN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCGN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCKS",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCKS",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUCKS",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUEAE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUEAE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUECM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUECM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUECT",
+          "platformName": "Eastbound - Platform 5"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUECT",
+          "platformName": "Westbound - Platform 6"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUFPK",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUFPK",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUGTR",
+          "platformName": "Eastbound - Platform 5 "
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUGTR",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHBN",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHBN",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHGD",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHGD",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHNX",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHNX",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHPC",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHPC",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHR4",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHRC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHRC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHSD",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHSD",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWC",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWC",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWE",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWE",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUHWY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUICK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUICK",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUKNB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUKNB",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Eastbound - Platform 6"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Westbound - Platform 5"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLULSQ",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLULSQ",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUMRH",
+          "platformName": "EastBound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUMRH",
+          "platformName": "WestBound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNEN",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNEN",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNFD",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNFD",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNFD",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUNFD",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUOAK",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUOSY",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUOSY",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUPCC",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUPCC",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUPKR",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUPKR",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSM",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSM",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSP",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSP",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSQ",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURSQ",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURYL",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLURYL",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSEA",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSEA",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSEA",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSEA",
+          "platformName": "Westbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSGT",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSGT",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSHH",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSHH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSKS",
+          "platformName": "Westbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSUH",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSUH",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSUT",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUSUT",
+          "platformName": "Westbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUTNG",
+          "platformName": "Eastbound - Platform 3"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUTNG",
+          "platformName": "Westbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUTPN",
+          "platformName": "EastBound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUTPN",
+          "platformName": "WestBound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 2"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUUXB",
+          "platformName": "Eastbound - Platform 4"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUWOG",
+          "platformName": "EastBound - Platform 1"
+        },
+        {
+          "lineId": "piccadilly",
+          "stopAreaId": "940GZZLUWOG",
+          "platformName": "WestBound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "victoria",
+      "url": "https://api.tfl.gov.uk/Line/victoria/Arrivals",
+      "sha256": "3f36eecf089f4ab1a624f11decbf1f14d626587f0738485455ba69b24e89af2b",
+      "predictionCount": 272,
+      "labels": [
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUBLR",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUBLR",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUBXN",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUBXN",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUEUS",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUFPK",
+          "platformName": "Northbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUFPK",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUGPK",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUHAI",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUHAI",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUKSX",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Northbound - Platform 6"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUOXC",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUPCO",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUPCO",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUSKW",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUSKW",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUSVS",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUSVS",
+          "platformName": "Northbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUSVS",
+          "platformName": "Southbound - Platform 5"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUTMH",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUTMH",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUVIC",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUVXL",
+          "platformName": "Northbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUVXL",
+          "platformName": "Southbound - Platform 2"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUWRR",
+          "platformName": "Northbound - Platform 3"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUWRR",
+          "platformName": "Southbound - Platform 4"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUWWL",
+          "platformName": "Southbound - Platform 1"
+        },
+        {
+          "lineId": "victoria",
+          "stopAreaId": "940GZZLUWWL",
+          "platformName": "Southbound - Platform 2"
+        }
+      ]
+    },
+    {
+      "lineId": "waterloo-city",
+      "url": "https://api.tfl.gov.uk/Line/waterloo-city/Arrivals",
+      "sha256": "da4caa9055cbdafa90e6b522df594b69dca5084205b4f67438011a8534bbee8e",
+      "predictionCount": 4,
+      "labels": [
+        {
+          "lineId": "waterloo-city",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Eastbound - Platform 8"
+        },
+        {
+          "lineId": "waterloo-city",
+          "stopAreaId": "940GZZLUBNK",
+          "platformName": "Westbound - Platform 7"
+        },
+        {
+          "lineId": "waterloo-city",
+          "stopAreaId": "940GZZLUWLO",
+          "platformName": "Westbound Platform 26"
+        }
+      ]
+    }
+  ]
+}
