@@ -528,6 +528,7 @@ it.each([224, 274])('keeps Amber glyph size and destination columns consistent a
       style: 'amber', now: Date.parse(observedAt), online: true, limited: false, expanded,
       state: { pending: false, error: null, snapshot }, onReview: vi.fn() });
     const rows = elements(tree).filter(node => 'row' in node.props);
+    expect(rows).toHaveLength(identities.length);
     rows.forEach((node, index) => {
       const render = node.type as (props: Element['props']) => Element;
       const row = render(node.props);
@@ -536,6 +537,7 @@ it.each([224, 274])('keeps Amber glyph size and destination columns consistent a
       expect(flattenStyle(countdown.props.style)).toMatchObject({ width: 62, alignItems: 'flex-end' });
       expect(flattenStyle(destination.props.style)).toMatchObject({ flex: 1, alignItems: 'flex-start', gap: 6 });
       const glyphLines = elements(destination).filter(child => 'value' in child.props);
+      expect(glyphLines.length).toBeGreaterThan(0);
       expect(glyphLines.map(child => (child.props as { value: string }).value).join(' ')).toBe(identities[index]);
       glyphLines.forEach(child => expect((child.props as { scale: number }).scale).toBe(.85));
     });
