@@ -26,3 +26,26 @@ The Jira connector returned Unknown tool when fetching NB-15; no successful comp
 - Reused the existing isolated worktree on a fresh NB-15 branch based on NB-14 so the simulator continues to load the same source path. Returning to older work requires a branch switch.
 - Omitted missing-destination placeholders while retaining explicit missing direction/number and material service warnings, following the latest request. Full source data remains intact.
 - Used one bounded implementation agent plus independent task and final reviews, as requested by ticket-agentic-development. No nested delegation.
+
+## Dot-matrix punctuation and line-label follow-up
+
+Implemented on feat/NB-15-matrix-line-suffix, based on 832ed4d and targeting feat/NB-15-board-card-hierarchy.
+
+- Added 5×7 glyphs for parentheses, ampersands, straight/curly apostrophes, slash, comma, plus, question/exclamation marks, brackets and en/em dashes. Glyph-table membership controls eligibility. Unsupported characters and large accessibility text retain native text rendering.
+- Departure destination identity uses Station (Line) for Circle, Hammersmith & City and multiple distinct TfL platform lines. Advertised via wording follows the line suffix. National Rail and duplicate memberships do not trigger a shared-line suffix. Feed-supplied equivalent suffixes such as Edgware Road (Circle Line) become Edgware Road (Circle).
+- The same formatter supplies visible rows and accessible descriptions. Unique legacy platform number/direction matches reuse catalogue service metadata.
+- Controller ran npm run verify successfully, including typecheck, ESLint and 415 tests across 38 files. Existing test diagnostic stdout was emitted.
+- Inspected live Home on iPhone 18 Pro / iOS 27.2. Barking (Hammersmith & City) and Edgware Road (Circle) render in Amber matrix with complete parentheses and ampersands. The latter uncovered a duplicate feed suffix, which was corrected with regression coverage. Ordinary Northern destinations retain their concise names and via wording. Screenshot recorded at /tmp/nb15-matrix-final-home.png. Existing shared Metro 8085 and API 3005 were reused.
+- Manual follow-up inspection covers dark Home in Amber. Modern, expanded, larger-text and accessibility string variants are covered by automated component tests. VoiceOver traversal has not been manually verified.
+- Jira access recovered. NB-15 was fetched and scope recorded in comment 10822. The follow-up native test run passed all 314 tests across 16 files, native typecheck passed, and the final iOS export passed. Independent task and fresh whole-branch reviews both passed requirements and code quality with no blocking findings. GitHub PR and latest-head CI are recorded in Jira completion evidence.
+
+## Complete line labels and Elizabeth destination cleanup
+
+The follow-up continues PR #16 into `feat/NB-15-board-card-hierarchy`.
+
+- Board headers use native flex wrapping so a complete line-label group can move beneath the platform and station identity. The restrictive 38% width cap was removed. Ordinary iPhone rendering now keeps Hammersmith & City together with its pink marker. The existing enlarged-text stacking and scalable typography continue to apply.
+- The shared destination display projection removes a terminal Rail Station suffix, including mixed case, extra spaces and suffixes before an embedded via clause. Published via wording and internal station names containing Rail Station are retained. The same concise destination supplies visible departures and accessible summaries. Cleanup applies to all native departure rows using this existing projection.
+- Header regressions failed before the layout fix. Elizabeth regressions initially produced 15 failures, followed by a separate failing via-preservation case before its guard was added. Final `npm --prefix native test` passed 337 tests across 16 files. `npm --prefix native run typecheck`, `npm --prefix native run export:ios` and `git diff --check` passed. Controller `npm run verify` passed root typecheck, ESLint and 415 tests across 38 files. Both independent task reviews passed requirement compliance and code quality.
+- On 11 November 2026, the controller inspected the current iPhone 18 Pro / iOS 27.2 simulator in Device Hub. Dark Amber Home showed Paddington and Heathrow Terminal 4 with the Rail Station suffix removed, plus the complete Circle and Hammersmith & City labels beneath Baker Street's Eastbound Platform 5 heading. The accessibility tree exposed the same concise Elizabeth destinations. Existing shared Metro/API services supplied the current preview.
+- Manual inspection covered ordinary-size dark Home on the simulator. Expanded boards, Modern rendering and measured matrix output have component regression coverage. Physical-device fitting, enlarged-text pixel rendering and a full VoiceOver traversal remain unverified. Expo emitted its existing non-fatal NO_COLOR/FORCE_COLOR warning.
+- Fresh final whole-follow-up review passed requirement compliance and code quality with no actionable findings. Jira access recovered through the Primary connection. NB-15 was already Done from earlier work. Follow-up scope and interim evidence were recorded in comment 10824. Current-head CI evidence will be recorded in Jira after publication.
