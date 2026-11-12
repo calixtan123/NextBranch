@@ -8,6 +8,7 @@ import json
 import os
 import struct
 import subprocess
+import zlib
 from pathlib import Path
 
 import pytest
@@ -178,10 +179,94 @@ def test_app_icon_is_1024_square_without_alpha():
     assert color_type == 2  # RGB: App Store Connect rejects icons with an alpha channel
 
 
-def test_icon_generator_reproduces_committed_icons():
-    native_icon = NATIVE / "assets" / "icon.png"
-    web_icons = sorted((ROOT / "public" / "icons").glob("*.png"))
-    before = {path: path.read_bytes() for path in [native_icon, *web_icons]}
-    subprocess.run(["node", "scripts/generate-icons.mjs"], cwd=ROOT, check=True, timeout=60)
-    after = {path: path.read_bytes() for path in before}
-    assert after == before  # native icon and existing web icons are byte-identical
+def _png_image(data: bytes) -> tuple[tuple[int, int, int, int], bytes]:
+    """Validate and decode the generator's unfiltered 8-bit RGB/RGBA PNGs."""
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "Invalid PNG signature"
+    chunks = []
+    offset = 8
+    while offset < len(data):
+        assert offset + 12 <= len(data), "Truncated PNG chunk"
+        length = struct.unpack_from(">I", data, offset)[0]
+        end = offset + 8 + length
+        assert end + 4 <= len(data), "Truncated PNG chunk data"
+        name = data[offset + 4:offset + 8]
+        body = data[offset + 8:end]
+        checksum = struct.unpack_from(">I", data, end)[0]
+        assert zlib.crc32(name + body) == checksum, f"Invalid {name!r} CRC"
+        chunks.append((name, body))
+        offset = end + 4
+
+    assert len(chunks) >= 3, "Missing PNG chunks"
+    assert chunks[0][0] == b"IHDR" and chunks[-1] == (b"IEND", b"")
+    assert all(name == b"IDAT" for name, _ in chunks[1:-1])
+    assert len(chunks[0][1]) == 13, "Invalid IHDR length"
+    width, height, depth, color_type, compression, filtering, interlace = struct.unpack(
+        ">IIBBBBB", chunks[0][1]
+    )
+    assert width > 0 and height > 0
+    assert depth == 8 and color_type in (2, 6), "Expected 8-bit RGB/RGBA"
+    assert (compression, filtering, interlace) == (0, 0, 0)
+    scanlines = zlib.decompress(b"".join(body for _, body in chunks[1:-1]))
+    channels = {2: 3, 6: 4}[color_type]
+    row_length = width * channels + 1
+    assert len(scanlines) == height * row_length, "Invalid pixel data length"
+    assert all(value == 0 for value in scanlines[::row_length]), "Expected filter 0"
+    return (width, height, depth, color_type), scanlines
+
+
+def _sample_png(pixel: bytes = b"\x17\x17\x17", compression_level: int = 6) -> bytes:
+    """Build a valid single-pixel RGB PNG for comparison regressions."""
+    chunks = [
+        (b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)),
+        (b"IDAT", zlib.compress(b"\x00" + pixel, level=compression_level)),
+        (b"IEND", b""),
+    ]
+    return b"\x89PNG\r\n\x1a\n" + b"".join(
+        struct.pack(">I", len(body)) + name + body + struct.pack(">I", zlib.crc32(name + body))
+        for name, body in chunks
+    )
+
+
+def test_png_image_accepts_different_compression_streams():
+    """Equivalent compressed encodings preserve the decoded image contract."""
+    stored = _sample_png(compression_level=0)
+    compressed = _sample_png(compression_level=9)
+    assert stored != compressed
+    assert _png_image(stored) == _png_image(compressed) == (
+        (1, 1, 8, 2), b"\x00\x17\x17\x17"
+    )
+
+
+def test_png_image_detects_changed_pixel():
+    """A single changed color channel remains visible to the comparison."""
+    before = _sample_png()
+    after = _sample_png(pixel=b"\x18\x17\x17")
+    assert _png_image(before) != _png_image(after)
+    assert _png_image(after) == ((1, 1, 8, 2), b"\x00\x18\x17\x17")
+
+
+def test_png_image_rejects_corrupt_chunk():
+    """Invalid PNG chunk checksums fail before comparing image content."""
+    corrupted = bytearray(_sample_png())
+    corrupted[-1] ^= 1
+    with pytest.raises(AssertionError, match="CRC"):
+        _png_image(bytes(corrupted))
+
+
+def test_icon_generator_reproduces_committed_icons(tmp_path):
+    """Regenerate into a temporary directory and compare every icon's content."""
+    icons = [Path("native/assets/icon.png")]
+    icons.extend(path.relative_to(ROOT) for path in (ROOT / "public" / "icons").glob("*.png"))
+    committed = {path: _png_image((ROOT / path).read_bytes()) for path in icons}
+    subprocess.run(
+        ["node", str(ROOT / "scripts" / "generate-icons.mjs")],
+        cwd=tmp_path,
+        check=True,
+        timeout=60,
+    )
+    generated = {
+        path.relative_to(tmp_path): _png_image(path.read_bytes())
+        for path in tmp_path.rglob("*.png")
+    }
+    # Compression may vary with zlib, while image format and pixels must match.
+    assert generated == committed
