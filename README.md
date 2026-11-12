@@ -128,6 +128,12 @@ npm run build
 npm start
 ```
 
+## TestFlight verification
+
+The [TestFlight candidate verification record](docs/TESTFLIGHT_VERIFICATION.md)
+contains current topology provenance, reproducible release commands and the
+remaining hosted/live/physical acceptance gates.
+
 ## Reviewed topology maintenance
 
 The bundled route fallback is a reviewed Northern-line snapshot, not a live
