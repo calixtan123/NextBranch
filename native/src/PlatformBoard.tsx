@@ -195,10 +195,10 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
         </Label>}
       </View>
     </View>
-    <View style={[ui.wrap, { minHeight: 23, paddingHorizontal: 11, paddingVertical: 3, justifyContent: 'space-between' }]}>
+    <View style={{ minHeight: 23, paddingHorizontal: 11, paddingVertical: 3, alignItems: 'center', justifyContent: 'center' }}>
       <View accessible={!onOpen} accessibilityRole="image" accessibilityLabel={status.label}
         style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors[status.tone] }} />
-      {expanded && state.snapshot && <Label size={10} tone="dim">{count}</Label>}
+      {expanded && state.snapshot && <Label size={10} tone="dim" style={{ alignSelf: 'stretch', textAlign: 'right' }}>{count}</Label>}
     </View>
     {caveats.length > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
       {caveats.join('\n')}

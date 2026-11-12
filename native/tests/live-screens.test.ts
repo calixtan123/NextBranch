@@ -6,13 +6,13 @@ import { createPreferences, selectionKey, type Selection } from '../src/preferen
 import type { Screen } from '../src/navigation';
 import { DeparturesScreen } from '../src/LiveScreens';
 
-const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn() }));
+const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), refresh: vi.fn() }));
 vi.mock('react-native', () => ({ View: 'View', AccessibilityInfo: { announceForAccessibility: vi.fn() } }));
 vi.mock('../src/screen-context', () => ({
   Surface: 'Surface', TextAction: 'TextAction',
   useRuntime: hooks.runtime, usePreferences: hooks.preferences,
   useBoardTime: () => 0,
-  useRefresh: () => ({ refresh: vi.fn(), refreshing: false }),
+  useRefresh: () => ({ refresh: hooks.refresh, refreshing: false }),
 }));
 vi.mock('../src/GlassControls', () => ({ GlassAction: 'GlassAction' }));
 vi.mock('../src/PlatformBoard', () => ({ PlatformBoard: 'PlatformBoard', platformName: () => 'Platform A' }));
@@ -78,4 +78,25 @@ it('offers one pull-to-refresh prompt for several failing saved cards without st
   expect(nodes.filter(node => node.props.children === 'Pull down to refresh')).toHaveLength(1);
   expect(nodes.filter(node => node.type === 'PlatformBoard').every(node => !('onRetry' in node.props))).toBe(true);
   expect(screen.props.refresh).toBeTypeOf('function');
+});
+
+it('keeps Home pull refresh, Add and Undo after removing the bottom refresh icon', async () => {
+  const { HomeScreen } = await import('../src/LiveScreens');
+  const cards = [{ stationId: 'first', platform: '1', direction: 'Eastbound' }];
+  const undo = vi.fn().mockReturnValue('restored');
+  const navigate = vi.fn();
+  hooks.refresh.mockClear();
+  hooks.preferences.mockReturnValue({ cards, mode: 'amber', removal: {} });
+  hooks.runtime.mockReturnValue({ catalogue: { has: () => true }, preferences: { undo },
+    stations: { get: () => ({ pending: false, error: null }), isOnline: () => true, isRateLimited: () => false } });
+  const screen = HomeScreen({ navigation: { navigate } } as unknown as Screen<'Home'>);
+  const nodes = screenElements(screen);
+  expect(nodes.filter(node => node.props.label === 'Refresh departures')).toHaveLength(0);
+  expect(hooks.refresh).not.toHaveBeenCalled();
+  screen.props.refresh!();
+  expect(hooks.refresh).toHaveBeenCalledWith(['first']);
+  nodes.find(node => node.props.label === 'Add a platform')!.props.onPress();
+  expect(navigate).toHaveBeenCalledWith('Search');
+  nodes.find(node => node.props.children === 'Undo removal')!.props.onPress();
+  expect(undo).toHaveBeenCalledOnce();
 });
