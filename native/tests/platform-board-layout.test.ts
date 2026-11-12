@@ -177,7 +177,7 @@ it('labels each shared-platform departure with its published line', async () => 
   expect(row?.props.row.identity).toBe('Ealing (District)');
 });
 
-it('shows temporary per-line failure separately from static verified support', async () => {
+it('uses a red dot for temporary per-line failure without redundant supported-feed prose', async () => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get('940GZZLUACT')!;
   const platform = station.platforms[0]!;
@@ -188,8 +188,10 @@ it('shows temporary per-line failure separately from static verified support', a
     onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
-  expect(copy).toContain('District');
-  expect(copy).toContain('Live departures temporarily unavailable');
+  expect(copy).not.toContain('Live departures temporarily unavailable');
+  const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+  expect(flattenStyle(dot.props.style).backgroundColor).toBe(paletteFor(boundary.light).danger);
+  expect(dot.props).toMatchObject({ accessibilityLabel: 'Live departures temporarily unavailable' });
   expect(copy).not.toContain('Towards not published');
   expect(copy).not.toContain('Live departures available');
 });
@@ -209,9 +211,11 @@ it.each(['empty', 'outage'] as const)('shows official DLR blank direction and to
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   expect(copy).toContain('Direction not published · Platform 3');
-  expect(copy).toContain('DLR · ');
+  expect(copy).not.toContain('DLR · ');
   expect(copy).not.toContain('Towards not published');
-  expect(copy).toContain(condition === 'empty' ? 'No upcoming departures' : 'Live departures temporarily unavailable');
+  expect(copy).not.toMatch(/No upcoming departures|Live departures temporarily unavailable/);
+  const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+  expect(flattenStyle(dot.props.style).backgroundColor).toBe(paletteFor(boundary.light)[condition === 'empty' ? 'success' : 'danger']);
   expect(copy).not.toContain('matching await verification');
 });
 

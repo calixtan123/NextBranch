@@ -141,10 +141,7 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
     ? 'TfL departures only' : null;
   const details = platform?.services.map(service => {
     const capability = serviceCapability(station!, platform, service);
-    const feedState = state.snapshot?.catalogue?.feeds?.find(feed => feed.lineId === service.line_id && feed.stopAreaId === service.stop_area_naptan_code)?.liveState;
-    const supportedCopy = feedState === 'unavailable' || state.error ? 'Live departures temporarily unavailable'
-      : feedState === 'empty' ? 'No upcoming departures' : null;
-    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? supportedCopy :
+    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? null :
       capability.feed === 'unsupported' ? 'Live departures unsupported' :
         capability.feed === 'supported' ? 'Platform matching awaits verification' : 'Live departures or platform matching await verification';
     if (!coverage) return null;
