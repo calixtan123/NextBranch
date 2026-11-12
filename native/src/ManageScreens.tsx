@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, PanResponder, Switch, View } from 'react-native';
+import { AccessibilityInfo, Alert, Linking, PanResponder, Pressable, Switch, View } from 'react-native';
 import { byId } from '../../src/lib/northern/stations';
 import { selectionKey, type Selection } from './catalogue';
 import type { Screen } from './navigation';
@@ -207,6 +207,50 @@ export function SettingsScreen({ navigation }: Screen<'Settings'>) {
     </View>
     <Result title="Appearance" detail="Card display styles" onPress={() => navigation.navigate('Appearance')} />
     <Result title="Manage cards" detail="Customise, reorder or remove platforms" onPress={() => navigation.navigate('Manage')} />
+    <Result title="About and privacy" detail="Beta feedback, data use and coverage" onPress={() => navigation.navigate('About')} />
+  </Surface>;
+}
+
+/** Explains beta data handling, support and the reviewed coverage boundary. */
+export function AboutScreen({ navigation }: Screen<'About'>) {
+  const links = [
+    ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service'],
+  ] as const;
+  const openLink = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Could not open link', `Try opening ${url} in your browser. You can also send beta feedback from TestFlight.`);
+    }
+  };
+  return <Surface title="About and privacy" onBack={navigation.goBack}>
+    <Label bold accessibilityRole="header" style={{ marginHorizontal: 2, marginTop: 4, marginBottom: 8 }}>Privacy</Label>
+    <Label tone="dim" style={textInset}>
+      Saved platforms, recent stations and appearance preferences stay in local app storage. Station search uses the bundled catalogue.
+    </Label>
+    <Label tone="dim" style={textInset}>
+      Live boards send station IDs to the configured NextBranch server, which requests TfL data. The server and network providers receive connection information such as your IP address. Server diagnostics record request timing and error categories. Connectivity checks may contact Google’s reachability service. Final host logging and retention review is pending.
+    </Label>
+    <Label bold accessibilityRole="header" style={{ marginHorizontal: 2, marginTop: 10, marginBottom: 8 }}>Beta feedback</Label>
+    <Label tone="dim" style={textInset}>
+      Open TestFlight, choose NextBranch, then tap Send Beta Feedback. You can include a screenshot. Leave out personal details, private journeys and credentials, and check screenshots before sharing.
+    </Label>
+    <Label bold accessibilityRole="header" style={{ marginHorizontal: 2, marginTop: 10, marginBottom: 8 }}>Coverage</Label>
+    <Label tone="dim" style={textInset}>
+      Live departures are available only for verified service and platform mappings. Wholly unverified platforms are browse-only. On shared platforms, verified lines can have departures while other lines remain unverified. National Rail live departures are unsupported. Check station displays when travelling.
+    </Label>
+    <Label bold accessibilityRole="header" style={{ marginHorizontal: 2, marginTop: 10, marginBottom: 8 }}>Data credits</Label>
+    <Label tone="dim" style={textInset}>
+      NextBranch is an unofficial app and is not endorsed by Transport for London.
+    </Label>
+    <Label style={textInset}>Powered by TfL Open Data</Label>
+    <Label tone="dim" style={textInset}>Contains OS data © Crown copyright and database rights 2016</Label>
+    <Label tone="dim" style={textInset}>Geomni UK Map data © and database rights [2019]</Label>
+    {links.map(([label, url]) => <Pressable key={url} accessibilityRole="link" accessibilityLabel={label}
+      accessibilityHint="Opens in your browser" onPress={() => openLink(url)}
+      style={({ pressed }) => [ui.button, { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, opacity: pressed ? .55 : 1 }]}>
+      <Label tone="selected" size={17}>{label}</Label>
+    </Pressable>)}
   </Surface>;
 }
 
