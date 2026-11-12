@@ -365,7 +365,7 @@ describe.each([false, true])('compact status with expanded=%s', expanded => {
         .map(node => Children.toArray(node.props.children).join('')).join(' ');
       expect(copy).not.toMatch(/Updated|Updating|Predictions may be outdated|seconds old/);
       const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
-      expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
+      expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
       expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: expected });
       if (!expanded) {
         const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
@@ -649,7 +649,7 @@ it.each([
 });
 
 describe.each(['amber', 'modern'] as const)('%s status footer', style => {
-  it.each([false, true])('centres the dot independently of the count with expanded=%s', expanded => {
+  it.each([false, true])('keeps the left dot vertically centred beside a wrapping count with expanded=%s', expanded => {
     for (const fontScale of [1, 3.12]) {
       boundary.fontScale = fontScale;
       const tree = PlatformBoard({
@@ -667,14 +667,18 @@ describe.each(['amber', 'modern'] as const)('%s status footer', style => {
       const footer = elements(tree).find(node => Children.toArray(node.props.children).some(child =>
         isValidElement<{ accessibilityRole?: string }>(child) && child.props.accessibilityRole === 'image'))!;
       expect(flattenStyle(footer.props.style)).toMatchObject({
-        alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'row', alignItems: 'center',
+        minHeight: 23, paddingHorizontal: 11, paddingVertical: 3,
       });
-      expect(flattenStyle(footer.props.style).flexDirection).not.toBe('row');
+      expect(flattenStyle(footer.props.style).justifyContent).not.toBe('center');
+      expect(flattenStyle(dot.props.style)).toMatchObject({ width: 8, height: 8, flexShrink: 0 });
+      const firstChild = Children.toArray(footer.props.children)[0] as Element;
+      expect((firstChild.props as { accessibilityRole?: string }).accessibilityRole).toBe('image');
       expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: 'Live departures up to date' });
       const count = elements(footer).find(node => node.type === Label);
       if (expanded) {
         expect(count!.props.children).toBe('0 upcoming trains');
-        expect(flattenStyle(count!.props.style)).toMatchObject({ alignSelf: 'stretch', textAlign: 'right' });
+        expect(flattenStyle(count!.props.style)).toMatchObject({ flex: 1, minWidth: 0, textAlign: 'right' });
         expect(count!.props).not.toHaveProperty('numberOfLines');
         expect(count!.props).not.toHaveProperty('allowFontScaling', false);
         expect(flattenStyle(count!.props.style).position).not.toBe('absolute');
