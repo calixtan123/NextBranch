@@ -1,0 +1,11 @@
+{
+  "cli": { "appVersionSource": "remote" },
+  "build": {
+    "production": {
+      "environment": "production",
+      "autoIncrement": true,
+      "env": { "NEXTBRANCH_RELEASE_BUILD": "1" }
+    }
+  },
+  "submit": { "production": {} }
+}
