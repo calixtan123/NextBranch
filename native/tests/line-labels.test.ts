@@ -73,3 +73,39 @@ it.each([false, true])('emphasises picker titles with complete scalable accessib
   const regularTitle = Children.toArray(regularContent.props.children).filter(isValidElement<Record<string, any>>)[0];
   expect(Label(regularTitle.props).props.style).toContainEqual(expect.objectContaining({ fontWeight: '400' }));
 });
+
+
+it('gives station search cards primary wrapping titles and complete spaced line lists', () => {
+  const onPress = vi.fn();
+  const lines = [{ id: 'hammersmith-city', name: 'Hammersmith & City' }, { id: 'northern', name: 'Northern' }];
+  const child = LineLabels({ lines, presentation: 'station-search' });
+  const tree = Result({ title: "A long station name including King's Cross St Pancras", detail: '',
+    children: child, presentation: 'station-search', onPress });
+  expect(tree.props.accessibilityRole).toBe('button');
+  expect(tree.props.accessibilityLabel).toBeUndefined();
+  expect(tree.props.style({ pressed: false })).toContainEqual(expect.objectContaining({
+    paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8, minHeight: 64, gap: 8,
+  }));
+  const content = Children.toArray(tree.props.children).filter(isValidElement<Record<string, any>>)[0];
+  expect(content.props.style).toContainEqual(expect.objectContaining({ flex: 1, minWidth: 0 }));
+  expect(content.props.style).toContainEqual(expect.objectContaining({ gap: 8 }));
+  const title = Children.toArray(content.props.children).filter(isValidElement<Record<string, any>>)[0];
+  const renderedTitle = Label(title.props);
+  expect(renderedTitle.props.style).toContainEqual(expect.objectContaining({ fontWeight: '600', color: paletteFor(theme.light).fg }));
+  expect(renderedTitle.props.numberOfLines).toBeUndefined();
+  expect(renderedTitle.props.allowFontScaling).not.toBe(false);
+  expect(child.props.style).toContainEqual(expect.objectContaining({ flexWrap: 'wrap', gap: 8 }));
+  for (const row of Children.toArray(child.props.children).filter(isValidElement<Record<string, any>>)) {
+    expect(row.props.style).toContainEqual(expect.objectContaining({ gap: 4, flexShrink: 1, minWidth: 0 }));
+    const label = Children.toArray(row.props.children).filter(isValidElement<Record<string, any>>)[1];
+    const renderedLabel = Label(label.props);
+    expect(renderedLabel.props.style).toContainEqual(expect.objectContaining({ fontSize: 15, fontWeight: '400' }));
+    expect(renderedLabel.props.numberOfLines).toBeUndefined();
+    expect(renderedLabel.props.allowFontScaling).not.toBe(false);
+  }
+  tree.props.onPress();
+  expect(onPress).toHaveBeenCalledOnce();
+  const regular = LineLabels({ lines });
+  expect(Children.toArray(regular.props.children).filter(isValidElement<Record<string, any>>)[0].props.style)
+    .toContainEqual(expect.objectContaining({ gap: 5 }));
+});
