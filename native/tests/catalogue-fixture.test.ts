@@ -82,3 +82,44 @@ it('isolates synthetic glyph readability specimens while preserving ordinary fix
   expect((await ordinary.transport(camden, signal)).platforms[0].departures[0].destinationName)
     .not.toBe('Morden via Bank');
 });
+
+it('replays exact freshness boundaries and physical platform identities for native status capture', async () => {
+  const runtime = fixtureRuntime('status-age', true);
+  const fresh = await runtime.transport(colindale, signal);
+  const stale = await runtime.transport(camden, signal);
+  expect(runtime.now() - Date.parse(fresh.observedAt)).toBe(30_000);
+  expect(runtime.now() - Date.parse(stale.observedAt)).toBe(30_001);
+  expect(runtime.cards.every(card => Boolean(card.physicalPlatformId))).toBe(true);
+  expect(boardRows(fresh, runtime.cards[0], runtime.now(), 3)).toHaveLength(3);
+});
+
+it('replays relevant and unrelated feed failures independently', async () => {
+  const runtime = fixtureRuntime('status-partial', true);
+  const relevant = await runtime.transport(camden, signal);
+  const unrelated = await runtime.transport(colindale, signal);
+  expect(relevant.catalogue?.feeds).toContainEqual({ lineId: 'northern', stopAreaId: camden, liveState: 'unavailable' });
+  expect(unrelated.catalogue?.feeds).toContainEqual({ lineId: 'district', stopAreaId: '940GZZLUACT', liveState: 'unavailable' });
+});
+
+it('replays cached request failure followed by successful recovery', async () => {
+  const runtime = fixtureRuntime('status-recovery', true);
+  await expect(runtime.transport(camden, signal)).resolves.toMatchObject({ station: { id: camden } });
+  await expect(runtime.transport(camden, signal)).rejects.toMatchObject({ kind: 'unavailable' });
+  const recovered = await runtime.transport(camden, signal);
+  expect(recovered.observedAt).toBe(new Date(runtime.now()).toISOString());
+});
+
+it('keeps the initial status loading window deterministic before a successful response', async () => {
+  vi.useFakeTimers();
+  try {
+    const runtime = fixtureRuntime('status-loading', true);
+    let settled = false;
+    const response = runtime.transport(colindale, signal).then(value => { settled = true; return value; });
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(response).resolves.toMatchObject({ station: { id: colindale } });
+  } finally {
+    vi.useRealTimers();
+  }
+});

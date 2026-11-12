@@ -1,5 +1,5 @@
 import { RequestFailure, decodeSnapshot, type StationTransport } from './api';
-import { createCatalogue, readSelection } from './catalogue';
+import { createCatalogue, readSelection, type Selection } from './catalogue';
 import manifest from '../assets/manifest.json';
 import camden from '../assets/camden-mixed.json';
 import colindale from '../assets/colindale-mixed.json';
@@ -18,8 +18,13 @@ const growthInitialRows = new Map([
 export function fixtureRuntime(scenario: string, seed: boolean) {
   // Development-only synthetic typography specimens, isolated from live transport and saved cards.
   const readability = scenario === 'glyph-readability';
+  const statusScenario = scenario.startsWith('status-');
   const longStation = { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' as const };
-  const cards = readability ? [longStation, ...seedCards.slice(1)] : seedCards;
+  const cards: Selection[] = readability ? [longStation, ...seedCards.slice(1)] : statusScenario
+    ? seedCards.map(card => {
+      const platform = card.platform === 'A' ? '2' : '4';
+      return { ...card, platform, physicalPlatformId: `${card.stationId}-Plat0${platform}-SB-northern` };
+    }) : seedCards;
   const catalogue = createCatalogue({ version: 1, platforms: [...cards, extra] });
   const bodies = new Map([
     [camden.station.id, scenario === 'empty-camden-a' ? emptyCamden : camden],
@@ -35,8 +40,28 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     if (!response) throw new RequestFailure('unavailable');
     if (id === camden.station.id) {
       camdenRequests += 1;
-      if (camdenRequests === 2 && scenario === 'camden-outage') throw new RequestFailure('unavailable');
+      if (camdenRequests === 2 && (scenario === 'camden-outage' || scenario === 'status-recovery')) throw new RequestFailure('unavailable');
       if (camdenRequests === 2 && scenario === 'camden-rate-limited') throw new RequestFailure('limited');
+    }
+    if (statusScenario) {
+      // Leave a capture window below the station owner's 20-second request deadline.
+      if (scenario === 'status-loading') await new Promise(resolve => setTimeout(resolve, 15_000));
+      const age = scenario === 'status-age' ? (id === colindale.station.id ? 30_000 : 30_001) : 0;
+      const feeds = scenario === 'status-partial' ? [
+        { lineId: 'northern', stopAreaId: id, liveState: id === camden.station.id ? 'unavailable' : 'available' },
+        { lineId: 'district', stopAreaId: '940GZZLUACT', liveState: 'unavailable' },
+      ] : [{ lineId: 'northern', stopAreaId: id, liveState: 'available' }];
+      return decodeSnapshot({ ...response,
+        observedAt: new Date(clock - age).toISOString(),
+        // Prevent automatic polls from advancing the manual failure/recovery replay.
+        refreshAfterSeconds: 3600,
+        catalogue: { stationId: id, liveState: scenario === 'status-partial' ? 'partial' : 'available', platforms: [], feeds },
+        platforms: response.platforms.map(group => {
+          const platform = group.platform === 'A' ? '2' : group.platform === 'B' ? '4' : null;
+          return { ...group, platform,
+            physicalPlatformId: platform ? `${id}-Plat0${platform}-SB-northern` : null };
+        }),
+      }, id);
     }
     if (readability) {
       const destinations = ['Morden via Bank', 'Kennington via Charing Cross',
