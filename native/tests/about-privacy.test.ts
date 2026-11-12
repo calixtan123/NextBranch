@@ -51,6 +51,7 @@ it('explains local preferences, request processing, beta support and coverage wi
   expect(copy).toContain('retention review is pending');
   expect(copy).toContain('TestFlight');
   expect(copy).toContain('Send Beta Feedback');
+  expect(copy).toContain('Email calixtan@gmail.com');
   expect(copy).not.toContain('GitHub');
   expect(copy).toContain('National Rail live departures are unsupported');
   expect(copy).toContain('browse-only');
@@ -65,20 +66,26 @@ it('explains local preferences, request processing, beta support and coverage wi
 });
 
 it.each([
-  ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service'],
-])('opens %s with a labelled native link and a 44-point touch target', async (label, url) => {
+  ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service', 'Opens in your browser'],
+  ['Email calixtan@gmail.com', 'mailto:calixtan@gmail.com', 'Opens your email app'],
+])('opens %s with a labelled native link and a 44-point touch target', async (label, url, hint) => {
   const link = screen().find(node => node.props.accessibilityLabel === label)!;
   expect(link.props.accessibilityRole).toBe('link');
-  expect(link.props.accessibilityHint).toContain('browser');
+  expect(link.props.accessibilityHint).toBe(hint);
+  expect(elements(link.props.children).some(node => node.props.children === label)).toBe(true);
   expect(link.props.style({ pressed: false })).toContainEqual(expect.objectContaining({ minHeight: 44, minWidth: 44 }));
   await link.props.onPress();
   expect(boundary.openURL).toHaveBeenCalledExactlyOnceWith(url);
   expect(boundary.alert).not.toHaveBeenCalled();
 });
 
-it.each(['Read TfL data licence'])('offers recovery when %s fails', async label => {
+it.each([
+  ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service', 'browser'],
+  ['Email calixtan@gmail.com', 'calixtan@gmail.com', 'email app or webmail'],
+])('offers recovery when %s fails', async (label, destination, recovery) => {
   boundary.openURL.mockRejectedValue(new Error('Browser unavailable'));
   await screen().find(node => node.props.accessibilityLabel === label)!.props.onPress();
   expect(boundary.alert).toHaveBeenCalledWith('Could not open link', expect.stringContaining('TestFlight'));
-  expect(boundary.alert.mock.calls[0][1]).toContain('https://');
+  expect(boundary.alert.mock.calls[0][1]).toContain(destination);
+  expect(boundary.alert.mock.calls[0][1]).toContain(recovery);
 });

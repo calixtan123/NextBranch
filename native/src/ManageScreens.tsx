@@ -214,13 +214,16 @@ export function SettingsScreen({ navigation }: Screen<'Settings'>) {
 /** Explains beta data handling, support and the reviewed coverage boundary. */
 export function AboutScreen({ navigation }: Screen<'About'>) {
   const links = [
-    ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service'],
+    ['Email calixtan@gmail.com', 'mailto:calixtan@gmail.com', 'Opens your email app',
+      'Send an email to calixtan@gmail.com using your preferred email app or webmail.'],
+    ['Read TfL data licence', 'https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service', 'Opens in your browser',
+      'Try opening https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service in your browser.'],
   ] as const;
-  const openLink = async (url: string) => {
+  const openLink = async (url: string, recovery: string) => {
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Could not open link', `Try opening ${url} in your browser. You can also send beta feedback from TestFlight.`);
+      Alert.alert('Could not open link', `${recovery} You can also send beta feedback from TestFlight.`);
     }
   };
   return <Surface title="About and privacy" onBack={navigation.goBack}>
@@ -246,8 +249,8 @@ export function AboutScreen({ navigation }: Screen<'About'>) {
     <Label style={textInset}>Powered by TfL Open Data</Label>
     <Label tone="dim" style={textInset}>Contains OS data © Crown copyright and database rights 2016</Label>
     <Label tone="dim" style={textInset}>Geomni UK Map data © and database rights [2019]</Label>
-    {links.map(([label, url]) => <Pressable key={url} accessibilityRole="link" accessibilityLabel={label}
-      accessibilityHint="Opens in your browser" onPress={() => openLink(url)}
+    {links.map(([label, url, hint, recovery]) => <Pressable key={url} accessibilityRole="link" accessibilityLabel={label}
+      accessibilityHint={hint} onPress={() => openLink(url, recovery)}
       style={({ pressed }) => [ui.button, { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, opacity: pressed ? .55 : 1 }]}>
       <Label tone="selected" size={17}>{label}</Label>
     </Pressable>)}
