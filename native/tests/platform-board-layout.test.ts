@@ -365,7 +365,7 @@ describe.each([false, true])('compact status with expanded=%s', expanded => {
         .map(node => Children.toArray(node.props.children).join('')).join(' ');
       expect(copy).not.toMatch(/Updated|Updating|Predictions may be outdated|seconds old/);
       const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
-      expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
+      expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
       expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: expected });
       if (!expanded) {
         const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
@@ -646,4 +646,46 @@ it.each([
     expect(accessible).not.toMatch(/awaits? verification/);
     expect(accessible).toContain(station.station_name);
   }
+});
+
+describe.each(['amber', 'modern'] as const)('%s status footer', style => {
+  it.each([false, true])('keeps the left dot vertically centred beside a wrapping count with expanded=%s', expanded => {
+    for (const fontScale of [1, 3.12]) {
+      boundary.fontScale = fontScale;
+      const tree = PlatformBoard({
+        selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
+        style, expanded, now: 0, online: true, limited: false,
+        state: { pending: false, error: null, snapshot: {
+          station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+          observedAt: new Date(0).toISOString(), newestPredictionGeneratedAt: null,
+          refreshAfterSeconds: 30, platforms: [],
+        } },
+        onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn(),
+      });
+      const dot = elements(tree).find(node =>
+        (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+      const footer = elements(tree).find(node => Children.toArray(node.props.children).some(child =>
+        isValidElement<{ accessibilityRole?: string }>(child) && child.props.accessibilityRole === 'image'))!;
+      expect(flattenStyle(footer.props.style)).toMatchObject({
+        flexDirection: 'row', alignItems: 'center',
+        minHeight: 23, paddingHorizontal: 11, paddingVertical: 3,
+      });
+      expect(flattenStyle(footer.props.style).justifyContent).not.toBe('center');
+      expect(flattenStyle(dot.props.style)).toMatchObject({ width: 8, height: 8, flexShrink: 0 });
+      const firstChild = Children.toArray(footer.props.children)[0] as Element;
+      expect((firstChild.props as { accessibilityRole?: string }).accessibilityRole).toBe('image');
+      expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: 'Live departures up to date' });
+      const count = elements(footer).find(node => node.type === Label);
+      if (expanded) {
+        expect(count!.props.children).toBe('0 upcoming trains');
+        expect(flattenStyle(count!.props.style)).toMatchObject({ flex: 1, minWidth: 0, textAlign: 'right' });
+        expect(count!.props).not.toHaveProperty('numberOfLines');
+        expect(count!.props).not.toHaveProperty('allowFontScaling', false);
+        expect(flattenStyle(count!.props.style).position).not.toBe('absolute');
+      } else {
+        expect(count).toBeUndefined();
+      }
+    }
+    boundary.fontScale = 1;
+  });
 });

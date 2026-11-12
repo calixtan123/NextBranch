@@ -63,8 +63,6 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
     </Label>}
     <View style={ui.wrap}>
       {cards.length < 3 && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}
-      {ids.length > 0 && <IconButton icon="refresh" label="Refresh departures" tone="dim"
-        disabled={refreshing || !online || limited} onPress={() => void refresh(ids)} />}
       {removal && <Action onPress={undo}>Undo removal</Action>}
     </View>
   </Surface>;
