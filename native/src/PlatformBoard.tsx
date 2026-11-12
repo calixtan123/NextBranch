@@ -141,10 +141,8 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
     ? 'TfL departures only' : null;
   const details = platform?.services.map(service => {
     const capability = serviceCapability(station!, platform, service);
-    const coverage = capability.feed === 'supported' && capability.mapping === 'supported' ? null :
-      capability.feed === 'unsupported' ? 'Live departures unsupported' :
-        capability.feed === 'supported' ? 'Platform matching awaits verification' : 'Live departures or platform matching await verification';
-    if (!coverage) return null;
+    if (capability.feed !== 'unsupported') return null;
+    const coverage = 'Live departures unsupported';
     return [service.line_name, service.direction_towards.trim() ? 'Towards ' + service.direction_towards : null, coverage]
       .filter(Boolean).join(' · ');
   });

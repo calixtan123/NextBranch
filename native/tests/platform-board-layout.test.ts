@@ -236,12 +236,14 @@ it.each([
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
   const labels = elements(tree).find(node => node.type === LineLabels)!;
   expect((labels.props as { lines?: { name: string }[] }).lines?.map(line => line.name)).toEqual(expect.arrayContaining([coveredLine, otherLine]));
-  expect(copy).toContain(otherLine);
   if (otherLine === 'National Rail') expect(copy).toContain('TfL departures only');
   expect(copy).not.toContain('Live departures available');
-  expect(copy).toContain(otherLine === 'District' ? 'Platform matching awaits verification' : 'Live departures unsupported');
-  for (const service of platform.services.filter(service => service.line_name === otherLine)) {
-    if (service.direction_towards) expect(copy).toContain('Towards ' + service.direction_towards);
+  expect(copy).not.toMatch(/awaits? verification/);
+  if (otherLine === 'National Rail') {
+    expect(copy).toContain('Live departures unsupported');
+    for (const service of platform.services.filter(service => service.line_name === otherLine)) {
+      if (service.direction_towards) expect(copy).toContain('Towards ' + service.direction_towards);
+    }
   }
   expect(copy).not.toContain('Towards not published');
   if (!expanded) {
@@ -251,8 +253,11 @@ it.each([
     expect(accessibleCopy).not.toMatch(/Live departures available|Towards not published/);
     expect(accessibleCopy).toContain(coveredLine);
     expect(accessibleCopy).toContain(otherLine);
-    expect(accessibleCopy!.indexOf('No departures currently assigned to this platform'))
-      .toBeLessThan(accessibleCopy!.lastIndexOf('. ' + otherLine + ' · '));
+    expect(accessibleCopy).not.toMatch(/awaits? verification/);
+    if (otherLine === 'National Rail') {
+      expect(accessibleCopy!.indexOf('No departures currently assigned to this platform'))
+        .toBeLessThan(accessibleCopy!.lastIndexOf('. ' + otherLine + ' · '));
+    }
   }
 });
 
@@ -408,10 +413,10 @@ it('colours only supported feeds belonging to the selected physical platform', a
   }
 });
 
-it('deduplicates repeated service caveats in visible and accessible summaries', async () => {
+it('deduplicates retained National Rail caveats in visible and accessible summaries', async () => {
   const { catalogue } = await import('../../src/lib/catalogue');
-  const source = catalogue.stationsById.get('HUBKWG')!;
-  const platform = source.platforms.find(platform => platform.platform_number === '2')!;
+  const source = catalogue.stationsById.get('HUBEAL')!;
+  const platform = source.platforms.find(platform => platform.platform_number === '3')!;
   const station = { ...source, platforms: [{ ...platform, services: [...platform.services, ...platform.services] }] };
   const tree = PlatformBoard({ station, selection: { stationId: station.station_id, platform: platform.platform_number,
     direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, style: 'amber',
@@ -421,8 +426,8 @@ it('deduplicates repeated service caveats in visible and accessible summaries', 
     .map(node => Children.toArray(node.props.children).join('')).join(' ');
   const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
   const accessible = (button.props as { accessibilityLabel: string }).accessibilityLabel;
-  expect(copy.match(/Platform matching awaits verification/g)).toHaveLength(1);
-  expect(accessible.match(/Platform matching awaits verification/g)).toHaveLength(1);
+  expect(copy.match(/Live departures unsupported/g)).toHaveLength(1);
+  expect(accessible.match(/Live departures unsupported/g)).toHaveLength(1);
 });
 
 it.each(['amber', 'modern'] as const)('shares formatted identity across %s Home and detail rows and summaries', async style => {
@@ -597,4 +602,48 @@ it.each([224, 274])('keeps Amber glyph size and destination columns consistent a
     });
   }
   boundary.width = 0;
+});
+
+it.each([
+  ['940GZZLUBST', false, 'loading'], ['940GZZLUBST', true, 'loading'],
+  ['940GZZLUBST', false, 'empty'], ['940GZZLUBST', true, 'empty'],
+  ['940GZZLUBST', false, 'unavailable'], ['940GZZLUBST', true, 'unavailable'],
+  ['940GZZALGWP', false, 'loading'], ['940GZZALGWP', true, 'loading'],
+  ['940GZZALGWP', false, 'empty'], ['940GZZALGWP', true, 'empty'],
+  ['940GZZALGWP', false, 'unavailable'], ['940GZZALGWP', true, 'unavailable'],
+] as const)('omits verification-only caveats for %s with expanded=%s and %s departures', async (stationId, expanded, condition) => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const { serviceCapability } = await import('../../src/lib/catalogue/capability');
+  const station = catalogue.stationsById.get(stationId)!;
+  const platform = stationId === '940GZZLUBST'
+    ? station.platforms.find(item => item.services.some(service => service.line_id === 'circle') &&
+      item.services.some(service => service.line_id === 'hammersmith-city') &&
+      item.services.some(service => serviceCapability(station, item, service).mapping === 'unverified'))!
+    : station.platforms[0];
+  const capabilities = platform.services.map(service => serviceCapability(station, platform, service));
+  expect(capabilities.some(capability => capability.mapping === 'unverified')).toBe(true);
+  if (stationId === '940GZZALGWP') expect(capabilities.every(capability => capability.feed === 'unverified')).toBe(true);
+  const now = Date.parse('2026-11-10T12:00:00Z');
+  const state = condition === 'empty'
+    ? { pending: false, error: null, snapshot: { station: { id: stationId, name: station.station_name },
+      observedAt: new Date(now).toISOString(), newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } }
+    : { pending: condition === 'loading', error: condition === 'unavailable' ? 'unavailable' as const : null };
+  const tree = PlatformBoard({ station, selection: { stationId, platform: platform.platform_number,
+    direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id },
+    style: 'amber', state, now, online: true, limited: false, expanded,
+    onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
+  const copy = elements(tree).filter(node => node.type === Label)
+    .map(node => Children.toArray(node.props.children).join('')).join(' ');
+  expect(copy).not.toMatch(/awaits? verification/);
+  expect(copy).toContain(condition === 'empty' ? 'No departures currently assigned to this platform'
+    : condition === 'loading' ? 'Loading departures' : 'Departures request failed. Predictions may be outdated');
+  const status = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+  expect(status.props).toMatchObject({ accessibilityLabel: condition === 'loading' ? 'Loading departures'
+    : condition === 'empty' ? 'Live departures up to date' : 'Departures request failed. Predictions may be outdated' });
+  if (!expanded) {
+    const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+    const accessible = (button.props as { accessibilityLabel: string }).accessibilityLabel;
+    expect(accessible).not.toMatch(/awaits? verification/);
+    expect(accessible).toContain(station.station_name);
+  }
 });
