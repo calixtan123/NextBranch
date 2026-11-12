@@ -6,11 +6,11 @@ import { lineColour } from './line-presentation';
 
 const dark = {
   bg: '#0B0B0D', surface: '#171719', fg: '#ECEDEF', dim: '#929398', border: '#303033',
-  warning: '#F2AC48', danger: '#E98383', selected: '#0A84FF', primary: '#0066CC', input: '#252527',
+  success: '#6BCC8B', warning: '#F2AC48', danger: '#E98383', selected: '#0A84FF', primary: '#0066CC', input: '#252527',
 };
 const light = {
   bg: '#F2F2F3', surface: '#FFFFFF', fg: '#222528', dim: '#60646B', border: '#E0E0E2',
-  warning: '#824A03', danger: '#A73939', selected: '#0066CC', primary: '#0066CC', input: '#E5E5EA',
+  success: '#247A40', warning: '#824A03', danger: '#A73939', selected: '#0066CC', primary: '#0066CC', input: '#E5E5EA',
 };
 
 export type Palette = typeof dark;
