@@ -3,7 +3,7 @@ import camden from '../assets/camden-mixed.json';
 import colindale from '../assets/colindale-mixed.json';
 import { createStationOwner, isStale } from '../src/station-owner';
 import { decodeSnapshot, httpTransport, type StationTransport } from '../src/api';
-import { boardRows, departureIdentity, layoutFor, matrixWidth, unassignedCount, wrapMatrix } from '../src/board-model';
+import { boardRows, boardStatus, departureIdentity, layoutFor, matrixWidth, unassignedCount, wrapMatrix } from '../src/board-model';
 
 const C = camden.station.id;
 const L = colindale.station.id;
@@ -102,12 +102,12 @@ it('switches Amber to readable native text at accessibility sizes and preserves 
 });
 
 it('sizes Morden via Bank at the pinned Amber scale', () => {
-  expect(matrixWidth('Morden via Bank', .78)).toBeCloseTo(146.718, 6);
+  expect(matrixWidth('Morden via Bank', .85)).toBeCloseTo(175.95, 6);
 });
 
 it('keeps Morden via Bank together at its pinned width and wraps just below it', () => {
-  expect(wrapMatrix('Morden via Bank', 146.718, .78)).toEqual(['Morden via Bank']);
-  expect(wrapMatrix('Morden via Bank', 146.717, .78)).toEqual(['Morden via', 'Bank']);
+  expect(wrapMatrix('Morden via Bank', 175.95, .85)).toEqual(['Morden via Bank']);
+  expect(wrapMatrix('Morden via Bank', 175.949, .85)).toEqual(['Morden via', 'Bank']);
 });
 
 it('accepts offset timestamps, rejects malformed and wrong-station responses and enforces release HTTPS', () => {
@@ -137,14 +137,17 @@ it('coalesces station owners, reuses fresh detail, isolates errors and retains s
   failCamden = true;
   await owner.refresh([C]);
   expect(owner.get(C).snapshot).toEqual(snapshot);
+  expect(boardStatus(owner.get(C), now, true).tone).toBe('danger');
   expect(isStale(owner.get(C), now, true)).toBe(true);
   expect(owner.get(L).error).toBeNull();
   expect(await owner.refresh([C])).toBeNull();
   failCamden = false;
   vi.setSystemTime(now + 10_000);
   const retry = owner.refresh([C]);
+  expect(boardStatus(owner.get(C), Date.now(), true).tone).toBe('danger');
   expect(isStale(owner.get(C), Date.now(), true)).toBe(true);
   await retry;
+  expect(boardStatus(owner.get(C), Date.now(), true).tone).toBe('success');
   expect(isStale(owner.get(C), Date.now(), true)).toBe(false);
   owner.dispose();
 });
@@ -338,7 +341,6 @@ it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting'
   owner.dispose();
 });
 
-
 it('renders each supported punctuation glyph with seven binary rows of five columns', async () => {
   const { glyphs } = await import('../src/glyphs');
   for (const character of "()&'‘’/, +?![]–—") {
@@ -381,4 +383,48 @@ it.each([
   const before = JSON.stringify({ row, services });
   expect(departureIdentity(row, services)).toBe(expected);
   expect(JSON.stringify({ row, services })).toBe(before);
+});
+
+it.each(['Morden via Bank', 'Kennington via Charing Cross', 'Hammersmith (Hammersmith & City)', "King’s Cross/St. Pancras", 'Supercalifragilisticexpialidocious'])('wraps complete Amber identity %s within small and large destination columns', identity => {
+  for (const width of [184, 224, 274]) {
+    const wrapped = wrapMatrix(identity, width, .85);
+    expect(wrapped.length).toBeGreaterThan(0);
+    expect(wrapped.every(line => matrixWidth(line, .85) <= width)).toBe(true);
+    expect(wrapped.join('').replace(/\s/g, '')).toBe(identity.replace(/\s/g, ''));
+  }
+});
+
+
+it.each([[29_999, 'success'], [30_000, 'success'], [30_001, 'warning']] as const)(
+  'projects successful data aged %s ms with tone %s, including empty responses', (age, tone) => {
+    for (const platforms of [snapshot.platforms, []]) {
+      expect(boardStatus({ snapshot: { ...snapshot, platforms }, error: null, pending: false }, now + age, true).tone).toBe(tone);
+    }
+  });
+
+it('keeps cached freshness and failure while refreshing and clears failure on success', () => {
+  const state = { snapshot, error: null, pending: true };
+  expect(boardStatus(state, now, true).tone).toBe('success');
+  expect(boardStatus(state, now + 30_001, true).tone).toBe('warning');
+  expect(boardStatus(state, now, false).tone).toBe('danger');
+  for (const error of ['timeout', 'unavailable', 'limited', 'invalid', 'configuration'] as const) {
+    expect(boardStatus({ ...state, error }, now, true).tone).toBe('danger');
+  }
+  expect(boardStatus({ error: null, pending: true }, now, true)).toMatchObject({ tone: 'dim', label: 'Loading departures' });
+  expect(boardStatus({ ...state, pending: false }, now, true).tone).toBe('success');
+});
+
+it('uses exact relevant line and stop feeds independently of station-wide partial status', () => {
+  const relevant = [{ lineId: 'northern', stopAreaId: C }];
+  const catalogue = { stationId: C, liveState: 'partial' as const, platforms: [], feeds: [
+    { lineId: 'northern', stopAreaId: C, liveState: 'available' as const },
+    { lineId: 'northern', stopAreaId: L, liveState: 'unavailable' as const },
+    { lineId: 'district', stopAreaId: C, liveState: 'unavailable' as const },
+  ] };
+  const state = { snapshot: { ...snapshot, catalogue }, error: null, pending: false };
+  expect(boardStatus(state, now, true, relevant).tone).toBe('success');
+  const failed = { ...state, snapshot: { ...state.snapshot, catalogue: { ...catalogue,
+    feeds: [{ ...relevant[0], liveState: 'unavailable' as const }] } } };
+  expect(boardStatus(failed, now, true, relevant)).toMatchObject({ tone: 'danger', label: 'Live departures temporarily unavailable' });
+  expect(boardStatus(failed, now, true, []).tone).toBe('success');
 });

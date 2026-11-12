@@ -2,6 +2,7 @@
 import { branchLabel, normalizeTowards } from '../../src/lib/northern/route';
 import { DEPARTED_GRACE, displayCountdown, secondsToOrigin } from '../../src/lib/northern/time';
 import { lines, type CatalogueService } from '../../src/lib/catalogue/schema';
+import { FRESH_FOR, type createStationOwner } from './station-owner';
 import { glyphs } from './glyphs';
 import type { Snapshot } from './api';
 import type { Selection } from './catalogue';
@@ -100,7 +101,8 @@ export function layoutFor(style: Style, fontScale: number, value: string): 'matr
 
 export const matrixDotSize = 1.72;
 const dotGap = .6;
-const glyphGap = 1.65;
+// Keep rendering, width measurement and wrapping on the same character spacing.
+const glyphGap = 3;
 export const matrixDotStep = matrixDotSize + dotGap;
 const glyphWidth = 5 * matrixDotSize + 4 * dotGap;
 export const glyphAdvance = glyphWidth + glyphGap;
@@ -133,4 +135,41 @@ export function wrapMatrix(value: string, width: number, scale: number) {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+/**
+ * Projects connection and selected-feed freshness independently of platform mapping.
+ *
+ * Parameters
+ * ----------
+ * state : station state
+ *     Cached successful response and latest request outcome.
+ * now : number
+ *     Current observation clock in milliseconds.
+ * online : boolean
+ *     Current connectivity.
+ * relevantFeeds : feed keys, optional
+ *     Supported services for the selected physical platform.
+ *
+ * Returns
+ * -------
+ * object
+ *     Semantic dot tone and meaningful screen-reader status.
+ */
+export function boardStatus(
+  state: ReturnType<ReturnType<typeof createStationOwner>['get']>, now: number, online: boolean,
+  relevantFeeds: readonly { lineId: string; stopAreaId: string }[] = [],
+): { tone: 'success' | 'warning' | 'danger' | 'dim'; label: string } {
+  if (!online) return { tone: 'danger', label: 'Offline. Predictions may be outdated' };
+  if (state.error === 'invalid') return { tone: 'danger', label: 'Station unavailable. Review your selection' };
+  if (state.error === 'configuration') return { tone: 'danger', label: 'Live departures are unavailable' };
+  if (state.error) return { tone: 'danger', label: 'Departures request failed. Predictions may be outdated' };
+  const unavailable = state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable' &&
+    relevantFeeds.some(service => service.lineId === feed.lineId && service.stopAreaId === feed.stopAreaId));
+  if (unavailable) return { tone: 'danger', label: 'Live departures temporarily unavailable' };
+  if (!state.snapshot) return { tone: 'dim', label: 'Loading departures' };
+  if (now - Date.parse(state.snapshot.observedAt) > FRESH_FOR) {
+    return { tone: 'warning', label: 'Departures are over 30 seconds old' };
+  }
+  return { tone: 'success', label: 'Live departures up to date' };
 }

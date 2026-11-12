@@ -386,3 +386,35 @@ it('renders Camden Town northbound heading and destination once while retaining 
   expect(row.props.titleEmphasis).toBe(true);
   expect(text(details(station.station_id, platform.platform_id))).toContain(platform.friendly_name);
 });
+
+
+it.each(['Baker Street', 'Hendon Central', "King's Cross St Pancras"])(
+  'shares the complete search hierarchy between recent and queried %s offline', name => {
+    hooks.query = name;
+    const nav = navigation();
+    const queried = nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>))
+      .find(node => node.props.title === name)!;
+    expect(queried.props.presentation).toBe('station-search');
+    const lines = nodes(queried).find(node => node.type === LineLabels)!;
+    expect(lines.props.presentation).toBe('station-search');
+    if (name === 'Baker Street') expect(lines.props.lines.map((line: { name: string }) => line.name))
+      .toEqual(['Bakerloo', 'Circle', 'Hammersmith & City', 'Jubilee', 'Metropolitan']);
+    if (name === 'Hendon Central') expect(lines.props.lines).toEqual([{ id: 'northern', name: 'Northern' }]);
+    queried.props.onPress();
+    const stationId = nav.navigate.mock.lastCall![1].stationId;
+    expect(nav.navigate).toHaveBeenCalledWith('Picker', { stationId });
+    expect(hooks.runtime().preferences.selectStation).toHaveBeenCalledWith(stationId);
+    hooks.query = '';
+    hooks.preferences.mockReturnValue({ recent: [stationId], mode: 'amber', cards: [] });
+    const recentTree = SearchScreen({ navigation: nav } as unknown as Screen<'Search'>);
+    const recent = nodes(recentTree).find(node => node.props.title === name)!;
+    expect(recent.props.presentation).toBe('station-search');
+    expect(nodes(recent).find(node => node.type === LineLabels)!.props).toEqual(lines.props);
+    recent.props.onPress();
+    expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
+    const input = nodes(recentTree).find(node => node.type === 'GlassSurface')!;
+    expect(input.props.style).toContainEqual(expect.objectContaining({ gap: 8, marginBottom: 16 }));
+    const section = nodes(recentTree).find(node => node.props.accessibilityRole === 'header')!;
+    expect(section.props.style).toEqual({ marginTop: 4, marginBottom: 8, marginHorizontal: 4 });
+  },
+);

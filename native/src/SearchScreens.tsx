@@ -38,23 +38,23 @@ export function SearchScreen({ navigation }: Screen<'Search'>) {
     headerAction={<TextAction label="Cancel" onPress={navigation.goBack} />}>
     <GlassSurface accent={accent} style={[ui.row, {
       minHeight: 48,
-      paddingHorizontal: 12, gap: 9, marginBottom: 18,
+      paddingHorizontal: 12, gap: 8, marginBottom: 16,
     }]}>
       <Icon name="search" tone="dim" size={16} />
       <TextInput accessibilityLabel="Station name" placeholder="Station name" placeholderTextColor={colors.dim}
         value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false}
         selectionColor={colors.fg}
-        style={[ui.flex, { minHeight: 46, color: colors.fg, fontSize: 17, fontFamily: 'System' }]} />
+        style={[ui.flex, { minHeight: 48, color: colors.fg, fontSize: 17, fontFamily: 'System' }]} />
       {query !== '' && <IconButton icon="clear" label="Clear station search" tone="dim" onPress={() => setQuery('')} />}
     </GlassSurface>
-    <Label accessibilityRole="header" tone="dim" size={15} style={{ marginTop: 5, marginBottom: 9, marginHorizontal: 4 }}>
+    <Label accessibilityRole="header" tone="dim" size={15} style={{ marginTop: 4, marginBottom: 8, marginHorizontal: 4 }}>
       {searching ? 'Search results' : 'Recent searches'}
     </Label>
-    {!missing && rows.map(station => <Result key={station.id} title={station.name} detail="" onPress={() => {
+    {!missing && rows.map(station => <Result key={station.id} title={station.name} detail="" presentation="station-search" onPress={() => {
       Keyboard.dismiss();
       preferences.selectStation(station.id);
       navigation.navigate('Picker', { stationId: station.id });
-    }}><LineLabels lines={station.lines} /></Result>)}
+    }}><LineLabels lines={station.lines} presentation="station-search" /></Result>)}
     {missing ? <Label tone="dim" accessibilityRole="alert">
       Station catalogue is unavailable. Close and reopen the app to retry. If this continues, update or reinstall the app.
     </Label> : !rows.length && <Label tone="dim">
