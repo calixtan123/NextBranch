@@ -6,7 +6,7 @@ export const bundledTopology: {
   maxAgeDays: number;
   topology: Topology[];
 } = {
-  capturedAt: "2026-09-15T21:53:00.000Z",
+  capturedAt: "2026-11-12T15:39:46.382198+00:00",
   maxAgeDays: 30,
   topology: [
   {

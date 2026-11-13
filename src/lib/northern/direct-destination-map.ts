@@ -1,5 +1,5 @@
 /** Generated from the reviewed Northern topology capture; do not place TfL topology in components. */
-export const directDestinationCapturedAt = "2026-09-15T21:53:00.000Z";
+export const directDestinationCapturedAt = "2026-11-12T15:39:46.382198+00:00";
 export const directDestinationIds: Readonly<Record<string, readonly string[]>> = {
   "940GZZBPSUST": [
     "940GZZLUACY",

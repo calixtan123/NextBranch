@@ -13,7 +13,8 @@ const base = {
   routes: async () => bundledTopology.topology,
   timetable: async () => table,
   now: () => now,
-  bundled: bundledTopology,
+  // Keep the fallback capture coherent with this suite's fixed prediction clock.
+  bundled: { ...bundledTopology, capturedAt: "2026-09-15T21:53:00.000Z" },
 };
 const request = (from: string | null, to: string | null) =>
   new Request(
