@@ -22,10 +22,12 @@ class RateLimitError extends Error {
   }
 }
 
+/** Returns a retry interval only when it is a positive safe integer. */
 function positiveRetrySeconds(value: unknown): number | undefined {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
 }
 
+/** Reads Retry-After as delta seconds first, then as a future standard HTTP date. */
 function retryAfterHeader(header: string | null): number | undefined {
   if (!header) return undefined;
   if (/^\d+$/.test(header)) return positiveRetrySeconds(Number(header));
