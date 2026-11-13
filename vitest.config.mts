@@ -8,7 +8,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     pool: "forks",
-    poolOptions: { forks: { singleFork: true } },
+    fileParallelism: false,
   },
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
 });
