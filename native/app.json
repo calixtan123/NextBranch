@@ -2,7 +2,7 @@
   "expo": {
     "name": "NextBranch",
     "slug": "nextbranch-iphone",
-    "version": "0.1.0",
+    "version": "0.0.1",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "platforms": ["ios"],
