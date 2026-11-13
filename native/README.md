@@ -35,7 +35,7 @@ Repository preparation lives in `app.config.js` (release gate and icon),
 `eas.json` (the `production` profile) and `assets/icon.png`. The profile uses
 remote app version source, the EAS `production` environment and
 `autoIncrement`, so EAS owns the iOS build number. Bundle identifier stays
-`com.nextbranch.app` and version `0.1.0` until the Apple account confirms them.
+`com.nextbranch.app`. The initial TestFlight app version is `0.0.1`.
 
 The release gate runs whenever EAS evaluates the config for the `production`
 profile (`NEXTBRANCH_RELEASE_BUILD=1`). It rejects a missing

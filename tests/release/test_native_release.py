@@ -63,6 +63,21 @@ def test_release_config_sets_icon():
     assert config["icon"] == "./assets/icon.png"
 
 
+@pytest.mark.parametrize("release_build", [False, True])
+def test_initial_app_version_is_consistent_across_native_config_and_packages(release_build):
+    """Keep the initial app version consistent in development and release config."""
+    manifest = json.loads((NATIVE / "package.json").read_text())
+    lockfile = json.loads((NATIVE / "package-lock.json").read_text())
+    result = release("https://api.nextbranch.app") if release_build else load_config()
+
+    assert result.returncode == 0, result.stderr
+    config = json.loads(result.stdout)
+    assert config["version"] == "0.0.1"
+    assert manifest["version"] == config["version"]
+    assert lockfile["version"] == config["version"]
+    assert lockfile["packages"][""]["version"] == config["version"]
+
+
 def test_missing_url_is_rejected_for_release():
     result = release(None)
     assert result.returncode != 0
