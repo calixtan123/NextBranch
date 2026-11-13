@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DeparturesScreen, HomeScreen } from './LiveScreens';
-import { AppearanceScreen, CardDisplayScreen, ManageScreen, SettingsScreen } from './ManageScreens';
+import { AboutScreen, AppearanceScreen, CardDisplayScreen, ManageScreen, SettingsScreen } from './ManageScreens';
 import { navigationRef, type Routes } from './navigation';
 import { createRuntime } from './runtime';
 import { Runtime } from './screen-context';
@@ -91,6 +91,7 @@ export function App() {
               <Stack.Screen name="Departures" component={DeparturesScreen} />
               <Stack.Screen name="Manage" component={ManageScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="About" component={AboutScreen} />
               <Stack.Screen name="Appearance" component={AppearanceScreen} />
               <Stack.Screen name="CardDisplay" component={CardDisplayScreen} />
             </Stack.Navigator>

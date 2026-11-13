@@ -10,6 +10,7 @@ export type Routes = {
   PlatformDetails: { stationId: string; platformId: string };
   Manage: { replacement?: Selection; undo?: boolean } | undefined;
   Settings: undefined;
+  About: undefined;
   Appearance: undefined;
   CardDisplay: { cardKey: string };
 };

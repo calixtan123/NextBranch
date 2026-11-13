@@ -45,7 +45,7 @@ vi.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaPr
 vi.mock('../src/LiveScreens', () => ({ HomeScreen: 'HomeScreen', DeparturesScreen: 'DeparturesScreen' }));
 vi.mock('../src/ManageScreens', () => ({
   AppearanceScreen: 'AppearanceScreen', CardDisplayScreen: 'CardDisplayScreen',
-  ManageScreen: 'ManageScreen', SettingsScreen: 'SettingsScreen',
+  ManageScreen: 'ManageScreen', SettingsScreen: 'SettingsScreen', AboutScreen: 'AboutScreen',
 }));
 vi.mock('../src/SearchScreens', () => ({ PickerScreen: 'PickerScreen', PlatformDetailsScreen: 'PlatformDetailsScreen', SearchScreen: 'SearchScreen' }));
 vi.mock('../src/navigation', () => ({ navigationRef: boundary.navigation }));
@@ -180,4 +180,11 @@ it('subscribes the root presentation to theme changes while retaining its runtim
   expect(dark.find(node => node.type === 'NavigationContainer')!.props.theme.colors.background).toBe('charcoal');
   expect(dark.find(node => node.type === 'StatusBar')!.props.barStyle).toBe('light-content');
   expect(boundary.appearance).toHaveBeenLastCalledWith('dark');
+});
+
+it('registers About and privacy on the native full-screen stack', () => {
+  boundary.runtime.mockReturnValue({ preferences: {}, stations: {}, catalogue: {}, synthetic: true });
+  const about = nodes(App()).find(node => node.props.name === 'About');
+  expect(about?.props.component).toBe('AboutScreen');
+  expect(about?.props.options?.presentation ?? 'card').toBe('card');
 });
