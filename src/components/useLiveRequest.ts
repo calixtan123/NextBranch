@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isRateLimitResponse } from "@/lib/rate-limit-contract";
+import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 
 export type RequestIssue = "offline" | "upstream" | "invalid" | "rate_limited" | null;
 // Journey requests can use two sequential eight-second server stages; leave response overhead.
@@ -20,6 +20,19 @@ class RateLimitError extends Error {
   constructor(public readonly retryAfterSeconds: number) {
     super("rate limited");
   }
+}
+
+function positiveRetrySeconds(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : undefined;
+}
+
+function retryAfterHeader(header: string | null): number | undefined {
+  if (!header) return undefined;
+  if (/^\d+$/.test(header)) return positiveRetrySeconds(Number(header));
+  const date = new Date(header);
+  // Require the standard HTTP-date format rather than accepting Date.parse's loose inputs.
+  if (date.toUTCString() !== header) return undefined;
+  return positiveRetrySeconds(Math.ceil((date.getTime() - Date.now()) / 1_000));
 }
 
 /** Shares cancellation, polling, stale retention, and retry handling between live views. */
@@ -56,6 +69,7 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     existing?.controller.abort();
     const controller = new AbortController();
     let timedOut = false;
+    let receivedRateLimit = false;
     const timer = window.setTimeout(() => {
       timedOut = true;
       controller.abort();
@@ -75,8 +89,14 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
           const result = await fetch(url(), { cache: "no-store", signal: controller.signal });
           let value: T | null = null;
           if (result.status === 429) {
+            receivedRateLimit = true;
+            const retryAfter = retryAfterHeader(result.headers.get("Retry-After"));
+            if (retryAfter !== undefined) throw new RateLimitError(retryAfter);
             const body = await result.json().catch(() => null);
-            if (isRateLimitResponse(body)) throw new RateLimitError(body.retryAfterSeconds);
+            const bodyDelay = body?.error === RATE_LIMIT_RESPONSE.error
+              ? positiveRetrySeconds(body.retryAfterSeconds)
+              : undefined;
+            throw new RateLimitError(bodyDelay ?? RATE_LIMIT_RETRY_AFTER_SECONDS);
           }
           if (result.ok) {
             try { value = parse(await result.json()); } catch { throw new Error("invalid"); }
@@ -90,11 +110,12 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
       } catch (error) {
         if (inFlight.current?.controller === controller && (!controller.signal.aborted || timedOut)) {
           setIssueKey(key);
-          if (error instanceof RateLimitError) {
-            const retryUntil = Date.now() + error.retryAfterSeconds * 1_000;
+          if (error instanceof RateLimitError || (timedOut && receivedRateLimit)) {
+            const retryAfter = error instanceof RateLimitError ? error.retryAfterSeconds : RATE_LIMIT_RETRY_AFTER_SECONDS;
+            const retryUntil = Date.now() + retryAfter * 1_000;
             serverRetryUntil.current = Math.max(serverRetryUntil.current, retryUntil);
             setCooldownUntil(Math.max(cooldown.current, serverRetryUntil.current));
-            setRetryAfterSeconds(error.retryAfterSeconds);
+            setRetryAfterSeconds(retryAfter);
             setIssue("rate_limited");
           } else {
             setRetryAfterSeconds(null);

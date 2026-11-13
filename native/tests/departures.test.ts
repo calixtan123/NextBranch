@@ -245,6 +245,26 @@ it('uses the server interval, pauses offline, and retains matching data until re
   owner.dispose();
 });
 
+it.each([
+  ['17', '<html>Limited</html>', 17],
+  ['21', null, 21],
+  [null, '<html>Limited</html>', 30],
+  ['invalid', null, 30],
+  ['0', '{"error":"RATE_LIMITED","retryAfterSeconds":23}', 23],
+])('normalises HTTP 429 with Retry-After %s and body %s', async (header, body, expected) => {
+  const limited = new Response(body, {
+    status: 429,
+    headers: header === null ? {} : { 'Retry-After': header },
+  });
+  const readBody = vi.spyOn(limited, 'json');
+  const request = httpTransport('https://example.test', false, vi.fn<typeof fetch>().mockResolvedValue(limited));
+
+  const result = request(C, new AbortController().signal);
+
+  await expect(result).rejects.toMatchObject({ kind: 'limited', retryAfterSeconds: expected });
+  if (header === '17' || header === '21') expect(readBody).not.toHaveBeenCalled();
+});
+
 it('uses exactly the documented GET URL and stops retrying an invalid station', async () => {
   vi.useFakeTimers({ now });
   const request = vi.fn<typeof fetch>().mockResolvedValue({ status: 400, ok: false } as Response);

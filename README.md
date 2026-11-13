@@ -217,20 +217,6 @@ avoid logging URLs containing `app_key`.
 
 ## Vercel deployment
 
-Vercel is a hosted build and delivery platform that builds a Next.js project,
-serves its frontend globally, and runs route handlers as managed server
-functions. A typical deployment is:
-
-1. Push the repository to a Git provider and import it into Vercel (the Vercel
-   project is external state and is not created by this repository task).
-2. Vercel detects Next.js; use `npm ci` for install and `npm run build` for the
-   build if asked.
-3. In Vercel Project Settings → Environment Variables, add `TFL_API_KEY` for
-   Production and, if desired, Preview. Do not add a `NEXT_PUBLIC_` copy.
-4. Deploy. Verify the deployed origin and API responses over HTTPS.
-
-Every connected Git push can create a Preview deployment with its own URL;
-opening a pull request can update that Preview before production promotion.
-Preview and Production environment variables are separate, so configure both
-deliberately. A future operator should run the commands in
-`docs/VERIFICATION.md` against the deployed build and record the result.
+Use the owner runbook to import the Next.js project, configure the stable
+production origin and shared API rate limit, and collect deployment and
+TestFlight evidence. [Vercel setup for TestFlight](docs/TESTFLIGHT_VERCEL.md)

@@ -152,6 +152,86 @@ describe("live request deadlines", () => {
     expect(result.current.retryAfterSeconds).toBe(30);
   });
 
+  it.each([
+    ["17", "<html>Limited</html>", 17],
+    ["21", null, 21],
+    ["Thu, 01 Jan 2026 00:00:12 GMT", "<html>Limited</html>", 12],
+    [null, "<html>Limited</html>", 30],
+    ["invalid", null, 30],
+    ["9007199254740992", "<html>Limited</html>", 30],
+    ["0", '{"error":"RATE_LIMITED","retryAfterSeconds":23}', 23],
+    ["Thu, 01 Jan 2026 00:00:00 GMT", '{"error":"RATE_LIMITED","retryAfterSeconds":-1}', 30],
+  ])("uses the retry interval for header %s and body %s", async (header, body, expected) => {
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const limited = new Response(body, {
+      status: 429,
+      headers: header === null ? {} : { "Retry-After": header },
+    });
+    const readBody = vi.spyOn(limited, "json");
+    if (header === "17" || header === "21" || expected === 12) {
+      readBody.mockReturnValue(new Promise(() => {}));
+    }
+    vi.mocked(fetch).mockResolvedValue(limited);
+    const { result } = renderHook(() => useLiveRequest(options));
+
+    await act(async () => { void result.current.fetchLive(); });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.issue).toBe("rate_limited");
+    expect(result.current.retryAfterSeconds).toBe(expected);
+    if (header === "17" || header === "21" || expected === 12) {
+      expect(readBody).not.toHaveBeenCalled();
+    }
+  });
+
+  it("keeps the stale snapshot and blocks a host-limited refresh until the deadline", async () => {
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(response(1))
+      .mockResolvedValueOnce(new Response("<html>Limited</html>", {
+        status: 429,
+        headers: { "Retry-After": "15" },
+      }))
+      .mockResolvedValueOnce(response(2));
+    const { result, rerender } = renderHook((props) => useLiveRequest(props), { initialProps: options });
+    await act(async () => { await result.current.fetchLive(); });
+    const stale = result.current.data;
+
+    await act(async () => { await result.current.fetchLive(true); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(14_999); });
+    await act(async () => { await result.current.fetchLive(); });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.current.data).toBe(stale);
+    expect(result.current.issue).toBe("rate_limited");
+    expect(result.current.retryAfterSeconds).toBe(1);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    await act(async () => { await result.current.fetchLive(true); });
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(result.current.data).toEqual({ version: 2 });
+    expect(result.current.issue).toBeNull();
+    expect(result.current.retryAfterSeconds).toBeNull();
+    rerender({ ...options, key: "b" });
+    expect(result.current.data).toBeNull();
+  });
+
+  it("falls back after twenty seconds when a 429 body stalls", async () => {
+    const limited = new Response(null, { status: 429 });
+    vi.spyOn(limited, "json").mockReturnValue(new Promise(() => {}));
+    vi.mocked(fetch).mockResolvedValue(limited);
+    const { result } = renderHook(() => useLiveRequest(options));
+
+    await act(async () => { void result.current.fetchLive(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.issue).toBe("rate_limited");
+    expect(result.current.retryAfterSeconds).toBe(30);
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(true);
+  });
+
   // Break: changing station or journey during a server retry window hides the
   // rate-limit explanation and leaves the newly selected live view blank.
   it("rekeys rate-limit guidance and retries the newly selected live request after expiry", async () => {

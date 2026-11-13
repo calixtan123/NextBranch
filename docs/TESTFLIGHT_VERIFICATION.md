@@ -1,5 +1,7 @@
 # TestFlight candidate verification
 
+For the current Vercel candidate, follow the owner runbook for production-origin setup, firewall verification, and release evidence. [Vercel setup for TestFlight](TESTFLIGHT_VERCEL.md)
+
 ## Candidate and acceptance status
 
 NB-30 repository verification was run on 12 November 2026 on `feat/NB-30-release-verification`, based on `origin/main` at `90ad8b4f31ac3a9117fb68dd7650025916291bae`. Identify the candidate commit after committing with `git rev-parse HEAD`, and record that value with its matching hosted Verify run and eventual signed build. The local results below apply to this branch's refreshed topology and fixture-clock repair. Candidate hosted CI remains pending publication.
