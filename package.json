@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@netlify/edge-functions": "^4.0.4",
     "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
