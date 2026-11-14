@@ -1,10 +1,53 @@
 /** Exercises the real server response through the native decoder and board projection. */
 import { expect, it, vi } from "vitest";
+import { z } from "zod";
 vi.mock("server-only", () => ({}));
 import { createDeparturesHandler } from "../../src/app/api/departures/route";
 import { arrivalSchema, parseArrivals } from "../../src/lib/northern/schemas";
 import { decodeSnapshot } from "../src/api";
-import { boardRows } from "../src/board-model";
+import { boardRows, boardStatus, unassignedCount } from "../src/board-model";
+import { catalogue } from "../../src/lib/catalogue";
+
+// Frozen Zod response shapes from 59e60fe's catalogue capability and native API modules.
+const baselineCatalogue = z.object({
+  stationId: z.string(),
+  liveState: z.enum(["available", "empty", "unverified", "unavailable", "partial"]),
+  feeds: z.array(z.object({ lineId: z.string(), stopAreaId: z.string(), liveState: z.enum(["available", "empty", "unavailable"]) })).optional(),
+  platforms: z.array(z.object({
+    platformId: z.string(), platformNumber: z.string(), description: z.string(),
+    direction: z.string(), platformNaptanCode: z.string(),
+    services: z.array(z.object({
+      lineId: z.string(), lineName: z.string(), mode: z.string(), towards: z.string(),
+      stopAreaId: z.string(), capability: z.object({
+        feed: z.enum(["supported", "unsupported", "unverified"]),
+        mapping: z.enum(["supported", "unsupported", "unverified"]),
+        evidence: z.string(),
+      }),
+    })),
+  })),
+});
+const baselineTimestamp = z.iso.datetime({ offset: true }).refine(value => Number.isFinite(Date.parse(value)));
+const baselineExactLabel = z.string().min(1).refine(value => value === value.trim());
+const baselineSnapshot = z.object({
+  station: z.object({ id: z.string().min(1), name: z.string().trim().min(1) }),
+  observedAt: baselineTimestamp,
+  newestPredictionGeneratedAt: baselineTimestamp.nullable(),
+  refreshAfterSeconds: z.number().int().positive().optional().default(30),
+  catalogue: baselineCatalogue.optional(),
+  platforms: z.array(z.object({
+    physicalPlatformId: baselineExactLabel.nullable().optional(),
+    platform: z.string().refine(value => value === value.trim()).nullable(),
+    direction: z.enum(["Northbound", "Southbound", "Eastbound", "Westbound"]).nullable(),
+    departures: z.array(z.object({
+      id: baselineExactLabel,
+      lineId: baselineExactLabel.optional(),
+      destinationName: z.string().nullable(),
+      expectedArrival: baselineTimestamp,
+      secondsToStation: z.number().finite(),
+      towards: z.string().nullable(),
+    })),
+  })),
+});
 
 const now = new Date("2026-09-16T12:00:00.000Z");
 const request = (query: string) => new Request(`http://local/api/departures${query}`);
@@ -13,6 +56,68 @@ const arrival = (value: Record<string, unknown>) => arrivalSchema.parse({
   destinationName: "Morden via Bank", expectedArrival: "2026-09-16T12:02:00.000Z",
   timestamp: "2026-09-16T11:59:00.000Z", direction: "inbound", towards: "Morden via Bank",
   ...value,
+});
+
+it.each(["mixed freshness", "all stale"] as const)("keeps the baseline native contract for %s", async condition => {
+  const stationId = "HUBKWG";
+  const allStale = condition === "all stale";
+  const district = { lineId: "district", stopAreaId: "940GZZLUKWG" };
+  const mildmay = { lineId: "mildmay", stopAreaId: "910GKEWGRDN" };
+  const staleTimestamp = "2026-09-16T11:00:00Z";
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async (lineId, naptanId) => [
+    arrival({ lineId, naptanId, platformName: lineId === "district" ? "Eastbound - Platform 1" : "Platform 1",
+      timestamp: allStale || lineId === "mildmay" ? staleTimestamp : "2026-09-16T11:59:00Z" }),
+  ] });
+  const response = await get(request("?station=" + stationId));
+  expect(response.status).toBe(200);
+  const payload = await response.json();
+  const baseline = baselineSnapshot.parse(payload);
+  expect(baseline.station.id).toBe(stationId);
+  expect(baseline.catalogue?.liveState).toBe(allStale ? "empty" : "available");
+  expect(baseline.catalogue?.feeds).toEqual([
+    { ...district, liveState: allStale ? "empty" : "available" },
+    { ...mildmay, liveState: "empty" },
+  ]);
+  expect(baseline.platforms.flatMap(group => group.departures.map(departure => departure.lineId)))
+    .toEqual(allStale ? [] : ["district"]);
+
+  const snapshot = decodeSnapshot(payload, stationId);
+  expect(snapshot.catalogue?.feeds?.map(feed => feed.freshness)).toEqual([allStale ? "stale" : undefined, "stale"]);
+  const state = { pending: false, error: null, snapshot };
+  expect(boardStatus(state, now.getTime(), true, [district, mildmay])).toEqual({
+    tone: "warning",
+    label: allStale ? "No recent departures available" : "No recent departures available for some services",
+  });
+  expect(boardStatus(state, now.getTime(), true, [mildmay]).label).toBe("No recent departures available");
+  expect(boardStatus(state, now.getTime(), true, [district]).label)
+    .toBe(allStale ? "No recent departures available" : "Live departures up to date");
+});
+
+it('projects raw Acton Town labels through normalization and exact physical assignment with dedupe and freshness filtering', async () => {
+  const stationId = '940GZZLUACT';
+  const raw = [
+    arrival({ id: 'east', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 4' }),
+    arrival({ id: 'west', lineId: 'district', naptanId: stationId, platformName: 'Westbound - Platform 1' }),
+    arrival({ id: 'unmapped', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 99' }),
+    arrival({ id: 'missing', lineId: 'district', naptanId: stationId, platformName: undefined }),
+    arrival({ id: 'stale', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 4', timestamp: '2026-09-16T11:00:00Z' }),
+    arrival({ id: 'wrong-stop', lineId: 'district', naptanId: 'other', platformName: 'Eastbound - Platform 4' }),
+  ];
+  const handler = createDeparturesHandler({ now: () => now, lineArrivals: async line => line === 'district' ? [...raw, raw[0]] : [] });
+  const result = await handler(request('?station=' + stationId));
+  const body = decodeSnapshot(await result.json(), stationId);
+  expect(result.status).toBe(200);
+  expect(body.platforms.flatMap(group => group.departures)).toHaveLength(4);
+  const station = catalogue.stationsById.get(stationId)!;
+  for (const [number, direction, id] of [['4', 'Eastbound', 'east'], ['1', 'Westbound', 'west']] as const) {
+    const platform = station.platforms.find(item => item.platform_number === number)!;
+    const rows = boardRows(body, { stationId, platform: number, direction, physicalPlatformId: platform.platform_id }, now.getTime(), 5);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toContain(id);
+  }
+  expect(unassignedCount(body, now.getTime())).toBe(2);
+  expect(body.catalogue!.platforms.find(platform => platform.platformNumber === '4')!.services
+    .find(service => service.lineId === 'district')!.capability.mapping).toBe('unverified');
 });
 
 it("serves the DLR service stop beneath a hub, retains source blanks and prevents cross-feed/platform leakage", async () => {

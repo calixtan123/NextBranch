@@ -24,7 +24,7 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
   const clock = new Date(now);
   return snapshot.platforms
     .filter(group => selection.physicalPlatformId ? group.physicalPlatformId === selection.physicalPlatformId :
-      group.platform === selection.platform && group.direction === selection.direction)
+      group.physicalPlatformId !== null && group.platform === selection.platform && group.direction === selection.direction)
     .flatMap(group => group.departures)
     .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now)
     .map(row => ({ ...row, seconds: secondsToOrigin(row.expectedArrival, clock) }))
@@ -85,10 +85,10 @@ export function departureIdentity(
   return [destination + (lineName ? ` (${lineName})` : ''), embeddedVia, branch].filter(Boolean).join(' ');
 }
 
-/** Counts visible predictions that lack a confirmed platform or direction. */
+/** Counts current unresolved physical identities, including legacy unknown tuples. */
 export function unassignedCount(snapshot: Snapshot | undefined, now: number): number {
   return snapshot?.platforms
-    .filter(group => !group.physicalPlatformId && (!group.platform || !group.direction))
+    .filter(group => group.physicalPlatformId === null || (!group.physicalPlatformId && (!group.platform || !group.direction)))
     .flatMap(group => group.departures)
     .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now).length ?? 0;
 }
@@ -164,12 +164,20 @@ export function boardStatus(
   if (state.error === 'invalid') return { tone: 'danger', label: 'Station unavailable. Review your selection' };
   if (state.error === 'configuration') return { tone: 'danger', label: 'Live departures are unavailable' };
   if (state.error) return { tone: 'danger', label: 'Departures request failed. Predictions may be outdated' };
-  const unavailable = state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable' &&
-    relevantFeeds.some(service => service.lineId === feed.lineId && service.stopAreaId === feed.stopAreaId));
-  if (unavailable) return { tone: 'danger', label: 'Live departures temporarily unavailable' };
+  const feeds = state.snapshot?.catalogue?.feeds?.filter(feed =>
+    relevantFeeds.some(service => service.lineId === feed.lineId && service.stopAreaId === feed.stopAreaId)) ?? [];
+  const unavailable = feeds.filter(feed => feed.liveState === 'unavailable').length;
+  if (unavailable) return unavailable === feeds.length
+    ? { tone: 'danger', label: 'Live departures temporarily unavailable' }
+    : { tone: 'warning', label: 'Some live departures temporarily unavailable' };
   if (!state.snapshot) return { tone: 'dim', label: 'Loading departures' };
   if (now - Date.parse(state.snapshot.observedAt) > FRESH_FOR) {
     return { tone: 'warning', label: 'Departures are over 30 seconds old' };
+  }
+  const stale = feeds.filter(feed => feed.freshness === 'stale').length;
+  if (stale) {
+    return { tone: 'warning', label: stale === feeds.length
+      ? 'No recent departures available' : 'No recent departures available for some services' };
   }
   return { tone: 'success', label: 'Live departures up to date' };
 }

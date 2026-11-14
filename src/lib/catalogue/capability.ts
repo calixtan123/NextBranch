@@ -26,7 +26,12 @@ export const capabilitySchema = z.object({
 export const catalogueResponseSchema = z.object({
   stationId: z.string(),
   liveState: z.enum(["available", "empty", "unverified", "unavailable", "partial"]),
-  feeds: z.array(z.object({ lineId: z.string(), stopAreaId: z.string(), liveState: z.enum(["available", "empty", "unavailable"]) })).optional(),
+  feeds: z.array(z.object({
+    lineId: z.string(),
+    stopAreaId: z.string(),
+    liveState: z.enum(["available", "empty", "unavailable"]),
+    freshness: z.literal("stale").optional(),
+  })).optional(),
   platforms: z.array(z.object({
     platformId: z.string(), platformNumber: z.string(), description: z.string(),
     direction: z.string(), platformNaptanCode: z.string(),
@@ -125,16 +130,20 @@ export function serviceCapability(station: AppStation, platform: CataloguePlatfo
  * Returns
  * -------
  * string or null
- *     Canonical physical ID when uniquely evidenced, otherwise null.
+ *     Canonical physical ID when the explicit live identity matches uniquely,
+ *     otherwise null. Static reviewed capability still controls save eligibility.
  */
 export function physicalPlatformForTrain(station: AppStation, train: Pick<RailDeparture, "platformConfirmed" | "platform" | "direction" | "lineId"> & { stopAreaId?: string }): string | null {
   const numbered = numberedRailLines.some(line => line === train.lineId);
   if (!train.platformConfirmed || ((numbered || train.lineId === "tram") && !train.stopAreaId)) return null;
   const matches = station.platforms.filter(platform =>
-    platform.platform_number === train.platform && (numbered ? train.direction === null || platform.cardinal_direction === train.direction : platform.cardinal_direction === train.direction) &&
-    platform.services.some(service => service.line_id === train.lineId && (!train.stopAreaId || service.stop_area_naptan_code === train.stopAreaId) && serviceCapability(station, platform, service).mapping === "supported"),
+    platform.platform_number === train.platform && (numbered || platform.cardinal_direction === train.direction) &&
+    platform.services.some(service => service.line_id === train.lineId && (!train.stopAreaId || service.stop_area_naptan_code === train.stopAreaId) && serviceCapability(station, platform, service).feed === "supported"),
   );
-  return matches.length === 1 ? matches[0]!.platform_id : null;
+  if (matches.length !== 1) return null;
+  const platform = matches[0]!;
+  if (numbered && train.direction !== null && platform.cardinal_direction !== train.direction) return null;
+  return platform.platform_id;
 }
 
 /**

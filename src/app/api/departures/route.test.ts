@@ -14,6 +14,18 @@ const arrival = (value: Record<string, unknown> = {}) => arrivalSchema.parse({
   direction: "inbound", towards: "Morden via Bank", ...value,
 });
 
+it.each([true, false])('preserves empty wire states with stale detail present: %s', async (stale) => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => stale ? [arrival({ timestamp: '2026-09-16T11:00:00Z' })] : [] });
+  const result = await get(request(`?station=${station}`));
+  const body = await result.json();
+  expect(result.status).toBe(200);
+  expect(body.platforms).toEqual([]);
+  expect(body.catalogue.liveState).toBe('empty');
+  expect(body.catalogue.feeds).toEqual([{
+    lineId: 'northern', stopAreaId: station, liveState: 'empty', ...(stale ? { freshness: 'stale' } : {}),
+  }]);
+});
+
 describe("departures API", () => {
   it("rejects missing, unknown, duplicate, and extra station query parameters before TfL", async () => {
     const arrivals = vi.fn();
