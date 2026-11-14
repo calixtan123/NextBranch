@@ -1,6 +1,19 @@
 /** Shared arrival clocks, countdown formatting and London wall-clock labels. */
 export const REFRESH_SECONDS = 30; export const DEPARTED_GRACE = 30; export const MAX_AGE = 180; export const MAX_FUTURE_SKEW = 90;
-/** Returns exact seconds so minute rounding and departed expiry retain millisecond precision. */
+/** Returns exact seconds so minute rounding and departed expiry retain millisecond precision.
+ *
+ * Parameters
+ * ----------
+ * expected : string or Date
+ *     Expected arrival timestamp.
+ * now : Date, optional
+ *     Current clock time; defaults to the current time (Date.now()).
+ *
+ * Returns
+ * -------
+ * number
+ *     Signed fractional seconds until arrival, or NaN if either date is invalid.
+ */
 export function remainingSeconds(expected: string | Date, now = new Date()) {
   return (new Date(expected).getTime() - now.getTime()) / 1000;
 }
