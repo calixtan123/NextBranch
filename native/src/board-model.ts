@@ -174,7 +174,7 @@ export function boardStatus(
   if (now - Date.parse(state.snapshot.observedAt) > FRESH_FOR) {
     return { tone: 'warning', label: 'Departures are over 30 seconds old' };
   }
-  const stale = feeds.filter(feed => feed.liveState === 'stale').length;
+  const stale = feeds.filter(feed => feed.freshness === 'stale').length;
   if (stale) {
     return { tone: 'warning', label: stale === feeds.length
       ? 'No recent departures available' : 'No recent departures available for some services' };

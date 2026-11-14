@@ -77,8 +77,8 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
     const states = results.map((result, index) => ({
       ...feeds[index]!,
       liveState: result.status === "rejected" ? "unavailable" as const
-        : currentByFeed[index]!.length ? "available" as const
-          : exactRecords[index]!.length ? "stale" as const : "empty" as const,
+        : currentByFeed[index]!.length ? "available" as const : "empty" as const,
+      ...(!currentByFeed[index]!.length && exactRecords[index]!.length ? { freshness: "stale" as const } : {}),
     }));
     const failures = results.filter(result => result.status === "rejected");
     if (feeds.length && failures.length === feeds.length) {
@@ -95,7 +95,7 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
     return response({
       station: { id: stationId, name: byId.get(stationId)?.name ?? station.station_name },
       catalogue: { ...catalogueMetadata(station, !feeds.length ? "unverified" : failures.length ? "partial"
-        : current.length ? "available" : states.some(feed => feed.liveState === "stale") ? "stale" : "empty"), feeds: states },
+        : current.length ? "available" : "empty"), feeds: states },
       observedAt: now.toISOString(),
       newestPredictionGeneratedAt: timestamps[0] ?? null,
       refreshAfterSeconds: 30,

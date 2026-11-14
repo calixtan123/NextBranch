@@ -53,7 +53,7 @@ The count columns give raw/exact/current, assigned/unresolved and visible rows p
 
 ## Feed and board explanations
 
-The handler retains per-feed outcomes. An exact successful response with zero records is `empty`. An exact nonempty response whose records all expire under existing normalization rules is `stale`. A rejected feed is `unavailable`. Partial failures preserve successful feeds and their exact assignments. Successful station metadata also retains the aggregate `stale` state when every usable prediction has expired.
+The handler retains per-feed outcomes. An exact successful response with zero current records has `liveState: "empty"`. When that feed returned records and the existing freshness rules filtered them all out, it also carries `freshness: "stale"`. The native board reads this detail for the selected services. A rejected feed is `unavailable`. Partial failures preserve successful feeds and their exact assignments. Aggregate `liveState` is `available` for fresh predictions alongside a stale feed and `empty` when every feed is stale. Clients using the baseline schema ignore the optional freshness field and keep any healthy departures.
 
 | Condition | Board explanation | Status tone |
 | --- | --- | --- |

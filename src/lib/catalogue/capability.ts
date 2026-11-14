@@ -25,8 +25,13 @@ export const capabilitySchema = z.object({
 });
 export const catalogueResponseSchema = z.object({
   stationId: z.string(),
-  liveState: z.enum(["available", "empty", "stale", "unverified", "unavailable", "partial"]),
-  feeds: z.array(z.object({ lineId: z.string(), stopAreaId: z.string(), liveState: z.enum(["available", "empty", "stale", "unavailable"]) })).optional(),
+  liveState: z.enum(["available", "empty", "unverified", "unavailable", "partial"]),
+  feeds: z.array(z.object({
+    lineId: z.string(),
+    stopAreaId: z.string(),
+    liveState: z.enum(["available", "empty", "unavailable"]),
+    freshness: z.literal("stale").optional(),
+  })).optional(),
   platforms: z.array(z.object({
     platformId: z.string(), platformNumber: z.string(), description: z.string(),
     direction: z.string(), platformNaptanCode: z.string(),

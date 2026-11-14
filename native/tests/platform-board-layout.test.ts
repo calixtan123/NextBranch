@@ -213,8 +213,8 @@ it.each([
   const station = { ...original, platforms: [platform] };
   const observedAt = '2026-11-10T12:00:00Z';
   const feeds = platform.services.map((service, index) => ({ lineId: service.line_id, stopAreaId: service.stop_area_naptan_code,
-    liveState: condition === 'failed' || condition === 'partial' && index === 0 ? 'unavailable' as const
-      : condition === 'stale' ? 'stale' as const : 'empty' as const }));
+    liveState: condition === 'failed' || condition === 'partial' && index === 0 ? 'unavailable' as const : 'empty' as const,
+    ...(condition === 'stale' ? { freshness: 'stale' as const } : {}) }));
   const snapshot: Snapshot = { station: { id: station.station_id, name: station.station_name }, observedAt,
     newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
     catalogue: { stationId: station.station_id, liveState: 'empty', platforms: [], feeds },
