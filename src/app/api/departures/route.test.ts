@@ -14,6 +14,16 @@ const arrival = (value: Record<string, unknown> = {}) => arrivalSchema.parse({
   direction: "inbound", towards: "Morden via Bank", ...value,
 });
 
+it('distinguishes stale-only source predictions from a successful empty feed', async () => {
+  const get = createDeparturesHandler({ now: () => now, lineArrivals: async () => [arrival({ timestamp: '2026-09-16T11:00:00Z' })] });
+  const result = await get(request(`?station=${station}`));
+  const body = await result.json();
+  expect(result.status).toBe(200);
+  expect(body.platforms).toEqual([]);
+  expect(body.catalogue.liveState).toBe('stale');
+  expect(body.catalogue.feeds).toEqual([{ lineId: 'northern', stopAreaId: station, liveState: 'stale' }]);
+});
+
 describe("departures API", () => {
   it("rejects missing, unknown, duplicate, and extra station query parameters before TfL", async () => {
     const arrivals = vi.fn();

@@ -4,7 +4,8 @@ vi.mock("server-only", () => ({}));
 import { createDeparturesHandler } from "../../src/app/api/departures/route";
 import { arrivalSchema, parseArrivals } from "../../src/lib/northern/schemas";
 import { decodeSnapshot } from "../src/api";
-import { boardRows } from "../src/board-model";
+import { boardRows, unassignedCount } from "../src/board-model";
+import { catalogue } from "../../src/lib/catalogue";
 
 const now = new Date("2026-09-16T12:00:00.000Z");
 const request = (query: string) => new Request(`http://local/api/departures${query}`);
@@ -13,6 +14,33 @@ const arrival = (value: Record<string, unknown>) => arrivalSchema.parse({
   destinationName: "Morden via Bank", expectedArrival: "2026-09-16T12:02:00.000Z",
   timestamp: "2026-09-16T11:59:00.000Z", direction: "inbound", towards: "Morden via Bank",
   ...value,
+});
+
+it('projects raw Acton Town labels through normalization and exact physical assignment with dedupe and freshness filtering', async () => {
+  const stationId = '940GZZLUACT';
+  const raw = [
+    arrival({ id: 'east', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 4' }),
+    arrival({ id: 'west', lineId: 'district', naptanId: stationId, platformName: 'Westbound - Platform 1' }),
+    arrival({ id: 'unmapped', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 99' }),
+    arrival({ id: 'missing', lineId: 'district', naptanId: stationId, platformName: undefined }),
+    arrival({ id: 'stale', lineId: 'district', naptanId: stationId, platformName: 'Eastbound - Platform 4', timestamp: '2026-09-16T11:00:00Z' }),
+    arrival({ id: 'wrong-stop', lineId: 'district', naptanId: 'other', platformName: 'Eastbound - Platform 4' }),
+  ];
+  const handler = createDeparturesHandler({ now: () => now, lineArrivals: async line => line === 'district' ? [...raw, raw[0]] : [] });
+  const result = await handler(request('?station=' + stationId));
+  const body = decodeSnapshot(await result.json(), stationId);
+  expect(result.status).toBe(200);
+  expect(body.platforms.flatMap(group => group.departures)).toHaveLength(4);
+  const station = catalogue.stationsById.get(stationId)!;
+  for (const [number, direction, id] of [['4', 'Eastbound', 'east'], ['1', 'Westbound', 'west']] as const) {
+    const platform = station.platforms.find(item => item.platform_number === number)!;
+    const rows = boardRows(body, { stationId, platform: number, direction, physicalPlatformId: platform.platform_id }, now.getTime(), 5);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toContain(id);
+  }
+  expect(unassignedCount(body, now.getTime())).toBe(2);
+  expect(body.catalogue!.platforms.find(platform => platform.platformNumber === '4')!.services
+    .find(service => service.lineId === 'district')!.capability.mapping).toBe('unverified');
 });
 
 it("serves the DLR service stop beneath a hub, retains source blanks and prevents cross-feed/platform leakage", async () => {

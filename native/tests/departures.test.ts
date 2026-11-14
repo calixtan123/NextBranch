@@ -92,6 +92,18 @@ it('counts unassigned predictions through the exact 30-second grace boundary', (
   expect(unassignedCount(snapshot, arrival + 30_001)).toBe(0);
 });
 
+it('counts a known number and direction with an explicitly unresolved physical identity while preserving legacy tuples', () => {
+  const departure = snapshot.platforms[0].departures[0];
+  const input = { ...snapshot, platforms: [
+    { platform: '4', direction: 'Eastbound' as const, physicalPlatformId: null, departures: [departure] },
+    { platform: 'A', direction: 'Southbound' as const, departures: [departure] },
+  ] };
+  expect(unassignedCount(input, now)).toBe(1);
+  expect(boardRows(input, { stationId: C, platform: '4', direction: 'Eastbound', physicalPlatformId: 'exact' }, now, 5)).toEqual([]);
+  expect(boardRows(input, { stationId: C, platform: '4', direction: 'Eastbound' }, now, 5)).toEqual([]);
+  expect(unassignedCount(input, Date.parse(departure.expectedArrival) + 30_001)).toBe(0);
+});
+
 it('switches Amber to readable native text at accessibility sizes and preserves unsupported characters', () => {
   expect(layoutFor('amber', 1, 'Morden via Bank')).toBe('matrix');
   expect(layoutFor('amber', 2, 'Morden via Charing Cross')).toBe('text');
