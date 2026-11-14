@@ -1,6 +1,6 @@
 /** Projects native departure display fields while preserving source predictions and matching. */
 import { branchLabel, normalizeTowards } from '../../src/lib/northern/route';
-import { DEPARTED_GRACE, displayCountdown, secondsToOrigin } from '../../src/lib/northern/time';
+import { DEPARTED_GRACE, displayCountdown, remainingSeconds } from '../../src/lib/northern/time';
 import { lines, type CatalogueService } from '../../src/lib/catalogue/schema';
 import { FRESH_FOR, type createStationOwner } from './station-owner';
 import { glyphs } from './glyphs';
@@ -27,7 +27,6 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
       group.platform === selection.platform && group.direction === selection.direction)
     .flatMap(group => group.departures)
     .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now)
-    .map(row => ({ ...row, seconds: secondsToOrigin(row.expectedArrival, clock) }))
     .sort((a, b) => Date.parse(a.expectedArrival) - Date.parse(b.expectedArrival) || a.id.localeCompare(b.id))
     .slice(0, limit)
     .map(row => {
@@ -41,7 +40,7 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
         lineId: row.lineId,
         destination,
         branch,
-        countdown: displayCountdown(row.seconds),
+        countdown: displayCountdown(remainingSeconds(row.expectedArrival, clock)),
         expectedArrival: row.expectedArrival,
       };
     });

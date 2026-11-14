@@ -23,7 +23,11 @@ stations fail within the fixture adapter.
 platforms. Each record provides `stationId`, `platform`, and `direction` with
 the exact spelling the API returns. Keep the source and verification provenance
 with catalogue changes. Canonical station search, countdown and London clock
-helpers are imported from the application repository.
+helpers are imported from the application repository. Live boards use the device
+clock and each prediction's absolute expected arrival, including while a cached
+response is on screen. Countdown minutes round to the nearest minute, with half
+minutes rounding up. `Due` starts below 30 seconds remaining and continues through
+30 seconds after the expected arrival, inclusive. The row then expires.
 
 Run `npm run typecheck`, `npm test`, and `npm run export:ios` for the local
 static checks. See the [verification record](../docs/design/NB-3-verification.md)

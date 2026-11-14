@@ -32,6 +32,53 @@ it('matches only the physical tuple, keeps every branch, expires before limiting
 });
 
 it.each([
+  [29_999, 'Due'], [30_000, '1 min'],
+  [149_999, '2 min'], [150_000, '3 min'],
+  [269_999, '4 min'], [270_000, '5 min'],
+  [0, 'Due'], [-30_000, 'Due'], [-30_001, null],
+])('formats native absolute arrival %s milliseconds away as %s', (milliseconds, countdown) => {
+  const input = { ...snapshot, platforms: [{ ...snapshot.platforms[0], departures: [{
+    ...snapshot.platforms[0].departures[0],
+    expectedArrival: new Date(now + milliseconds).toISOString(),
+    secondsToStation: 600,
+  }] }] };
+  const rows = boardRows(input, a, now, 3);
+  if (countdown === null) expect(rows).toEqual([]);
+  else expect(rows[0].countdown).toBe(countdown);
+});
+
+it('uses absolute arrival for a delayed response and for cached rows on foreground resume', async () => {
+  vi.useFakeTimers({ now });
+  const expectedArrival = new Date(now + 160_000).toISOString();
+  const delayedSnapshot = {
+    ...snapshot,
+    platforms: [{ ...snapshot.platforms[0], departures: [{
+      ...snapshot.platforms[0].departures[0], expectedArrival, secondsToStation: 160,
+    }] }],
+  };
+  const request = vi.fn<StationTransport>()
+    .mockImplementationOnce(() => new Promise(resolve => setTimeout(() => resolve(delayedSnapshot), 10_001)))
+    .mockImplementation(() => new Promise(() => {}));
+  const owner = createStationOwner(request, Date.now);
+  const rows = () => boardRows(owner.get(C).snapshot, a, Date.now(), 3);
+  try {
+    owner.own([C]);
+    await vi.advanceTimersByTimeAsync(10_001);
+    expect(rows()[0]).toMatchObject({ countdown: '2 min', expectedArrival });
+
+    owner.setActive(false);
+    await vi.advanceTimersByTimeAsync(120_000);
+    owner.setActive(true);
+    await settle();
+    expect(owner.get(C).pending).toBe(true);
+    expect(isStale(owner.get(C), Date.now(), true)).toBe(true);
+    expect(rows()[0]).toMatchObject({ countdown: 'Due', expectedArrival });
+  } finally {
+    owner.dispose();
+  }
+});
+
+it.each([
   ['Epping Underground Station', null, 'Epping', ''],
   ['Hainault Underground Station', 'Hainault via Newbury Park', 'Hainault', 'via Newbury Park'],
   ['Hainault Underground Station via Newbury Park', 'Hainault via Newbury Park', 'Hainault via Newbury Park', ''],
