@@ -77,7 +77,8 @@ describe("DepartureBoard", () => {
     expect(screen.getByRole("heading", { name: "Platform 2 · Northbound" })).toBeInTheDocument();
     expect(screen.getByText("Edgware")).toBeInTheDocument();
     expect(screen.queryByText("Edgware via Charing Cross")).not.toBeInTheDocument();
-    expect(screen.getAllByText("1 min")).toHaveLength(2);
+    expect(screen.getByText("1 min")).toBeInTheDocument();
+    expect(screen.getByText("Due")).toBeInTheDocument();
     expect(screen.getByText("Unknown destination")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Platform unavailable" })).toBeInTheDocument();
   });
@@ -88,9 +89,9 @@ describe("DepartureBoard", () => {
       newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
       platforms: [{ platform: "1", direction: "Northbound" as const, departures: [{ id: "one", destinationName: "Edgware", expectedArrival: "2026-09-16T12:00:00.000Z", secondsToStation: 0, towards: null }]}],
     };
-    const { rerender } = render(<DepartureBoard data={data} now={new Date("2026-09-16T12:00:10.000Z").getTime()} stale={false} />);
+    const { rerender } = render(<DepartureBoard data={data} now={new Date("2026-09-16T12:00:30.000Z").getTime()} stale={false} />);
     expect(screen.getByText("Due")).toBeInTheDocument();
-    rerender(<DepartureBoard data={data} now={new Date("2026-09-16T12:00:31.000Z").getTime()} stale={false} />);
+    rerender(<DepartureBoard data={data} now={new Date("2026-09-16T12:00:30.001Z").getTime()} stale={false} />);
     expect(screen.queryByText("Edgware")).not.toBeInTheDocument();
   });
 

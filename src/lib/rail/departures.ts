@@ -2,7 +2,7 @@
 import { identity } from "../northern/identity";
 import { normalizePredictions } from "../northern/predictions";
 import type { Arrival } from "../northern/schemas";
-import { DEPARTED_GRACE, MAX_AGE, MAX_FUTURE_SKEW, secondsToOrigin } from "../northern/time";
+import { DEPARTED_GRACE, MAX_AGE, MAX_FUTURE_SKEW, remainingSeconds, secondsToOrigin } from "../northern/time";
 import { railLines, railPlatformInfo } from "./platform";
 import type { CardinalDirection } from "../underground/platform";
 
@@ -41,14 +41,14 @@ export function normalizeRailPredictions(items: readonly Arrival[], now = new Da
     if (prediction.lineId === "northern") {
       return normalizePredictions([prediction], now).map(train => ({ ...train, stopAreaId: prediction.naptanId }));
     }
-    const seconds = secondsToOrigin(prediction.expectedArrival, now);
+    const seconds = remainingSeconds(prediction.expectedArrival, now);
     const age = prediction.timestamp ? secondsToOrigin(prediction.timestamp, now) : 0;
     if (!Number.isFinite(seconds) || !Number.isFinite(age) || seconds < -DEPARTED_GRACE || age < -MAX_AGE || age > MAX_FUTURE_SKEW) return [];
     const platform = railPlatformInfo(prediction.lineId, prediction.platformName);
     return [{
       id: key, lineId: prediction.lineId, stopAreaId: prediction.naptanId,
       destinationName: prediction.destinationName ?? null, expectedArrival: prediction.expectedArrival,
-      timestamp: prediction.timestamp ?? null, secondsToOrigin: seconds,
+      timestamp: prediction.timestamp ?? null, secondsToOrigin: Math.round(seconds),
       platform: platform.platform, direction: platform.direction, platformConfirmed: platform.confirmed,
       towards: prediction.towards ?? null,
     }];

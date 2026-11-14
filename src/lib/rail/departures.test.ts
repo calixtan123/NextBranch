@@ -31,6 +31,18 @@ it("drops stale DLR predictions and leaves missing labels unconfirmed despite de
   expect(normalizeRailPredictions([arrival({ platformName: undefined, destinationName: "Bank", direction: "inbound" })], now)[0]).toMatchObject({ platform: null, direction: null, platformConfirmed: false });
 });
 
+it.each(["northern", "dlr"])("preserves rounded snapshot seconds and expires %s arrivals at the exact grace boundary", lineId => {
+  const predictions = [
+    arrival({ lineId, id: "current", expectedArrival: "2026-11-10T12:02:29.999Z", timeToStation: 600 }),
+    arrival({ lineId, id: "due", expectedArrival: "2026-11-10T11:59:30.000Z" }),
+    arrival({ lineId, id: "expired", expectedArrival: "2026-11-10T11:59:29.999Z" }),
+  ];
+  expect(normalizeRailPredictions(predictions, now)).toMatchObject([
+    { expectedArrival: "2026-11-10T12:02:29.999Z", secondsToOrigin: 150 },
+    { expectedArrival: "2026-11-10T11:59:30.000Z", secondsToOrigin: -30 },
+  ]);
+});
+
 it("retains every distinct official DLR prediction despite reused upstream IDs and deduplicates repeated snapshots", async () => {
   const fixture = (await import("../../../data/tfl-dlr-canary-wharf-fixture.json")).default;
   const { parseArrivals } = await import("../northern/schemas");

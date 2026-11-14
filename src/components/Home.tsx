@@ -12,7 +12,7 @@ import { useDeparturesRequest } from "./useDeparturesRequest";
 import { useJourneyRequest } from "./useJourneyRequest";
 import { directDestinations } from "@/lib/northern/direct-destinations";
 import { byId, type Station } from "@/lib/northern/stations";
-import { secondsToOrigin } from "@/lib/northern/time";
+import { DEPARTED_GRACE, remainingSeconds } from "@/lib/northern/time";
 import type { Journey } from "@/lib/journeys/types";
 import { readJourneys, removeJourney, restoreJourney, saveJourney, willReplaceOldest } from "@/lib/storage/journeys";
 import {
@@ -244,10 +244,14 @@ export default function Home() {
     });
     clearStationUndo();
   };
-  const trains = useMemo(() => data?.trains.map((train) => ({ ...train, secondsToOrigin: now === null ? train.secondsToOrigin : secondsToOrigin(train.expectedArrival, new Date(now)) })) ?? [], [data, now]);
+  const trains = useMemo(() => {
+    if (!data) return [];
+    const clock = new Date(now ?? data.observedAt);
+    return data.trains.map((train) => ({ ...train, secondsToOrigin: remainingSeconds(train.expectedArrival, clock) }));
+  }, [data, now]);
   useEffect(() => {
     const highlighted = data?.nextTrainId ? trains.find((train) => train.id === data.nextTrainId) : null;
-    if (view !== "results" || !activeJourney || !highlighted || highlighted.secondsToOrigin >= -30) return;
+    if (view !== "results" || !activeJourney || !highlighted || highlighted.secondsToOrigin >= -DEPARTED_GRACE) return;
     const key = `${activeJourney.from}:${activeJourney.to}:${data?.observedAt}`;
     if (expiredRefresh.current !== key) { expiredRefresh.current = key; void fetchJourney(); }
   }, [now, view, activeJourney, data?.observedAt, data?.nextTrainId, fetchJourney, trains]);
@@ -307,7 +311,7 @@ export default function Home() {
     {view === "results" && activeJourney && <section className="journey-bar" aria-label="Selected journey"><span>{activeJourney.fromName} → {activeJourney.toName}</span><div className="journey-actions"><ShareControl selection={{ type: "journey", from: activeJourney.from, to: activeJourney.to }} label={`Share ${activeJourney.fromName} to ${activeJourney.toName} journey`} /><button onClick={saveActive}>{saved.some((item) => item.from === activeJourney.from && item.to === activeJourney.to) ? "Saved" : "Save journey"}</button></div></section>}
     {view === "results" && loading && !data && <p role="status" className="status">Checking live Northern line trains…</p>}
     {view === "results" && issue && <div role="alert" className="warning">{issue === "offline" ? "Live TfL data requires an internet connection." : issue === "upstream" ? "Live TfL data is temporarily unavailable. Try again shortly." : issue === "rate_limited" ? `Too many live requests. Try again in ${retryAfterSeconds ?? 30} seconds.` : "We couldn’t read the latest live prediction."}{data && <><br /><strong>Last prediction — information may be stale.</strong></>} <button disabled={now !== null && now < cooldownUntil} onClick={() => void fetchJourney()}>Retry</button></div>}
-    {view === "results" && data && <><p key={data.observedAt} role="status" aria-live="polite" className="visually-hidden">{trains.length} suitable {trains.length === 1 ? "train" : "trains"} observed.</p><section aria-busy={loading}><div className="result-heading"><h2>Next trains</h2><button disabled={now !== null && now < cooldownUntil} onClick={() => void fetchJourney(true)}>{now !== null && now < cooldownUntil ? "Refresh available soon" : "Refresh"}</button></div><p className={stale ? "muted" : "updated"}>Updated {now === null ? 0 : Math.max(0, Math.round((now - new Date(data.observedAt).getTime()) / 1000))} sec ago</p>{!trains.length ? <p className="empty">No suitable trains are currently predicted.</p> : trains.filter((train) => train.secondsToOrigin >= -30).map((train) => <TrainCard key={train.id} train={train} rank={ranks(train.id)} fresh={!stale} minutesSaved={data.fastestTrainId !== data.nextTrainId && data.fastestTrainId === train.id ? data.minutesSaved : null} />)}{data.withheldAmbiguousCount > 0 && <p className="muted">{data.withheldAmbiguousCount === 1 ? "1 ambiguous service was" : `${data.withheldAmbiguousCount} ambiguous services were`} withheld.</p>}</section></>}
+    {view === "results" && data && <><p key={data.observedAt} role="status" aria-live="polite" className="visually-hidden">{trains.length} suitable {trains.length === 1 ? "train" : "trains"} observed.</p><section aria-busy={loading}><div className="result-heading"><h2>Next trains</h2><button disabled={now !== null && now < cooldownUntil} onClick={() => void fetchJourney(true)}>{now !== null && now < cooldownUntil ? "Refresh available soon" : "Refresh"}</button></div><p className={stale ? "muted" : "updated"}>Updated {now === null ? 0 : Math.max(0, Math.round((now - new Date(data.observedAt).getTime()) / 1000))} sec ago</p>{!trains.length ? <p className="empty">No suitable trains are currently predicted.</p> : trains.filter((train) => train.secondsToOrigin >= -DEPARTED_GRACE).map((train) => <TrainCard key={train.id} train={train} rank={ranks(train.id)} fresh={!stale} minutesSaved={data.fastestTrainId !== data.nextTrainId && data.fastestTrainId === train.id ? data.minutesSaved : null} />)}{data.withheldAmbiguousCount > 0 && <p className="muted">{data.withheldAmbiguousCount === 1 ? "1 ambiguous service was" : `${data.withheldAmbiguousCount} ambiguous services were`} withheld.</p>}</section></>}
     {journeyUndo && <div className="undo" role="status">Journey removed. <button onClick={() => { setSaved(restoreJourney(journeyUndo.journey, journeyUndo.index)); clearJourneyUndo(); }}>Undo</button></div>}
     {journeyUndo && <UndoExpiry clear={clearJourneyUndo} />}
     {stationUndo && <div className="undo" role="status" aria-label="Station actions">{stationUndo.message} <button onClick={undoStationAction}>Undo</button></div>}
