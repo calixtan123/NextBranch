@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createDeparturesHandler } from "./route";
 import { arrivalSchema } from "@/lib/northern/schemas";
 import { TflError } from "@/lib/tfl/client";
 
+afterEach(() => vi.unstubAllEnvs());
 const now = new Date("2026-09-16T12:00:00.000Z");
 const station = "940GZZLUCTN";
 const request = (query: string) => new Request(`http://local/api/departures${query}`);
@@ -470,4 +471,50 @@ it("reduces two seven-feed station requests from fourteen upstream calls to seve
     if (originalKey === undefined) delete process.env.TFL_API_KEY;
     else process.env.TFL_API_KEY = originalKey;
   }
+});
+
+// Break: unsafe production defaults or a failed provider begin upstream work.
+describe("production protection boundary", () => {
+  it.each([undefined, "", "unsupported"])("returns no-store 503 for missing/invalid configuration %s", async value => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXTBRANCH_API_PROTECTION", value);
+    const arrivals = vi.fn(async () => []);
+    const get = createDeparturesHandler({ arrivals, now: () => now });
+    const result = await get(request(`?station=${station}`));
+    expect(result.status).toBe(503);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "PROTECTION_UNAVAILABLE" });
+    expect(arrivals).not.toHaveBeenCalled();
+  });
+
+  it.each(["vercel-waf", "netlify-edge"])("allows configured %s traffic", async value => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXTBRANCH_API_PROTECTION", value);
+    const arrivals = vi.fn(async () => []);
+    const get = createDeparturesHandler({ arrivals, now: () => now });
+    expect((await get(request(`?station=${station}`))).status).toBe(200);
+    expect(arrivals).toHaveBeenCalled();
+  });
+
+  it.each(["unavailable", "rejected", "thrown", "denied"])("suppresses upstream for %s provider then recovers", async failure => {
+    const arrivals = vi.fn(async () => []);
+    let recovered = false;
+    const rateLimit = () => {
+      if (recovered) return { allowed: true };
+      if (failure === "rejected") return Promise.reject(new Error("provider offline"));
+      if (failure === "thrown") throw new Error("provider offline");
+      if (failure === "unavailable") return undefined as unknown as { allowed: boolean };
+      return { allowed: false };
+    };
+    const get = createDeparturesHandler({ arrivals, now: () => now, rateLimit });
+    const result = await get(request(`?station=${station}`));
+    expect(result.status).toBe(failure === "denied" ? 429 : 503);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    if (failure === "denied") expect(result.headers.get("Retry-After")).toBe("30");
+    else expect(await result.json()).toEqual({ error: "PROTECTION_UNAVAILABLE" });
+    expect(arrivals).not.toHaveBeenCalled();
+    recovered = true;
+    expect((await get(request(`?station=${station}`))).status).toBe(200);
+    expect(arrivals).toHaveBeenCalled();
+  });
 });

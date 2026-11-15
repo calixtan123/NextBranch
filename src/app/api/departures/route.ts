@@ -7,7 +7,7 @@ import { catalogueMetadata, departureFeeds, physicalPlatformForTrain } from "@/l
 import { normalizeRailPredictions, type RailDeparture } from "@/lib/rail/departures";
 import type { Arrival } from "@/lib/northern/schemas";
 import { getLineArrivalsFeed, TflError, type ArrivalsFeed } from "@/lib/tfl/client";
-import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
+import { checkRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
 import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 
 export const dynamic = "force-dynamic";
@@ -59,8 +59,9 @@ function toDeparture(train: RailDeparture, physicalPlatformId: string | null): D
  */
 export function createDeparturesHandler(deps: DeparturesDependencies = live) {
   return async (request: Request): Promise<NextResponse> => {
-    const rateLimit = deps.rateLimit ?? allowAllRateLimit;
-    if (!(await rateLimit(request)).allowed)
+    const decision = await checkRateLimit(request, deps.rateLimit);
+    if (!decision) return response({ error: "PROTECTION_UNAVAILABLE" }, 503);
+    if (!decision.allowed)
       return response(RATE_LIMIT_RESPONSE, 429, { "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS) });
     const stationId = requestedStation(request);
     if (!stationId) return response({ error: "INVALID_STATION" }, 400);

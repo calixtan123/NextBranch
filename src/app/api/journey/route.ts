@@ -27,7 +27,7 @@ import {
   getTimetable,
   TflError,
 } from "@/lib/tfl/client";
-import { allowAllRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
+import { checkRateLimit, type RateLimitAdapter } from "@/lib/rate-limit-server";
 import { RATE_LIMIT_RESPONSE, RATE_LIMIT_RETRY_AFTER_SECONDS } from "@/lib/rate-limit-contract";
 import { recordServerDiagnostic } from "@/lib/tfl/diagnostics";
 export const dynamic = "force-dynamic";
@@ -78,8 +78,9 @@ function usableTopology(value: unknown): Topology[] | null {
 /** Dependency-injected request handler with safe topology fallback and partial ETA degradation. */
 export function createJourneyHandler(deps: JourneyDependencies = live) {
   return async (request: Request): Promise<NextResponse> => {
-    const rateLimit = deps.rateLimit ?? allowAllRateLimit;
-    if (!(await rateLimit(request)).allowed)
+    const decision = await checkRateLimit(request, deps.rateLimit);
+    if (!decision) return response({ error: "PROTECTION_UNAVAILABLE" }, 503);
+    if (!decision.allowed)
       return response(RATE_LIMIT_RESPONSE, 429, { "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS) });
     const topologyStartedAt = Date.now();
     const parsed = journeyQuery.safeParse(
