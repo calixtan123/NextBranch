@@ -21,6 +21,8 @@ const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '
 const modern = { background: '#080C10', dot: '#29303B', frame: '#1B3444', rule: '#4F9BBB', text: '#BDEBFF', step: 7 };
 const glowBlur = 1.25;
 const glowPadding = 4;
+const modernStackWidth = 290;
+const modernTimeWidth = 88;
 const dotRadius = matrixDotSize * .3;
 const dotEdge = matrixDotSize - 2 * dotRadius;
 const emptyCopy = 'No departures currently assigned to this platform';
@@ -82,12 +84,16 @@ function TrainRow({ row, index, style, width, expanded, last }: {
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
   const scale = .85;
   const gap = isAmber ? 5 : 7;
-  const ordinalWidth = isAmber ? 16 : 20;
-  const timeWidth = isAmber ? 62 : 73;
+  const ordinalWidth = isAmber ? 16 : 22;
+  const timeWidth = isAmber ? 62 : modernTimeWidth * Math.max(1, fontScale);
   const countdown = !isAmber && !['Due', '1 min'].includes(row.countdown)
     ? row.countdown + 's' : row.countdown;
-  const stacked = fontScale > 1.35;
-  const font = isAmber ? 'Avenir Next' : 'GillSans-Light';
+  const stacked = fontScale > 1.35 || (!isAmber && width > 0 && width < modernStackWidth * Math.max(1, fontScale));
+  const modernCountdown = !isAmber && <Text style={[styles.modernGlow, styles.modernCountdown,
+    !stacked && styles.rightAligned]}>{countdown}</Text>;
+  const expected = expanded && <Text style={isAmber
+    ? { color: board.text, fontFamily: 'Avenir Next', fontSize: 10, opacity: .82 }
+    : styles.modernExpected}>{londonTime(row.expectedArrival)}</Text>;
   return <View accessible accessibilityLabel={rowLabel(row, index, expanded)}
     style={[ui.row, {
       minHeight: 37, paddingVertical: 3, gap, alignItems: stacked ? 'flex-start' : 'center',
@@ -95,27 +101,26 @@ function TrainRow({ row, index, style, width, expanded, last }: {
     }]}>
     <View style={{ width: stacked ? undefined : ordinalWidth }}>
       {matrix ? <Led value={String(index + 1)} scale={.81} /> :
-        <Text style={{ color: isAmber ? board.text : '#B6E5FF', fontFamily: font, fontSize: 16 }}>{index + 1}.</Text>}
+        <Text style={isAmber ? { color: board.text, fontFamily: 'Avenir Next', fontSize: 16 }
+          : styles.modernOrdinal}>{index + 1}.</Text>}
     </View>
     <View style={[ui.flex, { alignItems: 'flex-start', gap: matrix ? 6 : stacked ? 3 : 1 }]}>
       {matrix ? wrapMatrix(text, width - ordinalWidth - timeWidth - 2 * gap, scale)
         .map((line, part) => <Led key={part} value={line} scale={scale} />)
-        : <Text style={[!isAmber && styles.modernGlow,
-          { color: board.text, fontFamily: font, fontSize: isAmber ? 13 : 17, letterSpacing: .05 }]}>{text}</Text>}
-      {stacked && <Text style={[!isAmber && styles.modernGlow, { color: board.text, fontFamily: font, fontSize: 14 }]}>
-        {countdown}{expanded && ' · ' + londonTime(row.expectedArrival)}
-      </Text>}
+        : <Text style={isAmber ? { color: board.text, fontFamily: 'Avenir Next', fontSize: 13, letterSpacing: .05 }
+          : [styles.modernGlow, styles.modernIdentity]}>{text}</Text>}
+      {stacked && (isAmber
+        ? <Text style={{ color: board.text, fontFamily: 'Avenir Next', fontSize: 14 }}>
+          {countdown}{expanded && ' · ' + londonTime(row.expectedArrival)}
+        </Text>
+        : <>{modernCountdown}{expected}</>)}
     </View>
     {!stacked && <View style={{ width: timeWidth, alignItems: 'flex-end' }}>
-      {isAmber && fontScale <= 1.15 ? <View style={[ui.row, { gap: 4 }]}>
+      {!isAmber ? modernCountdown : fontScale <= 1.15 ? <View style={[ui.row, { gap: 4 }]}>
         {countdown.split(' ').map(part => <Led key={part} value={part} scale={.78} />)}
-      </View> : <Text style={[!isAmber && styles.modernGlow,
-        { color: board.text, fontFamily: font, fontSize: isAmber ? 13 : 18, textAlign: 'right' }]}>
-        {countdown}
-      </Text>}
-      {expanded && <Text style={{ color: board.text, fontFamily: 'Avenir Next', fontSize: 10, opacity: .82 }}>
-        {londonTime(row.expectedArrival)}
-      </Text>}
+      </View> : <Text style={{ color: board.text, fontFamily: 'Avenir Next', fontSize: 13, textAlign: 'right' }}>
+        {countdown}</Text>}
+      {expected}
     </View>}
   </View>;
 }
@@ -236,6 +241,11 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
 }
 
 const styles = StyleSheet.create({
+  modernOrdinal: { color: '#B6E5FF', fontFamily: 'GillSans', fontSize: 18 },
+  modernIdentity: { color: modern.text, fontFamily: 'GillSans-SemiBold', fontSize: 20, letterSpacing: .05 },
+  modernCountdown: { color: modern.text, fontFamily: 'GillSans-SemiBold', fontSize: 22 },
+  modernExpected: { color: modern.text, fontFamily: 'GillSans', fontSize: 14, opacity: .82 },
+  rightAligned: { textAlign: 'right' },
   modernGlow: {
     textShadowColor: '#4CB6F244',
     textShadowOffset: { width: 0, height: 0 },
