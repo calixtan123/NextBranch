@@ -18,6 +18,7 @@ const platformSchema = z.object({
 const responseSchema = z.object({
   station: z.object({ id: z.string().min(1), name: z.string().min(1) }),
   observedAt: z.string().datetime(),
+  generatedAt: z.string().datetime().optional(),
   newestPredictionGeneratedAt: z.string().datetime().nullable(),
   refreshAfterSeconds: z.number().int().positive(),
   platforms: z.array(platformSchema),

@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { getArrivals, getRoutes, getTimetable, TflError } from "./client";
+let client: typeof import("./client");
+beforeEach(async () => {
+  vi.resetModules();
+  client = await import("./client");
+});
 
 const originalKey = process.env.TFL_API_KEY;
 const arrival = [{
@@ -34,21 +38,19 @@ describe("TfL arrivals boundary", () => {
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => arrival });
     vi.stubGlobal("fetch", fetcher);
 
-    await getArrivals("940GZZLUCTN");
+    await client.getArrivals("940GZZLUCTN");
     expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ cache: "no-store" });
 
     fetcher.mockResolvedValue({ ok: true, json: async () => topology });
-    await getRoutes();
+    await client.getRoutes();
     expect(fetcher.mock.calls[1]?.[1]).toMatchObject({ next: { revalidate: 43_200 } });
 
     fetcher.mockResolvedValue({ ok: true, json: async () => timetable });
-    await getTimetable("940GZZLUCTN", "940GZZLUEGW");
+    await client.getTimetable("940GZZLUCTN", "940GZZLUEGW");
     expect(fetcher.mock.calls[2]?.[1]).toMatchObject({ next: { revalidate: 43_200 } });
   });
 
-  // Break: simultaneous station boards each create their own uncached TfL request,
-  // and a settled request is incorrectly retained for later live refreshes.
-  it("coalesces only overlapping arrivals requests for the same station", async () => {
+  it("coalesces parallel misses and reuses a completed feed inside the TTL", async () => {
     process.env.TFL_API_KEY = "test-key";
     let resolve!: (value: { ok: boolean; json: () => Promise<typeof arrival> }) => void;
     const fetcher = vi.fn()
@@ -56,15 +58,15 @@ describe("TfL arrivals boundary", () => {
       .mockResolvedValue({ ok: true, json: async () => arrival });
     vi.stubGlobal("fetch", fetcher);
 
-    const first = getArrivals("940GZZLUCTN");
-    const second = getArrivals("940GZZLUCTN");
+    const first = client.getArrivals("940GZZLUCTN");
+    const second = client.getArrivals("940GZZLUCTN");
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 
     resolve({ ok: true, json: async () => arrival });
     await expect(Promise.all([first, second])).resolves.toEqual([arrival, arrival]);
 
-    await expect(getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    await expect(client.getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   // Break: a rejected coalesced request remains in the overlap registry and makes
@@ -76,20 +78,20 @@ describe("TfL arrivals boundary", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => arrival });
     vi.stubGlobal("fetch", fetcher);
 
-    const first = getArrivals("940GZZLUCTN");
-    const second = getArrivals("940GZZLUCTN");
+    const first = client.getArrivals("940GZZLUCTN");
+    const second = client.getArrivals("940GZZLUCTN");
     await expect(Promise.all([first, second])).rejects.toMatchObject({ code: "upstream" });
     expect(fetcher).toHaveBeenCalledTimes(1);
 
-    await expect(getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
+    await expect(client.getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   // Break: a hung fetch never aborts, leaving every endpoint waiting indefinitely.
   it.each([
-    ["arrivals", () => getArrivals("940GZZLUCTN")],
-    ["routes", () => getRoutes()],
-    ["timetable", () => getTimetable("940GZZLUCTN", "940GZZLUEGW")],
+    ["arrivals", () => client.getArrivals("940GZZLUCTN")],
+    ["routes", () => client.getRoutes()],
+    ["timetable", () => client.getTimetable("940GZZLUCTN", "940GZZLUEGW")],
   ])("ends hung %s requests after eight seconds as upstream failures", async (_name, request) => {
     vi.useFakeTimers();
     process.env.TFL_API_KEY = "test-key";
@@ -113,9 +115,9 @@ describe("TfL arrivals boundary", () => {
   it.each(["AbortError", "TimeoutError"])("normalizes a native %s without exposing request details", async (name) => {
     process.env.TFL_API_KEY = "test-key";
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("secret request URL", name)));
-    await expect(getRoutes()).rejects.toMatchObject({ code: "upstream" });
-    await expect(getTimetable("a", "b")).rejects.toMatchObject({ code: "upstream" });
-    await expect(getArrivals("a")).rejects.not.toHaveProperty("message", expect.stringContaining("secret"));
+    await expect(client.getRoutes()).rejects.toMatchObject({ code: "upstream" });
+    await expect(client.getTimetable("a", "b")).rejects.toMatchObject({ code: "upstream" });
+    await expect(client.getArrivals("a")).rejects.not.toHaveProperty("message", expect.stringContaining("secret"));
   });
 
   // Break: caller cancellation is dropped when a request adds its own deadline.
@@ -132,7 +134,7 @@ describe("TfL arrivals boundary", () => {
         else signal?.addEventListener("abort", () => reject(signal?.reason), { once: true });
       });
     }));
-    const outcome = getRoutes(caller.signal).catch((error: unknown) => error);
+    const outcome = client.getRoutes(caller.signal).catch((error: unknown) => error);
     caller.abort();
     expect(signal?.aborted ?? alreadyAborted).toBe(true);
     expect(await outcome).toMatchObject({ code: "upstream" });
@@ -150,7 +152,7 @@ describe("TfL arrivals boundary", () => {
         signal?.addEventListener("abort", () => reject(signal?.reason), { once: true });
       }) };
     }));
-    const outcome = getArrivals("a").catch((error: unknown) => error);
+    const outcome = client.getArrivals("a").catch((error: unknown) => error);
     await vi.advanceTimersByTimeAsync(8_000);
     expect(signal?.aborted).toBe(true);
     expect(await outcome).toMatchObject({ code: "upstream" });
@@ -166,7 +168,7 @@ describe("TfL arrivals boundary", () => {
       signal = options?.signal;
       return { ok, status: ok ? 200 : 503, json: async () => arrival };
     }));
-    await getArrivals("940GZZLUCTN").catch(() => undefined);
+    await client.getArrivals("940GZZLUCTN").catch(() => undefined);
     expect(signal).toBeDefined();
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(8_000);
@@ -198,7 +200,7 @@ describe("TfL arrivals boundary", () => {
       return phase === "fetch" ? pending : Promise.resolve({ ...response, json: () => pending });
     }));
     let settled: unknown;
-    const request = getRoutes(caller.signal).then(
+    const request = client.getRoutes(caller.signal).then(
       (value) => { settled = value; },
       (error: unknown) => { settled = error; },
     );
@@ -207,7 +209,7 @@ describe("TfL arrivals boundary", () => {
     expect(signal?.aborted).toBe(false);
     if (cancellation === "caller") caller.abort();
     await vi.advanceTimersByTimeAsync(cancellation === "timeout" ? 1 : 0);
-    expect(settled).toBeInstanceOf(TflError);
+    expect(settled).toBeInstanceOf(client.TflError);
     expect(settled).toMatchObject({ code: "upstream" });
     expect(signal?.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
@@ -243,7 +245,7 @@ describe("TfL arrivals boundary", () => {
     );
     process.env.TFL_API_KEY = "test";
 
-    await expect(getArrivals("station-a")).resolves.toMatchObject([
+    await expect(client.getArrivals("station-a")).resolves.toMatchObject([
       { id: "right", naptanId: "station-a" },
     ]);
   });
@@ -255,9 +257,9 @@ describe("TfL arrivals boundary", () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: "bad" }] }),
     );
 
-    await expect(getArrivals("940GZZLUCTN")).rejects.toMatchObject({
+    await expect(client.getArrivals("940GZZLUCTN")).rejects.toMatchObject({
       code: "upstream",
-      name: TflError.name,
+      name: client.TflError.name,
     });
   });
 
@@ -268,7 +270,7 @@ describe("TfL arrivals boundary", () => {
     const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: "bad" }] }));
 
-    await expect(getArrivals("940GZZLUCTN")).rejects.toMatchObject({ code: "upstream" });
+    await expect(client.getArrivals("940GZZLUCTN")).rejects.toMatchObject({ code: "upstream" });
 
     expect(diagnostic).toHaveBeenCalledWith("tfl_diagnostic", expect.objectContaining({
       operation: "arrivals", errorCategory: "upstream", upstreamStatus: null,
@@ -290,7 +292,7 @@ describe("TfL arrivals boundary", () => {
     );
 
     await expect(
-      getTimetable("940GZZLUCTN", "940GZZLUEGW"),
+      client.getTimetable("940GZZLUCTN", "940GZZLUEGW"),
     ).rejects.toMatchObject({ code: "timetable" });
   });
 });
@@ -320,4 +322,111 @@ it("isolates concurrent exact line/stop feeds and filters both identities at the
     if (originalKey === undefined) delete process.env.TFL_API_KEY;
     else process.env.TFL_API_KEY = originalKey;
   }
+});
+
+describe("bounded successful feed cache", () => {
+  beforeEach(() => {
+    process.env.TFL_API_KEY = "test-key";
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-15T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    if (originalKey === undefined) delete process.env.TFL_API_KEY;
+    else process.env.TFL_API_KEY = originalKey;
+  });
+
+  it("retains original source time until the exact ten-second expiry boundary", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+    const first = await client.getLineArrivalsFeed("northern", "940GZZLUCTN");
+    expect(first.fetchedAt).toBe("2026-11-15T12:00:00.000Z");
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(await client.getLineArrivalsFeed("northern", "940GZZLUCTN")).toEqual(first);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    const refreshed = await client.getLineArrivalsFeed("northern", "940GZZLUCTN");
+    expect(refreshed.fetchedAt).toBe("2026-11-15T12:00:10.000Z");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("evicts the earliest inserted success after 256 exact keys, even when read again", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal("fetch", fetcher);
+    for (let i = 0; i < 256; i++) await client.getLineArrivals("northern", String(i));
+    await client.getLineArrivals("northern", "0");
+    await client.getLineArrivals("northern", "256");
+    await client.getLineArrivals("northern", "1");
+    expect(fetcher).toHaveBeenCalledTimes(257);
+    await client.getLineArrivals("northern", "0");
+    expect(fetcher).toHaveBeenCalledTimes(258);
+  });
+
+  it("caches valid empty feeds and isolates both tuple components including separator-like input", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal("fetch", fetcher);
+    for (const [line, stop] of [["a:b", "c"], ["a", "b:c"], ["a:b", "other"]] as const) {
+      expect(await client.getLineArrivals(line, stop)).toEqual([]);
+      expect(await client.getLineArrivals(line, stop)).toEqual([]);
+    }
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries failed payload validation without caching the failure", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: "bad" }] })
+      .mockResolvedValue({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+    await expect(client.getLineArrivalsFeed("northern", "940GZZLUCTN")).rejects.toMatchObject({ code: "upstream" });
+    expect((await client.getLineArrivalsFeed("northern", "940GZZLUCTN")).arrivals).toEqual(arrival);
+    await client.getLineArrivals("northern", "940GZZLUCTN");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns isolated copies to parallel, cached, and arrivals-only consumers", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => arrival }));
+    const [first, second] = await Promise.all([
+      client.getLineArrivalsFeed("northern", "940GZZLUCTN"),
+      client.getLineArrivalsFeed("northern", "940GZZLUCTN"),
+    ]);
+    first.arrivals[0]!.id = "poisoned";
+    first.arrivals.length = 0;
+    first.fetchedAt = "changed";
+    expect(second.arrivals).toEqual(arrival);
+    const legacy = await client.getArrivals("940GZZLUCTN");
+    legacy[0]!.id = "also poisoned";
+    expect((await client.getLineArrivalsFeed("northern", "940GZZLUCTN")).arrivals).toEqual(arrival);
+  });
+
+  it("rejects an already cancelled caller on a cache hit without fetching", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+    await client.getArrivals("940GZZLUCTN");
+    const caller = new AbortController();
+    caller.abort();
+    await expect(client.getArrivals("940GZZLUCTN", caller.signal)).rejects.toMatchObject({ code: "upstream" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("isolates caller cancellation from a shared miss and never caches late cancelled work", async () => {
+    let resolveShared!: (value: unknown) => void;
+    let resolveCancelled!: (value: unknown) => void;
+    const fetcher = vi.fn()
+      .mockImplementationOnce(() => new Promise(resolve => { resolveShared = resolve; }))
+      .mockImplementationOnce(() => new Promise(resolve => { resolveCancelled = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => arrival });
+    vi.stubGlobal("fetch", fetcher);
+    const shared = client.getArrivals("940GZZLUCTN");
+    const caller = new AbortController();
+    const isolated = client.getArrivals("940GZZLUCTN", caller.signal).catch(error => error);
+    caller.abort();
+    expect(await isolated).toMatchObject({ code: "upstream" });
+    resolveShared({ ok: true, json: async () => arrival });
+    expect(await shared).toEqual(arrival);
+    resolveCancelled({ ok: true, json: async () => [{ ...arrival[0], id: "cancelled" }] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await client.getArrivals("940GZZLUCTN")).toEqual(arrival);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });

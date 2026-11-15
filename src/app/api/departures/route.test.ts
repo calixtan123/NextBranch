@@ -22,7 +22,7 @@ it.each([true, false])('preserves empty wire states with stale detail present: %
   expect(body.platforms).toEqual([]);
   expect(body.catalogue.liveState).toBe('empty');
   expect(body.catalogue.feeds).toEqual([{
-    lineId: 'northern', stopAreaId: station, liveState: 'empty', ...(stale ? { freshness: 'stale' } : {}),
+    lineId: 'northern', stopAreaId: station, liveState: 'empty', fetchedAt: now.toISOString(), ...(stale ? { freshness: 'stale' } : {}),
   }]);
 });
 
@@ -201,9 +201,9 @@ it("keeps successful Underground feeds usable when another service feed fails", 
   expect(body.platforms).toHaveLength(1);
   expect(body.catalogue.liveState).toBe("partial");
   expect(body.catalogue.feeds).toEqual([
-    { lineId: "lioness", stopAreaId: "910GEUSTON", liveState: "empty" },
+    { lineId: "lioness", stopAreaId: "910GEUSTON", liveState: "empty", fetchedAt: now.toISOString() },
     { lineId: "northern", stopAreaId: "940GZZLUEUS", liveState: "unavailable" },
-    { lineId: "victoria", stopAreaId: "940GZZLUEUS", liveState: "available" },
+    { lineId: "victoria", stopAreaId: "940GZZLUEUS", liveState: "available", fetchedAt: now.toISOString() },
   ]);
 });
 
@@ -310,7 +310,7 @@ it('retains static Overground capability during empty and failed exact service f
     const emptyBody = await empty.json();
     const failedBody = await failed.json();
     expect(emptyBody.catalogue.platforms, feed.lineId).toEqual(failedBody.catalogue.platforms);
-    expect(emptyBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'empty' });
+    expect(emptyBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'empty', fetchedAt: now.toISOString() });
     expect(failedBody.catalogue.feeds).toContainEqual({ lineId: feed.lineId, stopAreaId: feed.stopAreaId, liveState: 'unavailable' });
   }
 });
@@ -324,7 +324,7 @@ it.each(['empty', 'outage'])('keeps Elizabeth verified, unverified and unsupport
   const body = await result.json();
   expect(result.status).toBe(condition === 'outage' ? 503 : 200);
   expect(body.catalogue.liveState).toBe(condition === 'outage' ? 'unavailable' : 'empty');
-  expect(body.catalogue.feeds).toEqual([{ lineId: 'elizabeth', stopAreaId: '910GRDNGSTN', liveState: condition === 'outage' ? 'unavailable' : 'empty' }]);
+  expect(body.catalogue.feeds).toEqual([{ lineId: 'elizabeth', stopAreaId: '910GRDNGSTN', liveState: condition === 'outage' ? 'unavailable' : 'empty', ...(condition === 'empty' ? { fetchedAt: now.toISOString() } : {}) }]);
   expect(body.catalogue.platforms).toHaveLength(1);
   expect(body.catalogue.platforms[0].services.map((s: { lineId: string, capability: { feed: string, mapping: string } }) => [s.lineId, s.capability.feed, s.capability.mapping])).toEqual([
     ['elizabeth', 'supported', 'supported'], ['national-rail', 'unsupported', 'unsupported'],
@@ -401,4 +401,73 @@ it('combines verified shared-platform lines once, deduplicates repeated feed rec
   expect(east[0].physicalPlatformId).toBe('940GZZLUACT-Plat01-WB-district|piccadilly');
   expect(east[0].departures.map((d: { lineId: string }) => d.lineId).sort()).toEqual(['district', 'piccadilly']);
   expect(body.platforms.flatMap((p: { departures: unknown[] }) => p.departures)).toHaveLength(4);
+});
+
+it("retains mixed cached/live source ages and omits fetchedAt for failed feeds", async () => {
+  const { parseDeparturesResponse } = await import("@/lib/departure-view");
+  const get = createDeparturesHandler({
+    now: () => now,
+    lineArrivalsFeed: async (lineId, stopAreaId) => {
+      if (lineId === "northern") throw new TflError("upstream", "temporary");
+      return { arrivals: [arrival({ lineId, naptanId: stopAreaId })], fetchedAt: lineId === "lioness"
+        ? "2026-09-16T11:59:52.000Z" : "2026-09-16T11:59:59.000Z" };
+    },
+  });
+  const response = await get(request("?station=HUBEUS"));
+  expect(response.headers.get("Cache-Control")).toBe("no-store");
+  const body = await response.json();
+  expect(body.observedAt).toBe("2026-09-16T11:59:52.000Z");
+  expect(body.generatedAt).toBe("2026-09-16T12:00:00.000Z");
+  expect(body.catalogue.feeds).toEqual([
+    { lineId: "lioness", stopAreaId: "910GEUSTON", liveState: "available", fetchedAt: "2026-09-16T11:59:52.000Z" },
+    { lineId: "northern", stopAreaId: "940GZZLUEUS", liveState: "unavailable" },
+    { lineId: "victoria", stopAreaId: "940GZZLUEUS", liveState: "available", fetchedAt: "2026-09-16T11:59:59.000Z" },
+  ]);
+  expect(parseDeparturesResponse(body, "HUBEUS")).toMatchObject({
+    generatedAt: "2026-09-16T12:00:00.000Z",
+    catalogue: { feeds: [expect.objectContaining({ fetchedAt: "2026-09-16T11:59:52.000Z" }), {}, expect.objectContaining({ fetchedAt: "2026-09-16T11:59:59.000Z" })] },
+  });
+});
+
+it("timestamps legacy array transports at fetch completion and generates the response afterward", async () => {
+  let clock = new Date("2026-09-16T12:00:00Z");
+  const get = createDeparturesHandler({ now: () => clock, lineArrivals: async () => {
+    clock = new Date("2026-09-16T12:00:04Z");
+    return [];
+  } });
+  const body = await (await get(request(`?station=${station}`))).json();
+  expect(body.generatedAt).toBe("2026-09-16T12:00:04.000Z");
+  expect(body.observedAt).toBe("2026-09-16T12:00:04.000Z");
+  expect(body.catalogue.feeds[0].fetchedAt).toBe("2026-09-16T12:00:04.000Z");
+});
+
+it("reduces two seven-feed station requests from fourteen upstream calls to seven inside the TTL", async () => {
+  vi.resetModules();
+  vi.useFakeTimers();
+  vi.setSystemTime(now);
+  const originalKey = process.env.TFL_API_KEY;
+  process.env.TFL_API_KEY = "test-key";
+  const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+  vi.stubGlobal("fetch", fetcher);
+  try {
+    const { getLineArrivalsFeed } = await import("@/lib/tfl/client");
+    const get = createDeparturesHandler({ now: () => new Date(), lineArrivalsFeed: getLineArrivalsFeed });
+    const first = await (await get(request("?station=HUBLST"))).json();
+    expect(first.catalogue.feeds).toHaveLength(7);
+    expect(fetcher).toHaveBeenCalledTimes(7);
+    await vi.advanceTimersByTimeAsync(9_999);
+    const second = await (await get(request("?station=HUBLST"))).json();
+    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(second.observedAt).toBe("2026-09-16T12:00:00.000Z");
+    expect(second.generatedAt).toBe("2026-09-16T12:00:09.999Z");
+    expect(second.catalogue.feeds.map((feed: { fetchedAt: string }) => feed.fetchedAt)).toEqual(Array(7).fill("2026-09-16T12:00:00.000Z"));
+    await vi.advanceTimersByTimeAsync(1);
+    await get(request("?station=HUBLST"));
+    expect(fetcher).toHaveBeenCalledTimes(14);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    if (originalKey === undefined) delete process.env.TFL_API_KEY;
+    else process.env.TFL_API_KEY = originalKey;
+  }
 });
