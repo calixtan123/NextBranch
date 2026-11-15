@@ -24,3 +24,30 @@ Tests use Arrange / Act / Assert. They set native callback inputs, exercise the 
 - The initial default-loader command `npm --prefix native test -- tests/app-navigation.test.ts` exited 1 before tests because Vite attempted a config cache write through the existing dependency symlink outside writable roots. The runner loader avoids this write and preserves the symlinks.
 
 - NB-47 `git diff --check` exited 0 with no whitespace errors.
+
+
+## NB-48 rate-limit cooldown presentation
+
+### Implementation
+
+`boardStatus` accepts the existing shared owner cooldown as an optional argument. Status precedence is explicit offline connectivity first, invalid selection and configuration errors next, then cooldown, request errors, selected-feed availability and freshness. During cooldown the warning status reads “Updates paused. Retrying shortly.” on initial and cached boards.
+
+Home and expanded departures show one “Refresh is paused until automatic retry.” guide while pull-to-refresh and the detail Refresh action are disabled by the existing owner state. The guide is suppressed for offline, invalid and configuration states. The shared station owner's retry deadline, polling, transport fallback and snapshot retention continue to control recovery.
+
+Compact boards include the cooldown text once in their grouped accessible name. Expanded boards expose the visible cooldown text as the accessible status and hide the redundant status dot from accessibility during cooldown. Both Amber and Modern use their existing layout, typography and colors. The message wraps at accessibility text sizes. Existing absolute-arrival expiry and snapshot freshness calculations continue while updates are paused.
+
+### Verification on 15 November 2026
+
+Tests use Arrange / Act / Assert. They configure owner or shallow native boundary inputs, exercise the transport/owner/model or screen, then inspect timing, retained rows, labels and control state.
+
+- Regression-first native run `npm test -- --configLoader runner tests/departures.test.ts tests/platform-board-layout.test.ts tests/live-screens.test.ts` from `native/` exited 1. Eleven regression tests failed and 193 existing tests passed. Failures showed generic/loading status, missing cooldown messages in both styles, and absent disabled-refresh guidance.
+- Final focused run `npm --prefix native test -- --configLoader runner tests/departures.test.ts tests/platform-board-layout.test.ts tests/live-screens.test.ts` exited 0. All 207 tests across three files passed.
+- Coverage includes initial/cached HTTP 429, valid 45-second Retry-After, missing/malformed header fallback of 30 seconds, duplicate station ownership, newly owned stations during shared cooldown, manual-refresh suppression, automatic retry expiry, successful recovery, cached row expiry/freshness, status precedence, both styles, Home/detail accessible output and one screen-level refresh guide.
+- `npm --prefix native run typecheck` exited 0.
+- `git diff --check` exited 0.
+- `/Users/calixtan/.agents/skills/impeccable/scripts/impeccable detect --json native/src/PlatformBoard.tsx native/src/LiveScreens.tsx` exited 0 and returned `[]`.
+- Two test invocations accidentally used the root working directory without `--prefix native`. Both exited 1 with “No test files found”. The native commands above produced the regression and passing evidence.
+
+### Limitations
+
+The native tests inspect component output through shallow native boundaries. Physical-device VoiceOver speech, focus behavior, actual native wrapping and rendered screenshots remain unverified and belong in NB-32 device acceptance. No new spoken announcement side effect was introduced. The status is exposed through existing readable text and accessible card grouping. The parent will run the final integrated native suite after all ticket work is reviewed.

@@ -100,3 +100,51 @@ it('keeps Home pull refresh, Add and Undo after removing the bottom refresh icon
   nodes.find(node => node.props.children === 'Undo removal')!.props.onPress();
   expect(undo).toHaveBeenCalledOnce();
 });
+
+
+it('explains disabled Home and detail refresh once during shared cooldown and restores guidance after recovery', async () => {
+  const { HomeScreen } = await import('../src/LiveScreens');
+  const cards = [
+    { stationId: 'first', platform: '1', direction: 'Eastbound' },
+    { stationId: 'first', platform: '2', direction: 'Westbound' },
+  ];
+  hooks.preferences.mockReturnValue({ cards, mode: 'amber' });
+  for (const { limited, error, pullPrompt } of [
+    { limited: true, error: 'limited', pullPrompt: false },
+    { limited: false, error: 'limited', pullPrompt: true },
+    { limited: false, error: null, pullPrompt: false },
+  ]) {
+    hooks.runtime.mockReturnValue({ catalogue: { has: () => true }, preferences: {},
+      stations: { get: () => ({ pending: false, error }), isOnline: () => true, isRateLimited: () => limited } });
+    const navigation = { navigate: vi.fn(), goBack: vi.fn() };
+    const home = HomeScreen({ navigation } as unknown as Screen<'Home'>);
+    const detail = DeparturesScreen({ navigation, route: { params: { selection: cards[0] } } } as unknown as Screen<'Departures'>);
+    for (const screen of [home, detail]) {
+      const nodes = screenElements(screen);
+      expect(nodes.filter(node => node.props.children === 'Refresh is paused until automatic retry.')).toHaveLength(limited ? 1 : 0);
+      expect(nodes.filter(node => node.props.children === 'Pull down to refresh')).toHaveLength(pullPrompt ? 1 : 0);
+      expect(typeof screen.props.refresh).toBe(limited ? 'undefined' : 'function');
+      expect(nodes.filter(node => node.type === 'PlatformBoard').every(node => node.props.limited === limited)).toBe(true);
+    }
+    const refresh = screenElements(detail).find(node => node.props.children === 'Refresh')!;
+    expect(refresh.props.disabled).toBe(limited);
+  }
+});
+
+
+it.each([
+  { online: false, error: 'limited' },
+  { online: true, error: 'invalid' },
+  { online: true, error: 'configuration' },
+])('preserves higher-priority recovery guidance for $error online=$online', async ({ online, error }) => {
+  const { HomeScreen } = await import('../src/LiveScreens');
+  const selection = { stationId: 'first', platform: '1', direction: 'Eastbound' };
+  hooks.preferences.mockReturnValue({ cards: [selection], mode: 'amber' });
+  hooks.runtime.mockReturnValue({ catalogue: { has: () => true }, preferences: {},
+    stations: { get: () => ({ pending: false, error }), isOnline: () => online, isRateLimited: () => true } });
+  const navigation = { navigate: vi.fn(), goBack: vi.fn() };
+  for (const screen of [HomeScreen({ navigation } as unknown as Screen<'Home'>),
+    DeparturesScreen({ navigation, route: { params: { selection } } } as unknown as Screen<'Departures'>)]) {
+    expect(screenElements(screen).filter(node => node.props.children === 'Refresh is paused until automatic retry.')).toHaveLength(0);
+  }
+});

@@ -124,7 +124,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
 export const platformName = (selection: Selection) => platformPickerTitle(selection.direction, selection.platform);
 
 /** Shared Home and detail board, including stale or partial matching snapshots. */
-export function PlatformBoard({ selection, style, state, now, online, expanded = false, onOpen, onReview, station }: {
+export function PlatformBoard({ selection, style, state, now, online, limited, expanded = false, onOpen, onReview, station }: {
   selection: Selection; style: Style; state: LiveState; now: number; online: boolean; limited: boolean; expanded?: boolean;
   onOpen?: () => void; onReview: () => void; station?: AppStation;
 }) {
@@ -154,16 +154,17 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
   const relevantFeeds = platform?.services
     .filter((_service, index) => capabilities![index].feed === 'supported')
     .map(service => ({ lineId: service.line_id, stopAreaId: service.stop_area_naptan_code }));
-  let status = boardStatus(state, now, online, relevantFeeds);
+  let status = boardStatus(state, now, online, relevantFeeds, limited);
   const unknown = state.snapshot?.station.id === selection.stationId ? unassignedCount(state.snapshot, now) : 0;
   const assignmentCopy = unknown === 1 ? '1 station prediction awaits platform assignment'
     : `${unknown} station predictions await platform assignment`;
-  if (online && !state.error && !state.pending && capabilities?.length && !relevantFeeds?.length) {
+  if (online && !limited && !state.error && !state.pending && capabilities?.length && !relevantFeeds?.length) {
     status = { tone: 'dim', label: capabilities.every(capability => capability.feed === 'unsupported')
       ? 'Live departures unsupported' : 'Live departures awaiting verification' };
   } else if (status.tone === 'success' && !rows.length && unknown > 0) {
     status = { tone: 'warning', label: assignmentCopy };
   }
+  const cooldown = limited && status.tone === 'warning';
   const emptyStatus = status.tone === 'success' ? emptyCopy : status.label;
   const count = rows.length + (rows.length === 1 ? ' upcoming train' : ' upcoming trains');
   const content = <>
@@ -199,17 +200,17 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
       <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
           width={width} expanded={expanded} last={index === rows.length - 1} />)}
-        {!rows.length && <Label size={12} style={{ color: board.text, padding: 8 }}>
+        {!rows.length && <Label size={12} accessible={cooldown ? !onOpen : undefined} style={{ color: board.text, padding: 8 }}>
           {emptyStatus}
         </Label>}
       </View>
     </View>
     <View style={{ minHeight: 23, paddingHorizontal: 11, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View accessible={!onOpen} accessibilityRole="image" accessibilityLabel={status.label}
+      <View accessible={!onOpen && !cooldown} accessibilityRole="image" accessibilityLabel={status.label}
         style={{ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: colors[status.tone] }} />
       {expanded && state.snapshot && <Label size={10} tone="dim" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>{count}</Label>}
     </View>
-    {rows.length > 0 && status.tone !== 'success' && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+    {rows.length > 0 && status.tone !== 'success' && <Label size={11} tone="dim" accessible={cooldown ? !onOpen : undefined} style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
       {status.label}
     </Label>}
     {caveats.length > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
