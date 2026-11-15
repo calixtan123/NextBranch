@@ -1,5 +1,6 @@
 import { RequestFailure, decodeSnapshot, type StationTransport } from './api';
 import { createCatalogue, readSelection, type Selection } from './catalogue';
+import { FRESH_FOR } from './station-owner';
 import manifest from '../assets/manifest.json';
 import camden from '../assets/camden-mixed.json';
 import colindale from '../assets/colindale-mixed.json';
@@ -46,7 +47,7 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     if (statusScenario) {
       // Leave a capture window below the station owner's 20-second request deadline.
       if (scenario === 'status-loading') await new Promise(resolve => setTimeout(resolve, 15_000));
-      const age = scenario === 'status-age' ? (id === colindale.station.id ? 30_000 : 30_001) : 0;
+      const age = scenario === 'status-age' ? (id === colindale.station.id ? FRESH_FOR : FRESH_FOR + 1) : 0;
       const feeds = scenario === 'status-partial' ? [
         { lineId: 'northern', stopAreaId: id, liveState: id === camden.station.id ? 'unavailable' : 'available' },
         { lineId: 'district', stopAreaId: '940GZZLUACT', liveState: 'unavailable' },
@@ -85,5 +86,8 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     }
     return decodeSnapshot(response, id);
   };
-  return { catalogue, transport, now: () => clock, cards: seed ? cards : [], synthetic: true };
+  const timedTransport: StationTransport = async (id, signal) => ({
+    ...await transport(id, signal), generatedAt: new Date(clock).toISOString(),
+  });
+  return { catalogue, transport: timedTransport, now: () => clock, cards: seed ? cards : [], synthetic: true };
 }

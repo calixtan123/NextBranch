@@ -474,31 +474,33 @@ it.each(['amber', 'modern'] as const)('omits redundant metadata for a verified r
 
 describe.each([false, true])('compact status with expanded=%s', expanded => {
   it.each([
-    { age: 29_999, online: true, error: null, tone: 'success', expected: 'Live departures up to date' },
-    { age: 30_000, online: true, error: null, tone: 'success', expected: 'Live departures up to date' },
-    { age: 30_001, online: true, error: null, tone: 'warning', expected: 'Departures are over 30 seconds old' },
+    { age: 59_999, online: true, error: null, tone: 'success', expected: 'Live departures up to date' },
+    { age: 60_000, online: true, error: null, tone: 'success', expected: 'Live departures up to date' },
+    { age: 60_001, online: true, error: null, tone: 'warning', expected: 'Departures are over 60 seconds old' },
     { age: 0, online: false, error: null, tone: 'danger', expected: 'Offline. Predictions may be outdated' },
     { age: 0, online: true, error: 'unavailable', tone: 'danger', expected: 'Departures request failed. Predictions may be outdated' },
   ] as const)('exposes $expected with a $tone dot', ({ age, online, error, tone, expected }) => {
-    for (const light of [false, true]) {
-      boundary.light = light;
-      const observedAt = '2026-11-10T12:00:00Z';
-      const tree = PlatformBoard({ selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
-        style: 'modern', now: Date.parse(observedAt) + age, online, limited: false, expanded,
-        state: { pending: true, error, snapshot: { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
-          observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
-        onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
-      const copy = elements(tree).filter(node => node.type === Label)
-        .map(node => Children.toArray(node.props.children).join('')).join(' ');
-      if (tone !== 'success') expect(copy).toContain(expected);
-      const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
-      expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
-      expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: expected });
-      if (!expanded) {
-        const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
-        expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain(expected);
+    for (const style of ['modern', 'amber'] as const) {
+      for (const light of [false, true]) {
+        boundary.light = light;
+        const observedAt = '2026-11-10T12:00:00Z';
+        const tree = PlatformBoard({ selection: { stationId: '940GZZLUKSX', platform: 'A', direction: 'Southbound' },
+          style, now: Date.parse(observedAt) + age, online, limited: false, expanded,
+          state: { pending: true, error, snapshot: { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+            observedAt, newestPredictionGeneratedAt: null, refreshAfterSeconds: 30, platforms: [] } },
+          onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
+        const copy = elements(tree).filter(node => node.type === Label)
+          .map(node => Children.toArray(node.props.children).join('')).join(' ');
+        if (tone !== 'success') expect(copy).toContain(expected);
+        const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+        expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
+        expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: expected });
+        if (!expanded) {
+          const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+          expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain(expected);
+        }
+        expect(copy).not.toContain('Retry');
       }
-      expect(copy).not.toContain('Retry');
     }
     boundary.light = false;
   });

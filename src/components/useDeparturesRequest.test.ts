@@ -55,3 +55,55 @@ describe("useDeparturesRequest", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
+
+it("anchors web departures through slow body parsing without losing cached source age or accepting clock jumps", async () => {
+  vi.stubGlobal("fetch", vi.fn());
+  Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+  let elapsed = 200;
+  vi.spyOn(performance, "now").mockImplementation(() => elapsed);
+  const payload = { ...response(), generatedAt: response().observedAt,
+    observedAt: "2026-09-16T11:59:35.000Z" };
+  vi.mocked(fetch).mockResolvedValue({ ok: true, status: 200,
+    json: async () => { elapsed += 8_000; return payload; } } as Response);
+  const { result, unmount } = renderHook(() => useDeparturesRequest("a"));
+  try {
+    await act(async () => { await result.current.fetchDepartures(); });
+    expect(result.current.data?.timing).toMatchObject({ uncertaintyMs: 8_000, approximate: false });
+    const { responseAge, responseTime } = await import("@/lib/northern/response-time");
+    const data = result.current.data!;
+    expect(responseAge(data, elapsed)).toBe(33_000);
+    vi.spyOn(Date, "now").mockReturnValue(0);
+    expect(responseTime(data, elapsed + 2_000)).toBe(Date.parse(payload.generatedAt) + 10_000);
+  } finally { unmount(); vi.restoreAllMocks(); }
+});
+
+it("cancels a departure read across browser suspension and retains uncertain data until recovery", async () => {
+  vi.stubGlobal("fetch", vi.fn());
+  Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+  Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+  const pending = deferred<Response>();
+  vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(response()), { status: 200 }))
+    .mockReturnValueOnce(pending.promise)
+    .mockResolvedValueOnce(new Response("down", { status: 503 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(response()), { status: 200 }));
+  const { result, unmount } = renderHook(() => useDeparturesRequest("a"));
+  try {
+    await act(async () => { await result.current.fetchDepartures(); });
+    await act(async () => { void result.current.fetchDepartures(); });
+    const signal = vi.mocked(fetch).mock.calls[1][1]?.signal;
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
+    expect(signal?.aborted).toBe(true);
+    expect(result.current.data?.timing?.suspended).toBe(true);
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
+    expect(result.current.issue).toBe("upstream");
+    expect(result.current.data?.timing?.suspended).toBe(true);
+    await act(async () => { await result.current.fetchDepartures(); });
+    expect(result.current.data?.timing?.suspended).toBeUndefined();
+    expect(result.current.issue).toBeNull();
+  } finally {
+    unmount(); vi.restoreAllMocks();
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+  }
+});

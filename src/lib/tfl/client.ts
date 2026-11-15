@@ -29,7 +29,14 @@ const TOPOLOGY_REVALIDATE_SECONDS = 43_200;
 // then arrivals/timetable in parallel: two sequential eight-second stages leave
 // room for processing and delivering the response within that browser budget.
 const TFL_REQUEST_TIMEOUT_MS = 8_000;
-const inFlightArrivals = new Map<string, Promise<Arrival[]>>();
+// Ten seconds keeps repeated boards within the same short source snapshot.
+const ARRIVALS_CACHE_TTL_MS = 10_000;
+const ARRIVALS_CACHE_CAPACITY = 256;
+
+/** Validated feed data with its original successful fetch-completion time. */
+export type ArrivalsFeed = { arrivals: Arrival[]; fetchedAt: string };
+const inFlightArrivals = new Map<string, Promise<ArrivalsFeed>>();
+const completedArrivals = new Map<string, ArrivalsFeed>();
 
 /** Fetch a complete payload before the deadline or caller cancellation. */
 async function get(
@@ -109,11 +116,10 @@ async function fetchArrivals(lineId: string, id: string, signal?: AbortSignal): 
 }
 
 /**
- * Fetches and validates the uncached live arrival snapshot for one station.
+ * Fetches and validates the Northern arrival snapshot for one station.
  *
- * Simultaneous calls without caller cancellation share only their pending promise.
- * The promise is removed after either settlement, so later requests always fetch a
- * fresh live prediction.
+ * Successful exact feeds are reused for ten seconds. Concurrent cache misses
+ * without caller cancellation share their upstream work.
  *
  * Parameters
  * ----------
@@ -133,7 +139,7 @@ export function getArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]
 }
 
 /**
- * Fetches one exact line/stop feed while sharing only overlapping requests.
+ * Fetches one exact line/stop feed with bounded successful-result reuse.
  *
  * Parameters
  * ----------
@@ -154,18 +160,72 @@ export function getArrivals(id: string, signal?: AbortSignal): Promise<Arrival[]
  * TflError
  *     For configuration, transport, timeout or malformed upstream payloads.
  */
-export function getLineArrivals(lineId: string, id: string, signal?: AbortSignal): Promise<Arrival[]> {
-  if (signal) return fetchArrivals(lineId, id, signal);
+export async function getLineArrivals(lineId: string, id: string, signal?: AbortSignal): Promise<Arrival[]> {
+  return (await getLineArrivalsFeed(lineId, id, signal)).arrivals;
+}
+
+/** Copies the flat validated schema so callers cannot mutate shared cache data. */
+function copyFeed(feed: ArrivalsFeed): ArrivalsFeed {
+  return { fetchedAt: feed.fetchedAt, arrivals: feed.arrivals.map(arrival => ({ ...arrival })) };
+}
+
+/** Stores only successful, uncancelled work and evicts by completion insertion order. */
+async function fetchArrivalsFeed(key: string, lineId: string, id: string, signal?: AbortSignal): Promise<ArrivalsFeed> {
+  const arrivals = await fetchArrivals(lineId, id, signal);
+  if (signal?.aborted) throw new TflError("upstream", "TfL request was interrupted");
+  const feed = { arrivals, fetchedAt: new Date().toISOString() };
+  // Refreshing an existing key gives the new success its own insertion position.
+  completedArrivals.delete(key);
+  completedArrivals.set(key, feed);
+  if (completedArrivals.size > ARRIVALS_CACHE_CAPACITY) {
+    const oldest = completedArrivals.keys().next().value;
+    if (oldest !== undefined) completedArrivals.delete(oldest);
+  }
+  return feed;
+}
+
+/**
+ * Fetches an exact feed with its original successful source time.
+ *
+ * Parameters
+ * ----------
+ * lineId : string
+ *     Verified exact TfL line identifier.
+ * id : string
+ *     Published service stop-area identifier.
+ * signal : AbortSignal, optional
+ *     Caller cancellation. Cache misses with signals own isolated upstream calls.
+ *
+ * Returns
+ * -------
+ * Promise[ArrivalsFeed]
+ *     An independent copy of validated arrivals and original fetchedAt time.
+ *     Successful empty feeds are reused too. Entries expire at ten seconds and
+ *     the oldest inserted success is evicted above 256 completed feed entries.
+ *
+ * Raises
+ * ------
+ * TflError
+ *     For cancellation, configuration, transport, timeout or invalid payloads.
+ */
+export async function getLineArrivalsFeed(lineId: string, id: string, signal?: AbortSignal): Promise<ArrivalsFeed> {
+  if (signal?.aborted) throw new TflError("upstream", "TfL request was interrupted");
   const key = JSON.stringify([lineId, id]);
-  const existing = inFlightArrivals.get(key);
-  if (existing) return existing;
-  const request = fetchArrivals(lineId, id);
-  inFlightArrivals.set(key, request);
-  request.then(
-    () => { if (inFlightArrivals.get(key) === request) inFlightArrivals.delete(key); },
-    () => { if (inFlightArrivals.get(key) === request) inFlightArrivals.delete(key); },
-  );
-  return request;
+  const cached = completedArrivals.get(key);
+  if (cached && Date.now() - Date.parse(cached.fetchedAt) < ARRIVALS_CACHE_TTL_MS) return copyFeed(cached);
+  completedArrivals.delete(key);
+  if (signal) return copyFeed(await fetchArrivalsFeed(key, lineId, id, signal));
+  let request = inFlightArrivals.get(key);
+  if (!request) {
+    request = fetchArrivalsFeed(key, lineId, id);
+    inFlightArrivals.set(key, request);
+    const pending = request;
+    request.then(
+      () => { if (inFlightArrivals.get(key) === pending) inFlightArrivals.delete(key); },
+      () => { if (inFlightArrivals.get(key) === pending) inFlightArrivals.delete(key); },
+    );
+  }
+  return copyFeed(await request);
 }
 
 /** Fetches the route sequence using Next's bounded server cache. */

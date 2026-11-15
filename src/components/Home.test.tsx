@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./Home";
+import { anchorResponse } from "@/lib/northern/response-time";
 import { STATIONS_STORAGE_KEY } from "@/lib/storage/stations";
 
 const fetchJourney = vi.hoisted(() => vi.fn());
@@ -106,6 +107,32 @@ describe("Home", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it.each([-600_000, 600_000])("uses one server-relative departure reference with wall skew %s and later adjustments", async skew => {
+    vi.useFakeTimers();
+    const server = Date.parse("2026-09-16T12:00:00.000Z");
+    vi.setSystemTime(server + skew);
+    let elapsed = 100;
+    const clock = vi.spyOn(performance, "now").mockImplementation(() => elapsed);
+    searchParams.set("station", saved.from);
+    departureState.data = anchorResponse({
+      station: { id: saved.from, name: saved.fromName }, observedAt: new Date(server).toISOString(),
+      generatedAt: new Date(server).toISOString(), newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+      platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware",
+        expectedArrival: new Date(server + 149_999).toISOString(), secondsToStation: 150, towards: null }] }],
+    }, elapsed, 0);
+    const { unmount } = render(<Home />);
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByText("2 min")).toBeInTheDocument();
+      expect(screen.getByText("Updated 0 sec ago")).toBeInTheDocument();
+      vi.setSystemTime(server - skew * 3);
+      elapsed += 120_000;
+      await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+      expect(screen.getByText("Due")).toBeInTheDocument();
+      expect(screen.getByText("Last prediction — information may be stale.")).toBeInTheDocument();
+    } finally { unmount(); clock.mockRestore(); }
+  });
+
   // Break: hidden tabs keep ticking, resume shows old time, or navigation leaks a clock.
   it.each(["departures", "results"])("pauses the %s clock while hidden and catches up immediately on return", async (view) => {
     vi.useFakeTimers();
@@ -140,7 +167,8 @@ describe("Home", () => {
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("Due")).toBeInTheDocument();
-    expect(screen.getByText("Updated 120 sec ago")).toBeInTheDocument();
+    expect(screen.getByText(view === "departures"
+      ? "Last prediction — information may be stale." : "Updated 120 sec ago")).toBeInTheDocument();
     expect(vi.getTimerCount()).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     expect(vi.getTimerCount()).toBe(0);

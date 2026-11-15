@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createJourneyHandler } from "./route";
 import { TflError } from "@/lib/tfl/client";
 import { bundledTopology } from "@/lib/northern/bundledTopology";
 import { arrivalSchema, timetableSchema } from "@/lib/northern/schemas";
+afterEach(() => vi.unstubAllEnvs());
 const now = new Date("2026-09-16T12:00:00.000Z");
 const table = timetableSchema.parse({
   lineId: "northern",
@@ -360,5 +361,61 @@ describe("journey API", () => {
     expect(body.nextTrainId).toBe("0");
     expect(body.fastestTrainId).toBe("8");
     expect(body.additionalSuitableCount).toBe(1);
+  });
+});
+
+// Break: unsafe production defaults or a failed provider begin upstream work.
+describe("production protection boundary", () => {
+  it.each([undefined, "", "unsupported"])("returns no-store 503 for missing/invalid configuration %s", async value => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXTBRANCH_API_PROTECTION", value);
+    const arrivals = vi.fn(async () => []);
+    const routes = vi.fn(base.routes);
+    const timetable = vi.fn(base.timetable);
+    const get = createJourneyHandler({ ...base, arrivals, routes, timetable });
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(503);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "PROTECTION_UNAVAILABLE" });
+    expect(arrivals).not.toHaveBeenCalled();
+    expect(routes).not.toHaveBeenCalled();
+    expect(timetable).not.toHaveBeenCalled();
+  });
+
+  it.each(["vercel-waf", "netlify-edge"])("allows configured %s traffic", async value => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXTBRANCH_API_PROTECTION", value);
+    const arrivals = vi.fn(async () => []);
+    const routes = vi.fn(base.routes);
+    const timetable = vi.fn(base.timetable);
+    const get = createJourneyHandler({ ...base, arrivals, routes, timetable });
+    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(200);
+    expect(arrivals).toHaveBeenCalled();
+  });
+
+  it.each(["unavailable", "rejected", "thrown", "denied"])("suppresses upstream for %s provider then recovers", async failure => {
+    const arrivals = vi.fn(async () => []);
+    const routes = vi.fn(base.routes);
+    const timetable = vi.fn(base.timetable);
+    let recovered = false;
+    const rateLimit = () => {
+      if (recovered) return { allowed: true };
+      if (failure === "rejected") return Promise.reject(new Error("provider offline"));
+      if (failure === "thrown") throw new Error("provider offline");
+      if (failure === "unavailable") return undefined as unknown as { allowed: boolean };
+      return { allowed: false };
+    };
+    const get = createJourneyHandler({ ...base, arrivals, routes, timetable, rateLimit });
+    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    expect(result.status).toBe(failure === "denied" ? 429 : 503);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    if (failure === "denied") expect(result.headers.get("Retry-After")).toBe("30");
+    else expect(await result.json()).toEqual({ error: "PROTECTION_UNAVAILABLE" });
+    expect(arrivals).not.toHaveBeenCalled();
+    expect(routes).not.toHaveBeenCalled();
+    expect(timetable).not.toHaveBeenCalled();
+    recovered = true;
+    expect((await get(request("940GZZLUCTN", "940GZZLUEGW"))).status).toBe(200);
+    expect(arrivals).toHaveBeenCalled();
   });
 });

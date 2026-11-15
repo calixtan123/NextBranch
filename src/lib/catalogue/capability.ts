@@ -31,6 +31,7 @@ export const catalogueResponseSchema = z.object({
     stopAreaId: z.string(),
     liveState: z.enum(["available", "empty", "unavailable"]),
     freshness: z.literal("stale").optional(),
+    fetchedAt: z.string().datetime().optional(),
   })).optional(),
   platforms: z.array(z.object({
     platformId: z.string(), platformNumber: z.string(), description: z.string(),

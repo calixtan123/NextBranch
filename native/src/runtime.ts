@@ -23,7 +23,8 @@ export function createRuntime() {
     : null;
   const discovery = createDiscovery();
   const catalogue: Catalogue = fixture?.catalogue ?? (discovery.catalogue ? createCanonicalCatalogue(discovery.catalogue) : createCatalogue(reviewedCatalogue));
-  const now = fixture?.now ?? Date.now;
+  const elapsed = () => performance.now();
+  const now = fixture?.now ?? elapsed;
   const fixturePreferencesKey = scenario === 'board-growth' || scenario === 'glyph-readability' || scenario?.startsWith('status-')
     ? `nextbranch.fixture.${scenario}.preferences` : 'nextbranch.fixture.preferences';
   return {
@@ -35,7 +36,8 @@ export function createRuntime() {
       fixture ? fixturePreferencesKey : 'nextbranch.preferences', fixture?.cards,
       id => discovery.catalogue ? discovery.catalogue.stationsByAnyId.has(id) : Boolean(id.trim()),
       id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
-    stations: createStationOwner(fixture?.transport ?? liveTransport(), Date.now, now,
+    // Fixture display time is frozen, but cooldowns and polling need elapsed time.
+    stations: createStationOwner(fixture?.transport ?? liveTransport(), elapsed, now,
       id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
   };
 }

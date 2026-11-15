@@ -11,8 +11,9 @@ type InFlight = { key: string; controller: AbortController; promise: Promise<voi
 type Options<T> = {
   key: string;
   active: boolean;
+  suspendOnHidden?: boolean;
   url: () => string;
-  parse: (value: unknown) => T | null;
+  parse: (value: unknown, startedAt: number) => T | null;
 };
 
 /** Carries validated server retry guidance internally without exposing raw response data. */
@@ -38,7 +39,7 @@ function retryAfterHeader(header: string | null): number | undefined {
 }
 
 /** Shares cancellation, polling, stale retention, and retry handling between live views. */
-export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
+export function useLiveRequest<T>({ key, active, url, parse, suspendOnHidden = false }: Options<T>) {
   const [data, setData] = useState<T | null>(null);
   const [dataKey, setDataKey] = useState("");
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
     };
     controller.signal.addEventListener("abort", onAbort, { once: true });
     setLoadingKey(key); setLoading(true);
+    const startedAt = performance.now();
     const run = (async () => {
       try {
         // Racing the whole read also settles callers when a transport ignores abort.
@@ -101,7 +103,7 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
             throw new RateLimitError(bodyDelay ?? RATE_LIMIT_RETRY_AFTER_SECONDS);
           }
           if (result.ok) {
-            try { value = parse(await result.json()); } catch { throw new Error("invalid"); }
+            try { value = parse(await result.json(), startedAt); } catch { throw new Error("invalid"); }
           }
           if (!value) throw new Error(result.status >= 500 ? "upstream" : "invalid");
           return value;
@@ -145,6 +147,11 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
       setLoadingKey(""); setLoading(false); setIssueKey(key); setIssue("offline");
     };
     const resume = () => {
+      if (suspendOnHidden && document.visibilityState !== "visible") {
+        inFlight.current?.controller.abort(); inFlight.current = null;
+        setLoadingKey(""); setLoading(false);
+        return;
+      }
       if (document.visibilityState === "visible" && navigator.onLine) void fetchLive();
     };
     const interval = window.setInterval(resume, 30_000);
@@ -154,7 +161,7 @@ export function useLiveRequest<T>({ key, active, url, parse }: Options<T>) {
       window.clearInterval(interval); document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume); window.removeEventListener("offline", offline);
     };
-  }, [active, fetchLive, key]);
+  }, [active, fetchLive, key, suspendOnHidden]);
   return {
     data: dataKey === key ? data : null,
     setData,

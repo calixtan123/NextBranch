@@ -1,3 +1,4 @@
+/** Loads, recovers and serializes native saved-platform and appearance preferences. */
 import { byId } from '../../src/lib/northern/stations';
 import { readSelection, selectionKey, type Catalogue, type Selection } from './catalogue';
 
@@ -23,23 +24,49 @@ const MAX = 3;
 const style = (value: unknown): Style | undefined => value === 'amber' || value === 'modern' ? value : undefined;
 const persistenceWarning = 'Changes may only be available for this session.';
 
-function decode(raw: string | null, isKnownStation: (id: string) => boolean, canonicalStationId: (id: string) => string, catalogue: Catalogue): Partial<State> {
-  if (raw === null) return {};
-  const data = JSON.parse(raw);
-  if (data?.version !== 1) throw new Error('Unsupported preference version');
+type Decoded = { kind: 'valid' | 'corrupt'; preferences: Partial<State> } | { kind: 'future' };
+const resetWarning = 'Some saved platform preferences were corrupt and have been reset. Valid preferences were kept.';
+
+/** Classifies unknown stored data before salvaging current-format preferences. */
+function decode(raw: string | null, isKnownStation: (id: string) => boolean, canonicalStationId: (id: string) => string, catalogue: Catalogue): Decoded {
+  if (raw === null) return { kind: 'valid', preferences: {} };
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch (error) {
+    if (error instanceof SyntaxError) return { kind: 'corrupt', preferences: {} };
+    throw error;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { kind: 'corrupt', preferences: {} };
+  const data = value as Record<string, unknown>;
+  // Future schemas must be protected before inspecting fields this version understands.
+  if (typeof data.version === 'number' && Number.isInteger(data.version) && data.version > 1) return { kind: 'future' };
+  if (data.version !== 1) return { kind: 'corrupt', preferences: {} };
+  let corrupt = !Array.isArray(data.cards) || !Array.isArray(data.recent) ||
+    (style(data.mode) === undefined && data.mode !== 'custom');
   const cards = new Map<string, Card>();
   for (const item of Array.isArray(data.cards) ? data.cards : []) {
     const parsed = readSelection(item);
-    const selection = parsed ? catalogue.resolve?.(parsed) ?? parsed : null;
-    if (selection && !cards.has(selectionKey(selection))) {
-      cards.set(selectionKey(selection), { ...selection, style: style(item.style) });
+    if (!parsed) {
+      corrupt = true;
+      continue;
+    }
+    const savedStyle = (item as Record<string, unknown>).style;
+    if (savedStyle !== undefined && style(savedStyle) === undefined) corrupt = true;
+    const selection = catalogue.resolve?.(parsed) ?? parsed;
+    if (!cards.has(selectionKey(selection))) {
+      cards.set(selectionKey(selection), { ...selection, style: style(savedStyle) });
     }
   }
-  const recent = Array.isArray(data.recent)
-    ? [...new Set<string>(data.recent.filter((id: unknown) => typeof id === 'string' && isKnownStation(id)).map(canonicalStationId))].slice(0, 2)
-    : [];
-  return { cards: [...cards.values()].slice(0, MAX), mode: style(data.mode) ?? (data.mode === 'custom' ? 'custom' : 'amber'), recent,
-    interfaceTheme: data.interfaceTheme === 'light' || data.interfaceTheme === 'dark' ? data.interfaceTheme : undefined };
+  const recentIds = Array.isArray(data.recent) ? data.recent : [];
+  const validRecentIds = recentIds.filter((id): id is string => typeof id === 'string' && isKnownStation(id));
+  if (validRecentIds.length !== recentIds.length) corrupt = true;
+  const recent = [...new Set(validRecentIds.map(canonicalStationId))].slice(0, 2);
+  const interfaceTheme = data.interfaceTheme === 'light' || data.interfaceTheme === 'dark' ? data.interfaceTheme : undefined;
+  if (data.interfaceTheme !== undefined && interfaceTheme === undefined) corrupt = true;
+  return { kind: corrupt ? 'corrupt' : 'valid', preferences: {
+    cards: [...cards.values()].slice(0, MAX), mode: style(data.mode) ?? (data.mode === 'custom' ? 'custom' : 'amber'), recent, interfaceTheme,
+  } };
 }
 
 /** Resolves the common board style without discarding saved individual overrides. */
@@ -74,19 +101,23 @@ export function createPreferences(
     state = { ...state, ...patch };
     listeners.forEach(listener => listener());
   };
-  const commit = (patch: Partial<State>) => {
-    publish(patch);
+  const persist = (snapshot: State, clearWarning: boolean) => {
     if (!writable) return;
-    const { cards, mode, recent, interfaceTheme } = state;
+    const { cards, mode, recent, interfaceTheme } = snapshot;
     const payload = JSON.stringify({ version: 1, cards, mode, recent, interfaceTheme });
     writeQueue = writeQueue.then(async () => {
       try {
         await storage.setItem(storageKey, payload);
-        if (state.warning) publish({ warning: null });
+        if (clearWarning && state.warning) publish({ warning: null });
       } catch {
         publish({ warning: 'Could not save platform preferences. ' + persistenceWarning });
       }
     });
+  };
+  const commit = (patch: Partial<State>, clearWarning = true) => {
+    // Enqueue the snapshot before ready subscribers can create a later transaction.
+    persist({ ...state, ...patch }, clearWarning);
+    publish(patch);
   };
   const indexOf = (key: string) => state.cards.findIndex(card => selectionKey(card) === key);
   const canSave = (selection: Selection) => state.ready && catalogue.has(selection);
@@ -97,14 +128,23 @@ export function createPreferences(
       return () => { listeners.delete(listener); };
     },
     load: () => loading ??= (async () => {
+      let raw: string | null;
       try {
-        const raw = await storage.getItem(storageKey);
-        const decoded = decode(raw, isKnownStation, canonicalStationId, catalogue);
-        publish({ cards: initialCards, ...decoded, ready: true });
+        raw = await storage.getItem(storageKey);
       } catch {
         writable = false;
         publish({ ready: true, cards: initialCards, warning: 'Could not read platform preferences. ' + persistenceWarning });
+        return;
       }
+      const decoded = decode(raw, isKnownStation, canonicalStationId, catalogue);
+      if (decoded.kind === 'future') {
+        writable = false;
+        publish({ ready: true, cards: initialCards, warning: 'Platform preferences were saved by a newer app version. ' + persistenceWarning });
+        return;
+      }
+      const recovered = { cards: initialCards, ...decoded.preferences, ready: true, warning: decoded.kind === 'corrupt' ? resetWarning : null };
+      if (decoded.kind === 'corrupt') commit(recovered, false);
+      else publish(recovered);
     })(),
     flush: () => writeQueue,
     save(selection: Selection): Save {
