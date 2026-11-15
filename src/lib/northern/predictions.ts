@@ -1,7 +1,7 @@
 import { dedupe, identity } from "./identity";
 import { platformInfo, routeBranch } from "./route";
 import type { Arrival } from "./schemas";
-import { DEPARTED_GRACE, MAX_AGE, MAX_FUTURE_SKEW, secondsToOrigin } from "./time";
+import { DEPARTED_GRACE, MAX_AGE, MAX_FUTURE_SKEW, remainingSeconds, secondsToOrigin } from "./time";
 export type EtaEvidence = "live" | "estimate" | "unavailable";
 export type Train = {
   id: string;
@@ -32,7 +32,7 @@ export function normalizePredictions(
 ): Train[] {
   return dedupe(items).flatMap((prediction) => {
     if (prediction.lineId !== "northern") return [];
-    const seconds = secondsToOrigin(prediction.expectedArrival, now);
+    const seconds = remainingSeconds(prediction.expectedArrival, now);
     const age = prediction.timestamp
       ? secondsToOrigin(prediction.timestamp, now)
       : 0;
@@ -57,7 +57,7 @@ export function normalizePredictions(
         destinationName: prediction.destinationName ?? null,
         expectedArrival: prediction.expectedArrival,
         timestamp: prediction.timestamp ?? null,
-        secondsToOrigin: seconds,
+        secondsToOrigin: Math.round(seconds),
         platform: platform.platform,
         direction: platform.direction,
         platformConfirmed: platform.confirmed,

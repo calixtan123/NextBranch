@@ -110,12 +110,13 @@ describe("Home", () => {
   it.each(["departures", "results"])("pauses the %s clock while hidden and catches up immediately on return", async (view) => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-16T12:00:00.000Z"));
+    const expectedArrival = "2026-09-16T12:02:29.999Z";
     if (view === "departures") {
       searchParams.set("station", saved.from);
       departureState.data = {
         station: { id: saved.from, name: saved.fromName }, observedAt: "2026-09-16T12:00:00.000Z",
         newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
-        platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToStation: 120, towards: null }] }],
+        platforms: [{ platform: "1", direction: "Northbound", departures: [{ id: "one", destinationName: "Edgware", expectedArrival, secondsToStation: 150, towards: null }] }],
       };
     } else {
       searchParams.set("from", saved.from);
@@ -123,7 +124,7 @@ describe("Home", () => {
       requestState.dataKey = `${saved.from}:${saved.to}`;
       requestState.data = {
         journey: { from: saved.from, to: saved.to }, observedAt: "2026-09-16T12:00:00.000Z", predictionGeneratedAt: null,
-        trains: [{ id: "next", destinationName: "Edgware", expectedArrival: "2026-09-16T12:02:00.000Z", secondsToOrigin: 120, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable" }],
+        trains: [{ id: "next", destinationName: "Edgware", expectedArrival, secondsToOrigin: 150, platform: null, direction: "Northbound", platformConfirmed: false, routeConfidence: "confirmed", via: null, destinationArrival: null, destinationSeconds: null, evidence: "unavailable" }],
         additionalSuitableCount: 0, withheldAmbiguousCount: 0, nextTrainId: "next", fastestTrainId: null, qualification: null, rankings: null, minutesSaved: null,
       };
     }
@@ -133,13 +134,13 @@ describe("Home", () => {
     expect(vi.getTimerCount()).toBe(1);
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
     fireEvent(document, new Event("visibilitychange"));
-    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
     expect(screen.getByText("2 min")).toBeInTheDocument();
     expect(vi.getTimerCount()).toBe(0);
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     fireEvent(document, new Event("visibilitychange"));
-    expect(screen.getByText("1 min")).toBeInTheDocument();
-    expect(screen.getByText("Updated 60 sec ago")).toBeInTheDocument();
+    expect(screen.getByText("Due")).toBeInTheDocument();
+    expect(screen.getByText("Updated 120 sec ago")).toBeInTheDocument();
     expect(vi.getTimerCount()).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "Journeys" }));
     expect(vi.getTimerCount()).toBe(0);

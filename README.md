@@ -202,7 +202,12 @@ Live arrivals and departure boards are requested with `no-store`. Topology and t
 bounded 12-hour Next server cache, with a bundled topology fallback that is
 accepted for 30 days. The browser polls only while an active live view is
 visible and online, and manual refresh has a 10-second cooldown. A stale result is
-retained as clearly marked context after an upstream failure; stale departure countdowns are deliberately de-emphasised rather than presented as fresh data.
+retained after an upstream failure, with a stale notice and muted countdowns.
+
+Countdowns compare the absolute expected arrival with the current device clock.
+They round to the nearest minute, with half minutes rounding up. `Due` starts
+when less than 30 seconds remain and lasts through 30 seconds after the expected
+arrival, inclusive. The row then expires.
 
 The manifest and owned icons support “Add to home screen”. There is no service
 worker, offline data cache, background sync, or guaranteed install prompt;
