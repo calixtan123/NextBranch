@@ -1,20 +1,30 @@
 /** Exercises the native offline search, picker and details without network or native views. */
 import { Children, isValidElement, type ReactNode, type ReactElement } from 'react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as shared from '../../src/lib/catalogue';
 import sourceSnapshot from '../../data/tfl-station-platform-inventory/tfl-station-platform-lines.json';
-import { createCatalogue, createCanonicalCatalogue } from '../src/catalogue';
+import { createCatalogue, createCanonicalCatalogue, selectionKey } from '../src/catalogue';
 import { createDiscovery, reviewedSelection } from '../src/discovery';
 import { createPreferences } from '../src/preferences';
 import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { LineLabels } from '../src/LineLabels';
 import { SearchScreen, PickerScreen, PlatformDetailsScreen } from '../src/SearchScreens';
 import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
+import { CardDisplayScreen } from '../src/ManageScreens';
 import type { Screen } from '../src/navigation';
 
-const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), query: '', setQuery: vi.fn() }));
-vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: () => [hooks.query, hooks.setQuery] }));
-vi.mock('react-native', () => ({ View: 'View', TextInput: 'TextInput', Keyboard: { dismiss: vi.fn() }, AccessibilityInfo: { announceForAccessibility: vi.fn() } }));
+const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), query: '', setQuery: vi.fn(), cleanups: [] as (() => void)[] }));
+vi.mock('react', async original => ({
+  ...await original<typeof import('react')>(),
+  useState: (initial: unknown) => initial === undefined ? [undefined, vi.fn()] : [hooks.query, hooks.setQuery],
+  useMemo: (factory: () => unknown) => factory(),
+  useRef: (initial: unknown) => ({ current: initial }),
+  useLayoutEffect: (effect: () => void | (() => void)) => {
+    const cleanup = effect();
+    if (cleanup) hooks.cleanups.push(cleanup);
+  },
+}));
+vi.mock('react-native', () => ({ View: 'View', TextInput: 'TextInput', AppState: { currentState: 'active', addEventListener: () => ({ remove: vi.fn() }) }, Keyboard: { dismiss: vi.fn() }, AccessibilityInfo: { announceForAccessibility: vi.fn() } }));
 vi.mock('../src/screen-context', () => ({ Surface: 'Surface', TextAction: 'TextAction', useRuntime: hooks.runtime, usePreferences: hooks.preferences, useBoardTime: () => 0, useRefresh: () => ({ refresh: vi.fn(), refreshing: false }) }));
 vi.mock('../src/GlassControls', () => ({ GlassSurface: 'GlassSurface', GlassAction: 'GlassAction' }));
 vi.mock('../src/PlatformBoard', () => ({ PlatformBoard: 'PlatformBoard', platformName: (selection: { platform: string }) => 'Platform ' + selection.platform }));
@@ -34,7 +44,7 @@ const discovery = () => createDiscovery(() => shared);
 const reviewed = createCatalogue({ version: 1, platforms: [
   { stationId: '940GZZLUCTN', platform: '1', direction: 'Northbound' },
 ] });
-const navigation = () => ({ goBack: vi.fn(), navigate: vi.fn() });
+const navigation = () => ({ goBack: vi.fn(), navigate: vi.fn(), isFocused: () => true, addListener: () => vi.fn() });
 const picker = (stationId: string, nav = navigation()) => PickerScreen({ navigation: nav, route: { params: { stationId } } } as unknown as Screen<'Picker'>);
 /** Locates a physical row by stable identity instead of its changing display copy. */
 const platformRow = (tree: ReactNode, platformId: string) => nodes(tree).find(node => node.type === 'Result' && node.key?.endsWith(platformId))!;
@@ -42,9 +52,11 @@ const details = (stationId: string, platformId: string) => PlatformDetailsScreen
 
 beforeEach(() => {
   hooks.query = '';
-  hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: createCanonicalCatalogue(shared.catalogue), synthetic: false, preferences: { selectStation: vi.fn() } });
+  hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: createCanonicalCatalogue(shared.catalogue), synthetic: false, preferences: { selectStation: vi.fn(), subscribe: () => vi.fn() } });
   hooks.preferences.mockReturnValue({ recent: [], mode: 'amber', cards: [] });
 });
+
+afterEach(() => hooks.cleanups.splice(0).forEach(cleanup => cleanup()));
 
 it('loads the validated full catalogue offline and recovers a missing or invalid bundle', () => {
   const fetch = vi.spyOn(globalThis, 'fetch');
@@ -80,6 +92,32 @@ it('shows empty, no-match, missing-catalogue and canonical recent names through 
   expect(text(render())).toContain('No stations found');
   hooks.runtime.mockReturnValue({ ...hooks.runtime(), discovery: createDiscovery(() => { throw Error('missing'); }) });
   expect(text(render())).toContain('Station catalogue is unavailable');
+});
+
+it.each([
+  ['Bank', 'HUBBAN', 'HUBBAN-Plat09-EB-dlr', '9', 'Eastbound', ''],
+  ['Lewisham', 'HUBLEW', 'HUBLEW-Plat06-NB-dlr', '6', 'Northbound', 'Towards Canary Wharf'],
+] as const)('uses the concise %s catalogue name through search, picker and saved-card settings', (name, stationId, physicalPlatformId, platform, direction, toward) => {
+  hooks.query = name;
+  const nav = navigation();
+  const result = nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.key?.endsWith(stationId))!;
+  expect(result.props.title).toBe(name);
+  expect(nodes(result).find(node => node.type === LineLabels)?.props.lines).toContainEqual({ id: 'dlr', name: 'DLR' });
+  result.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
+
+  const pickerTree = picker(stationId, nav);
+  const heading = nodes(pickerTree).find(node => node.props.accessibilityRole === 'header');
+  expect(heading?.props.children).toBe(name);
+  const row = platformRow(pickerTree, physicalPlatformId);
+  expect(row.props).toMatchObject({ title: `${direction} Platform ${platform}`, detail: toward });
+  row.props.onPress();
+  const selection = { stationId, physicalPlatformId, platform, direction };
+  expect(nav.navigate).toHaveBeenLastCalledWith('Departures', { selection });
+
+  hooks.preferences.mockReturnValue({ cards: [selection] });
+  const card = CardDisplayScreen({ navigation: nav, route: { params: { cardKey: selectionKey(selection) } } } as unknown as Screen<'CardDisplay'>);
+  expect(nodes(card).find(node => node.props.accessibilityRole === 'header')?.props.children).toBe(name);
 });
 
 it('offers a TfL platform from empty Home', () => {

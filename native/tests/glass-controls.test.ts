@@ -17,6 +17,9 @@ const boundary = vi.hoisted(() => ({
 vi.mock('react', async original => ({
   ...await original<typeof import('react')>(),
   useState: () => [boundary.state, boundary.setState],
+  useRef: (initial: unknown) => ({ current: initial }),
+  useMemo: (factory: () => unknown) => factory(),
+  useLayoutEffect: vi.fn(),
   useEffect: (effect: () => (() => void) | void) => { boundary.effects.push(effect); },
 }));
 vi.mock('react-native', () => ({
@@ -24,6 +27,7 @@ vi.mock('react-native', () => ({
     isReduceTransparencyEnabled: boundary.reduction,
     addEventListener: boundary.listener,
   },
+  AppState: { currentState: 'active' },
   Pressable: 'Pressable', TextInput: 'TextInput', View: 'View', Keyboard: { dismiss: vi.fn() },
   StyleSheet: { absoluteFill: { position: 'absolute', inset: 0 } },
 }));

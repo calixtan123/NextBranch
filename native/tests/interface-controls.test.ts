@@ -42,3 +42,22 @@ it('passes the drag scroll lock to the real native ScrollView while preserving k
   const unlocked = Surface({ title: 'Manage', children: null });
   expect(elements(unlocked).find(node => node.type === 'ScrollView')!.props.scrollEnabled).toBe(true);
 });
+
+
+it('keeps the native refresh control mounted and disables pull refresh while drag scrolling is locked', () => {
+  const refresh = vi.fn();
+  const scroll = (scrollEnabled: boolean) =>
+    elements(Surface({ title: 'Home', children: null, refresh, scrollEnabled })).find(node => node.type === 'ScrollView')!;
+  const locked = scroll(false);
+  expect(locked.props.onScrollBeginDrag).toBeUndefined();
+  expect(locked.props.onScroll).toBeUndefined();
+  expect(locked.props.refreshControl.type).toBe('RefreshControl');
+  expect(locked.props.refreshControl.props.enabled).toBe(false);
+  locked.props.refreshControl.props.onRefresh();
+  expect(refresh).not.toHaveBeenCalled();
+  const unlocked = scroll(true);
+  expect(unlocked.props.onScrollBeginDrag).toBeTypeOf('function');
+  expect(unlocked.props.refreshControl.props.enabled).toBe(true);
+  unlocked.props.refreshControl.props.onRefresh();
+  expect(refresh).toHaveBeenCalledOnce();
+});

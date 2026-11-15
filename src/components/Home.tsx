@@ -12,7 +12,8 @@ import { useDeparturesRequest } from "./useDeparturesRequest";
 import { useJourneyRequest } from "./useJourneyRequest";
 import { directDestinations } from "@/lib/northern/direct-destinations";
 import { byId, type Station } from "@/lib/northern/stations";
-import { DEPARTED_GRACE, remainingSeconds } from "@/lib/northern/time";
+import { responseAge, responseTime } from "@/lib/northern/response-time";
+import { DEPARTED_GRACE, REFRESH_SECONDS, remainingSeconds } from "@/lib/northern/time";
 import type { Journey } from "@/lib/journeys/types";
 import { readJourneys, removeJourney, restoreJourney, saveJourney, willReplaceOldest } from "@/lib/storage/journeys";
 import {
@@ -57,6 +58,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [activated, setActivated] = useState<{ from: string; to: string } | null>(() => validUrlJourney ? { from: initialFrom!.id, to: initialTo!.id } : null);
   const [now, setNow] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState<number | null>(null);
   const [journeyUndo, setJourneyUndo] = useState<{ journey: Journey; index: number } | null>(null);
   const [stationUndo, setStationUndo] = useState<StationUndo | null>(null);
   const [successes, setSuccesses] = useState(0);
@@ -141,8 +143,9 @@ export default function Home() {
       window.clearInterval(interval);
       interval = undefined;
       if (document.visibilityState !== "visible") return;
-      setNow(Date.now());
-      interval = window.setInterval(() => setNow(Date.now()), 1_000);
+      const sample = () => { setNow(Date.now()); setElapsed(performance.now()); };
+      sample();
+      interval = window.setInterval(sample, 1_000);
     };
     // Defer the initial update, keeping the server and first browser render equal.
     const initial = window.setTimeout(syncVisibility, 0);
@@ -256,7 +259,12 @@ export default function Home() {
     if (expiredRefresh.current !== key) { expiredRefresh.current = key; void fetchJourney(); }
   }, [now, view, activeJourney, data?.observedAt, data?.nextTrainId, fetchJourney, trains]);
   const stale = Boolean(issue && data);
-  const departureStale = Boolean(departuresIssue && departures);
+  const departureElapsed = departures?.timing
+    ? Math.max(elapsed ?? departures.timing.receivedAt, departures.timing.receivedAt)
+    : now ?? Date.parse(departures?.observedAt ?? "");
+  const departureNow = departures ? responseTime(departures, departureElapsed) : departureElapsed;
+  const departureAge = departures ? responseAge(departures, departureElapsed) : 0;
+  const departureStale = Boolean(departures && (departuresIssue || departureAge > REFRESH_SECONDS * 1_000));
   const ranks = (id: string) => {
     if (stale || !data) return undefined;
     const next = id === data.nextTrainId, fastest = id === data.fastestTrainId;
@@ -304,7 +312,7 @@ export default function Home() {
       {!boardStation && <p className="empty">Choose a station to see live Northern line departures.</p>}
       {boardStation && departuresLoading && !departures && <p role="status" className="status">Checking live Northern line departures…</p>}
       {boardStation && departuresIssue && <div role="alert" className="warning">{departureProblem}{departures && <><br /><strong>Last prediction — information may be stale.</strong></>} <button disabled={now !== null && now < departuresCooldown} onClick={() => void fetchDepartures(true)}>Retry</button></div>}
-      {departures && <section aria-busy={departuresLoading}><p className={departureStale ? "muted" : "updated"}>{departureStale ? "Last prediction — information may be stale." : `Updated ${now === null ? 0 : Math.max(0, Math.round((now - new Date(departures.observedAt).getTime()) / 1000))} sec ago`}</p><DepartureBoard data={departures} now={now ?? new Date(departures.observedAt).getTime()} stale={departureStale} /></section>}
+      {departures && <section aria-busy={departuresLoading}><p className={departureStale ? "muted" : "updated"}>{departureStale ? "Last prediction — information may be stale." : `Updated ${Math.round(departureAge / 1000)} sec ago`}</p><DepartureBoard data={departures} now={departureNow} stale={departureStale} /></section>}
     </section>}
     {view === "journeys" && <section className="saved-panel" aria-labelledby="saved-title"><h2 id="saved-title">Journeys</h2>{saved.length ? saved.map((item) => <div className="saved-row" key={`${item.from}-${item.to}`}><button onClick={() => activate(item)}>{item.fromName} → {item.toName}</button><button aria-label={`Remove ${item.fromName} to ${item.toName}`} onClick={() => { const index = saved.findIndex((entry) => entry.from === item.from && entry.to === item.to); setSaved(removeJourney(item)); setJourneyUndo({ journey: item, index }); }}>Remove</button></div>) : <p className="muted">No saved journeys yet.</p>}<button className="primary" onClick={() => navigateView("search")}>New journey</button></section>}
     {view === "search" && <section className="panel" aria-labelledby="search-title"><h2 id="search-title">Plan a journey</h2><form onSubmit={(event) => { event.preventDefault(); submit(); }}><Combobox label="From" value={from} onChange={handleFromChange} /><Combobox label="To" value={to} onChange={setTo} options={directDestinations(from)} disabled={!from} />{validation && <p className="validation" role="alert">{validation}</p>}<div className="form-actions"><button type="button" disabled={!from || !to} onClick={() => { const origin = from; setFrom(to); setTo(origin); }}>Swap</button><button className="primary" type="submit" disabled={!journey || Boolean(validation)}>Check trains</button></div></form></section>}

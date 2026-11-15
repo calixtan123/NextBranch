@@ -1,6 +1,6 @@
 /** Native theme palettes, accessible controls and shared presentation primitives. */
 import { createContext, useContext, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type TextProps } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type PressableProps, type TextProps } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { lineColour } from './line-presentation';
 
@@ -91,14 +91,18 @@ export function Action({ children, onPress, primary, disabled }: {
   </Pressable>;
 }
 
+export type CardPressInteraction = Pick<PressableProps,
+  'onTouchStart' | 'onLongPress' | 'onPressOut' | 'accessibilityActions' | 'onAccessibilityAction' | 'onAccessibilityTap'>;
+
 /** A tappable list row or selected radio option. */
-export function Result({ title, detail, onPress, selected, children, titleEmphasis = false, presentation }: {
+export function Result({ title, detail, onPress, selected, children, titleEmphasis = false, presentation, pressInteraction }: {
   title: string; detail: string; onPress: () => void; selected?: boolean; children?: ReactNode; titleEmphasis?: boolean;
   presentation?: 'station-search';
+  pressInteraction?: CardPressInteraction;
 }) {
   const colors = usePalette();
   const stationSearch = presentation === 'station-search';
-  return <Pressable accessibilityRole={selected === undefined ? 'button' : 'radio'}
+  return <Pressable {...pressInteraction} accessibilityRole={selected === undefined ? 'button' : 'radio'}
     accessibilityLabel={titleEmphasis ? [title, detail].filter(Boolean).join('. ') : undefined}
     accessibilityState={selected === undefined ? undefined : { checked: selected, selected }}
     onPress={onPress} style={({ pressed }) => [ui.row, {

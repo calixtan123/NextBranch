@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ResponseTiming } from '../../src/lib/northern/response-time';
 import { catalogueResponseSchema } from '../../src/lib/catalogue/capability';
 import { REFRESH_SECONDS } from '../../src/lib/northern/time';
 
@@ -15,6 +16,7 @@ const departure = z.object({
 const snapshot = z.object({
   station: z.object({ id: z.string().min(1), name: z.string().trim().min(1) }),
   observedAt: timestamp,
+  generatedAt: timestamp.optional(),
   newestPredictionGeneratedAt: timestamp.nullable(),
   refreshAfterSeconds: z.number().int().positive().optional().default(REFRESH_SECONDS),
   catalogue: catalogueResponseSchema.optional(),
@@ -27,7 +29,7 @@ const snapshot = z.object({
   })),
 });
 
-export type Snapshot = z.infer<typeof snapshot>;
+export type Snapshot = z.infer<typeof snapshot> & { timing?: ResponseTiming };
 export type StationTransport = (stationId: string, signal: AbortSignal) => Promise<Snapshot>;
 export type FailureKind = 'timeout' | 'invalid' | 'limited' | 'unavailable' | 'configuration';
 

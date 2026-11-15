@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ResponseTiming } from "./northern/response-time";
 import { catalogueResponseSchema } from "./catalogue/capability";
 
 const departureSchema = z.object({
@@ -18,6 +19,7 @@ const platformSchema = z.object({
 const responseSchema = z.object({
   station: z.object({ id: z.string().min(1), name: z.string().min(1) }),
   observedAt: z.string().datetime(),
+  generatedAt: z.string().datetime().optional(),
   newestPredictionGeneratedAt: z.string().datetime().nullable(),
   refreshAfterSeconds: z.number().int().positive(),
   platforms: z.array(platformSchema),
@@ -30,7 +32,7 @@ export type Departure = z.infer<typeof departureSchema> & {
   direction: "Northbound" | "Southbound" | "Eastbound" | "Westbound" | null;
 };
 export type DeparturePlatform = z.infer<typeof platformSchema>;
-export type DeparturesResponse = z.infer<typeof responseSchema>;
+export type DeparturesResponse = z.infer<typeof responseSchema> & { timing?: ResponseTiming };
 
 /** Validates untrusted departure JSON and proves it belongs to the requested station. */
 export function parseDeparturesResponse(

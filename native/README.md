@@ -23,9 +23,17 @@ stations fail within the fixture adapter.
 platforms. Each record provides `stationId`, `platform`, and `direction` with
 the exact spelling the API returns. Keep the source and verification provenance
 with catalogue changes. Canonical station search, countdown and London clock
-helpers are imported from the application repository. Live boards use the device
-clock and each prediction's absolute expected arrival, including while a cached
-response is on screen. Countdown minutes round to the nearest minute, with half
+helpers are imported from the application repository. Live boards anchor server
+`generatedAt` to `performance.now()`, an elapsed clock unaffected by changes to
+the phone's date or time. Countdowns and freshness share that reference, with
+each feed's original `fetchedAt` preserving cached-data age. The full request
+duration, including body parsing, is added conservatively; a slow request can
+therefore shorten the displayed countdown by up to that duration. Older servers
+without `generatedAt` use `observedAt` as an approximation, which cannot recover
+age already lost by a legacy server cache. Backgrounding invalidates the anchor;
+rows remain hidden until a successful foreground refresh because elapsed time
+during suspension may be uncertain. Synthetic fixtures keep their frozen clock.
+Countdown minutes round to the nearest minute, with half
 minutes rounding up. `Due` starts below 30 seconds remaining and continues through
 30 seconds after the expected arrival, inclusive. The row then expires.
 
