@@ -32,7 +32,7 @@ Other `minimatch` copies in the tree (3.1.5) are not affected.
 
 - `npm audit fix --dry-run --json`: exit 1 (audit still reports findings), zero add/change/remove, although `fixAvailable` is `true`.
 - Latest stable `typescript-eslint` is 8.72.2 (npm `latest`); its `typescript-estree` depends on `minimatch ^10.2.2`, which cannot resolve to `>=11.0.1`.
-- Only `@typescript-eslint/typescript-estree@8.72.3-alpha.8` (canary) depends on `minimatch ^11.0.1`. A prerelease canary is not a supported remedy, so it was not adopted.
+- The inspected canary, `@typescript-eslint/typescript-estree@8.72.3-alpha.8`, depends on `minimatch ^11.0.1`. A prerelease canary is not a supported remedy, so it was not adopted.
 - Forcing `minimatch@11` would need an npm `overrides` entry or `--force`. The brief forbids both without demonstrated compatibility. It was not tried: minimatch 11 is a major bump over the API typescript-estree 8.72.2 was tested with.
 
 ## Residual risk and follow-up
