@@ -85,5 +85,8 @@ export function fixtureRuntime(scenario: string, seed: boolean) {
     }
     return decodeSnapshot(response, id);
   };
-  return { catalogue, transport, now: () => clock, cards: seed ? cards : [], synthetic: true };
+  const timedTransport: StationTransport = async (id, signal) => ({
+    ...await transport(id, signal), generatedAt: new Date(clock).toISOString(),
+  });
+  return { catalogue, transport: timedTransport, now: () => clock, cards: seed ? cards : [], synthetic: true };
 }

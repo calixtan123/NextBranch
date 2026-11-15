@@ -47,7 +47,7 @@ it.each([
   else expect(rows[0].countdown).toBe(countdown);
 });
 
-it('uses absolute arrival for a delayed response and for cached rows on foreground resume', async () => {
+it('uses server-relative arrival for a delayed response and invalidates uncertain rows on foreground resume', async () => {
   vi.useFakeTimers({ now });
   const expectedArrival = new Date(now + 160_000).toISOString();
   const delayedSnapshot = {
@@ -72,7 +72,7 @@ it('uses absolute arrival for a delayed response and for cached rows on foregrou
     await settle();
     expect(owner.get(C).pending).toBe(true);
     expect(isStale(owner.get(C), Date.now(), true)).toBe(true);
-    expect(rows()[0]).toMatchObject({ countdown: 'Due', expectedArrival });
+    expect(rows()).toEqual([]);
   } finally {
     owner.dispose();
   }
@@ -195,7 +195,7 @@ it('coalesces station owners, reuses fresh detail, isolates errors and retains s
   expect(isStale(owner.get(C), now + 30_001, true)).toBe(true);
   failCamden = true;
   await owner.refresh([C]);
-  expect(owner.get(C).snapshot).toEqual(snapshot);
+  expect(owner.get(C).snapshot).toMatchObject(snapshot);
   expect(boardStatus(owner.get(C), now, true).tone).toBe('danger');
   expect(isStale(owner.get(C), now, true)).toBe(true);
   expect(owner.get(L).error).toBeNull();
@@ -394,7 +394,7 @@ it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting'
   let limited = false;
   const request = vi.fn<StationTransport>(async id => {
     if (limited) throw { kind: 'limited', retryAfterSeconds: 45 };
-    return body(id);
+    return { ...body(id), generatedAt: new Date(Date.now()).toISOString() };
   });
   const owner = createStationOwner(request, Date.now, Date.now, id => id === 'alias' ? C : id);
   owner.own([C, 'alias']);

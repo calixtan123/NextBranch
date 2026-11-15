@@ -1,4 +1,5 @@
 /** Projects native departure display fields while preserving source predictions and matching. */
+import { responseAge, responseTime } from '../../src/lib/northern/response-time';
 import { branchLabel, normalizeTowards } from '../../src/lib/northern/route';
 import { DEPARTED_GRACE, displayCountdown, remainingSeconds } from '../../src/lib/northern/time';
 import { lines, type CatalogueService } from '../../src/lib/catalogue/schema';
@@ -21,6 +22,7 @@ function displayVia(value: string | null | undefined): string {
 /** Projects an exact physical platform before sorting and taking its visible row limit. */
 export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit: 3 | 5) {
   if (snapshot?.station.id !== selection.stationId) return [];
+  now = responseTime(snapshot, now);
   const clock = new Date(now);
   return snapshot.platforms
     .filter(group => selection.physicalPlatformId ? group.physicalPlatformId === selection.physicalPlatformId :
@@ -86,6 +88,7 @@ export function departureIdentity(
 
 /** Counts current unresolved physical identities, including legacy unknown tuples. */
 export function unassignedCount(snapshot: Snapshot | undefined, now: number): number {
+  if (snapshot) now = responseTime(snapshot, now);
   return snapshot?.platforms
     .filter(group => group.physicalPlatformId === null || (!group.physicalPlatformId && (!group.platform || !group.direction)))
     .flatMap(group => group.departures)
@@ -170,7 +173,8 @@ export function boardStatus(
     ? { tone: 'danger', label: 'Live departures temporarily unavailable' }
     : { tone: 'warning', label: 'Some live departures temporarily unavailable' };
   if (!state.snapshot) return { tone: 'dim', label: 'Loading departures' };
-  if (now - Date.parse(state.snapshot.observedAt) > FRESH_FOR) {
+  if (state.snapshot.timing?.suspended) return { tone: 'warning', label: 'Refreshing departures after app resume' };
+  if (responseAge(state.snapshot, now, feeds.length ? feeds : undefined) > FRESH_FOR) {
     return { tone: 'warning', label: 'Departures are over 30 seconds old' };
   }
   const stale = feeds.filter(feed => feed.freshness === 'stale').length;

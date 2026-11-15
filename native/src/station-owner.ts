@@ -1,4 +1,5 @@
 /** Coordinates live request ownership, cancellation, freshness and shared cooldown. */
+import { anchorResponse, responseAge, suspendResponse } from '../../src/lib/northern/response-time';
 import { REFRESH_SECONDS } from '../../src/lib/northern/time';
 import type { FailureKind, Snapshot, StationTransport } from './api';
 
@@ -20,9 +21,9 @@ type Entry = {
 type StationState = { snapshot?: Snapshot; error: FailureKind | null; pending: boolean };
 const idle = { error: null, pending: false } as const;
 
-/** Marks matching memory stale by observed age, failure or connectivity. */
+/** Marks matching memory stale by anchored source age, failure or connectivity. */
 export function isStale(state: StationState, now: number, online: boolean): boolean {
-  return Boolean(state.snapshot && (!online || state.error || now - Date.parse(state.snapshot.observedAt) > FRESH_FOR));
+  return Boolean(state.snapshot && (!online || state.error || responseAge(state.snapshot, now) > FRESH_FOR));
 }
 
 /**
@@ -33,9 +34,10 @@ export function isStale(state: StationState, now: number, online: boolean): bool
  * transport : StationTransport
  *     Transport receiving the resolved canonical station identifier.
  * now : function, optional
- *     Request scheduling clock.
+ *     Monotonic request scheduling clock; defaults to performance.now.
  * observationNow : function, optional
- *     Snapshot freshness clock.
+ *     Elapsed clock used by board consumers. Defaults to the scheduling clock;
+ *     frozen synthetic fixtures inject their deterministic clock here.
  * resolveStation : function, optional
  *     Maps service aliases to the canonical station owning their underlying feeds.
  *     The identity default preserves existing transport callers.
@@ -46,7 +48,7 @@ export function isStale(state: StationState, now: number, online: boolean): bool
  *     Visible-consumer ownership and shared request state. Alias reads retain
  *     their requested station identity after canonical response validation.
  */
-export function createStationOwner(transport: StationTransport, now = Date.now, observationNow = now, resolveStation: (id: string) => string = id => id) {
+export function createStationOwner(transport: StationTransport, now = () => performance.now(), observationNow = now, resolveStation: (id: string) => string = id => id) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
   let owned = new Set<string>();
@@ -89,6 +91,7 @@ export function createStationOwner(transport: StationTransport, now = Date.now, 
   }
   function start(id: string): Flight {
     const entry = entryFor(id);
+    const startedAt = now();
     const controller = new AbortController();
     const deadline = Symbol('deadline');
     const cancellation = Symbol('cancelled');
@@ -112,7 +115,7 @@ export function createStationOwner(transport: StationTransport, now = Date.now, 
         entry.error = 'unavailable';
         return 'failure';
       }
-      entry.snapshot = data;
+      entry.snapshot = anchorResponse(data, observationNow(), Math.max(0, now() - startedAt));
       entry.error = null;
       return 'success';
     }, (error: unknown) => {
@@ -184,7 +187,12 @@ export function createStationOwner(transport: StationTransport, now = Date.now, 
       if (value === active) return;
       active = value;
       if (active && online) restartOwned();
-      if (!active) owned.forEach(id => cancel(entryFor(id)));
+      if (!active) {
+        entries.forEach(entry => {
+          if (entry.snapshot) entry.snapshot = suspendResponse(entry.snapshot);
+        });
+        owned.forEach(id => cancel(entryFor(id)));
+      }
       publish();
     },
     setOnline(value: boolean) {
