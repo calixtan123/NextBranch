@@ -3,13 +3,14 @@ import { Children, isValidElement, type ReactNode, type ReactElement } from 'rea
 import { beforeEach, expect, it, vi } from 'vitest';
 import * as shared from '../../src/lib/catalogue';
 import sourceSnapshot from '../../data/tfl-station-platform-inventory/tfl-station-platform-lines.json';
-import { createCatalogue, createCanonicalCatalogue } from '../src/catalogue';
+import { createCatalogue, createCanonicalCatalogue, selectionKey } from '../src/catalogue';
 import { createDiscovery, reviewedSelection } from '../src/discovery';
 import { createPreferences } from '../src/preferences';
 import { serviceCapability } from '../../src/lib/catalogue/capability';
 import { LineLabels } from '../src/LineLabels';
 import { SearchScreen, PickerScreen, PlatformDetailsScreen } from '../src/SearchScreens';
 import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
+import { CardDisplayScreen } from '../src/ManageScreens';
 import type { Screen } from '../src/navigation';
 
 const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), query: '', setQuery: vi.fn() }));
@@ -80,6 +81,32 @@ it('shows empty, no-match, missing-catalogue and canonical recent names through 
   expect(text(render())).toContain('No stations found');
   hooks.runtime.mockReturnValue({ ...hooks.runtime(), discovery: createDiscovery(() => { throw Error('missing'); }) });
   expect(text(render())).toContain('Station catalogue is unavailable');
+});
+
+it.each([
+  ['Bank', 'HUBBAN', 'HUBBAN-Plat09-EB-dlr', '9', 'Eastbound', ''],
+  ['Lewisham', 'HUBLEW', 'HUBLEW-Plat06-NB-dlr', '6', 'Northbound', 'Towards Canary Wharf'],
+] as const)('uses the concise %s catalogue name through search, picker and saved-card settings', (name, stationId, physicalPlatformId, platform, direction, toward) => {
+  hooks.query = name;
+  const nav = navigation();
+  const result = nodes(SearchScreen({ navigation: nav } as unknown as Screen<'Search'>)).find(node => node.key?.endsWith(stationId))!;
+  expect(result.props.title).toBe(name);
+  expect(nodes(result).find(node => node.type === LineLabels)?.props.lines).toContainEqual({ id: 'dlr', name: 'DLR' });
+  result.props.onPress();
+  expect(nav.navigate).toHaveBeenLastCalledWith('Picker', { stationId });
+
+  const pickerTree = picker(stationId, nav);
+  const heading = nodes(pickerTree).find(node => node.props.accessibilityRole === 'header');
+  expect(heading?.props.children).toBe(name);
+  const row = platformRow(pickerTree, physicalPlatformId);
+  expect(row.props).toMatchObject({ title: `${direction} Platform ${platform}`, detail: toward });
+  row.props.onPress();
+  const selection = { stationId, physicalPlatformId, platform, direction };
+  expect(nav.navigate).toHaveBeenLastCalledWith('Departures', { selection });
+
+  hooks.preferences.mockReturnValue({ cards: [selection] });
+  const card = CardDisplayScreen({ navigation: nav, route: { params: { cardKey: selectionKey(selection) } } } as unknown as Screen<'CardDisplay'>);
+  expect(nodes(card).find(node => node.props.accessibilityRole === 'header')?.props.children).toBe(name);
 });
 
 it('offers a TfL platform from empty Home', () => {

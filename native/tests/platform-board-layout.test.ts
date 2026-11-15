@@ -615,6 +615,51 @@ describe.each(['amber', 'modern'] as const)('%s Elizabeth departure suffix', sty
   });
 });
 
+it.each([
+  ['amber', false], ['amber', true], ['modern', false], ['modern', true],
+] as const)('shows the same %s DLR departure identity visually and accessibly with expanded=%s', async (style, expanded) => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const station = catalogue.stationsById.get('HUBCAW')!;
+  const physicalPlatformId = 'HUBCAW-Plat01-SB-dlr';
+  const selection = { stationId: station.station_id, physicalPlatformId, platform: '1', direction: 'Southbound' } as const;
+  const observedAt = '2026-11-10T12:00:00Z';
+  const snapshot: Snapshot = { station: { id: station.station_id, name: station.station_name }, observedAt,
+    newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+    platforms: [{ physicalPlatformId, platform: selection.platform, direction: selection.direction, departures: [
+      { id: 'bank', destinationName: 'Bank DLR Station', towards: null },
+      { id: 'lewisham', destinationName: ' Lewisham  dLr  Station via  Heron Quays ', towards: 'Lewisham via Heron Quays' },
+    ].map(row => ({ ...row, lineId: 'dlr', expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 })) }] };
+  boundary.fontScale = 1;
+  boundary.width = 390;
+
+  const tree = PlatformBoard({ station, selection, style, now: Date.parse(observedAt), online: true, limited: false,
+    expanded, state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
+  boundary.width = 0;
+
+  const board = elements(tree);
+  expect(board.filter(node => node.type === Label).map(node => node.props.children)).toContain('Canary Wharf');
+  expect(board.find(node => node.type === LineLabels)?.props).toMatchObject({ lines: [{ id: 'dlr', name: 'DLR' }] });
+  const rows = board.filter(node => 'row' in node.props);
+  const identities = ['Bank', 'Lewisham via Heron Quays'];
+  expect(rows).toHaveLength(identities.length);
+  rows.forEach((node, index) => {
+    const render = node.type as (props: Element['props']) => ReactElement<{ children?: ReactNode; accessibilityLabel: string }>;
+    const row = render(node.props);
+    const destination = elements(Children.toArray(row.props.children)[1]);
+    const copy = style === 'amber'
+      ? destination.flatMap(child => 'value' in child.props ? [child.props.value] : []).join(' ')
+      : destination.filter(child => child.type === 'Text').map(child => child.props.children).join(' ');
+    expect(copy).toBe(identities[index]);
+    expect(row.props.accessibilityLabel).toBe(`${index + 1}, ${identities[index]}, 1 min` +
+      (expanded ? ', Expected at 12:01 London time' : ''));
+  });
+  if (!expanded) {
+    const button = board.find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+    const summary = (button.props as { accessibilityLabel: string }).accessibilityLabel;
+    expect(summary).toContain('Canary Wharf. Southbound Platform 1. DLR. 1, Bank, 1 min. 2, Lewisham via Heron Quays, 1 min');
+  }
+});
+
 it.each([224, 274])('keeps Amber glyph size and destination columns consistent at %s points', destinationWidth => {
   boundary.fontScale = 1;
   boundary.width = destinationWidth + 16 + 62 + 10;
