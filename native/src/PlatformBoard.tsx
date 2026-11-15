@@ -14,7 +14,7 @@ import { LineLabels } from './LineLabels';
 import { lineLabels, platformPickerTitle } from './line-presentation';
 import { glyphs } from './glyphs';
 import type { Style } from './preferences';
-import { isStale, type createStationOwner } from './station-owner';
+import { type createStationOwner } from './station-owner';
 import { Action, Label, ui, usePalette } from './theme';
 
 const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '#251F15', text: '#FFAA25', step: 6 };
@@ -150,13 +150,22 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
   const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3)
     .map(row => ({ ...row, identity: departureIdentity(row, platform?.services) }));
   const board = style === 'amber' ? amber : modern;
+  const capabilities = platform?.services.map(service => serviceCapability(station!, platform, service));
   const relevantFeeds = platform?.services
-    .filter(service => serviceCapability(station!, platform, service).feed === 'supported')
+    .filter((_service, index) => capabilities![index].feed === 'supported')
     .map(service => ({ lineId: service.line_id, stopAreaId: service.stop_area_naptan_code }));
-  const status = boardStatus(state, now, online, relevantFeeds);
-  const emptyStatus = isStale(state, now, online) ? 'No recent departures available' : emptyCopy;
+  let status = boardStatus(state, now, online, relevantFeeds);
+  const unknown = state.snapshot?.station.id === selection.stationId ? unassignedCount(state.snapshot, now) : 0;
+  const assignmentCopy = unknown === 1 ? '1 station prediction awaits platform assignment'
+    : `${unknown} station predictions await platform assignment`;
+  if (online && !state.error && !state.pending && capabilities?.length && !relevantFeeds?.length) {
+    status = { tone: 'dim', label: capabilities.every(capability => capability.feed === 'unsupported')
+      ? 'Live departures unsupported' : 'Live departures awaiting verification' };
+  } else if (status.tone === 'success' && !rows.length && unknown > 0) {
+    status = { tone: 'warning', label: assignmentCopy };
+  }
+  const emptyStatus = status.tone === 'success' ? emptyCopy : status.label;
   const count = rows.length + (rows.length === 1 ? ' upcoming train' : ' upcoming trains');
-  const unknown = expanded ? unassignedCount(state.snapshot, now) : 0;
   const content = <>
     <View style={[ui.row, {
       minHeight: 43, paddingLeft: 12, paddingRight: 10, justifyContent: 'space-between', gap: 8, flexWrap: 'nowrap',
@@ -191,7 +200,7 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
         {rows.map((row, index) => <TrainRow key={row.id} row={row} index={index} style={style}
           width={width} expanded={expanded} last={index === rows.length - 1} />)}
         {!rows.length && <Label size={12} style={{ color: board.text, padding: 8 }}>
-          {state.snapshot ? emptyStatus : status.label}
+          {emptyStatus}
         </Label>}
       </View>
     </View>
@@ -200,12 +209,15 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
         style={{ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: colors[status.tone] }} />
       {expanded && state.snapshot && <Label size={10} tone="dim" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>{count}</Label>}
     </View>
+    {rows.length > 0 && status.tone !== 'success' && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+      {status.label}
+    </Label>}
     {caveats.length > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
       {caveats.join('\n')}
     </Label>}
   </>;
   const description = [...new Set([name, platformName(selection), lineNames, ...rows.map((row, index) => rowLabel(row, index, false)),
-    !rows.length && state.snapshot ? emptyStatus : null, ...caveats, status.label].filter(Boolean))].join('. ');
+    !rows.length ? emptyStatus : null, ...caveats, status.label].filter(Boolean))].join('. ');
   return <View style={{
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
     borderRadius: 10, overflow: 'hidden', marginBottom: expanded ? 10 : 18, boxShadow: '0 2px 8px #00000020',
@@ -214,8 +226,8 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
       accessibilityHint="Opens platform departures" style={({ pressed }) => ({ opacity: pressed ? .68 : 1 })}>
       {content}
     </Pressable> : content}
-    {unknown > 0 && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
-      {unknown === 1 ? '1 prediction has' : `${unknown} predictions have`} no confirmed platform or direction.
+    {expanded && unknown > 0 && status.label !== assignmentCopy && <Label size={11} tone="dim" style={{ paddingHorizontal: 11, paddingVertical: 6 }}>
+      {assignmentCopy}
     </Label>}
     {online && state.error === 'invalid' && <View style={{ paddingHorizontal: 11, paddingBottom: 7 }}>
       <Action onPress={onReview}>Review selection</Action>

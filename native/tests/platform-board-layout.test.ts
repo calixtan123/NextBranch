@@ -177,7 +177,7 @@ it('labels each shared-platform departure with its published line', async () => 
   expect(row?.props.row.identity).toBe('Ealing (District)');
 });
 
-it('uses a red dot for temporary per-line failure without redundant supported-feed prose', async () => {
+it('explains a failed selected feed visually and accessibly', async () => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const station = catalogue.stationsById.get('940GZZLUACT')!;
   const platform = station.platforms[0]!;
@@ -188,12 +188,55 @@ it('uses a red dot for temporary per-line failure without redundant supported-fe
     onReview: vi.fn(),
   });
   const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join('\n');
-  expect(copy).not.toContain('Live departures temporarily unavailable');
+  expect(copy).toContain('Live departures temporarily unavailable');
   const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
   expect(flattenStyle(dot.props.style).backgroundColor).toBe(paletteFor(boundary.light).danger);
   expect(dot.props).toMatchObject({ accessibilityLabel: 'Live departures temporarily unavailable' });
   expect(copy).not.toContain('Towards not published');
   expect(copy).not.toContain('Live departures available');
+});
+
+it.each([
+  ['empty', 'No departures currently assigned to this platform', 'success'],
+  ['unresolved', '1 station prediction awaits platform assignment', 'warning'],
+  ['stale', 'No recent departures available', 'warning'],
+  ['partial', 'Some live departures temporarily unavailable', 'warning'],
+  ['failed', 'Live departures temporarily unavailable', 'danger'],
+  ['unsupported', 'Live departures unsupported', 'dim'],
+  ['unverified', 'Live departures awaiting verification', 'dim'],
+] as const)('explains %s platform state consistently in compact and expanded boards', async (condition, expected, tone) => {
+  const { catalogue } = await import('../../src/lib/catalogue');
+  const original = catalogue.stationsById.get('940GZZLUACT')!;
+  const source = original.platforms[0];
+  const platform = condition === 'unsupported' ? { ...source, services: [{ ...source.services[0], line_id: 'national-rail' }] }
+    : condition === 'unverified' ? { ...source, services: [{ ...source.services[0], line_id: 'london-cable-car' }] } : source;
+  const station = { ...original, platforms: [platform] };
+  const observedAt = '2026-11-10T12:00:00Z';
+  const feeds = platform.services.map((service, index) => ({ lineId: service.line_id, stopAreaId: service.stop_area_naptan_code,
+    liveState: condition === 'failed' || condition === 'partial' && index === 0 ? 'unavailable' as const : 'empty' as const,
+    ...(condition === 'stale' ? { freshness: 'stale' as const } : {}) }));
+  const snapshot: Snapshot = { station: { id: station.station_id, name: station.station_name }, observedAt,
+    newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+    catalogue: { stationId: station.station_id, liveState: 'empty', platforms: [], feeds },
+    platforms: condition === 'unresolved' ? [{ physicalPlatformId: null, platform: '99', direction: 'Eastbound',
+      departures: [{ id: 'unmapped', lineId: 'district', destinationName: 'Upminster', towards: null,
+        expectedArrival: '2026-11-10T12:01:00Z', secondsToStation: 60 }] }] : [] };
+  for (const expanded of [false, true]) {
+    const tree = PlatformBoard({ station, selection: { stationId: station.station_id, platform: platform.platform_number,
+      direction: platform.cardinal_direction, physicalPlatformId: platform.platform_id }, style: 'modern',
+      now: Date.parse(observedAt), online: true, limited: false, expanded,
+      state: { pending: false, error: null, snapshot }, onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
+    const copy = elements(tree).filter(node => node.type === Label).map(node => Children.toArray(node.props.children).join('')).join(' ');
+    expect(copy).toContain(expected);
+    const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+    expect(flattenStyle(dot.props.style).backgroundColor).toBe(paletteFor(boundary.light)[tone]);
+    expect((dot.props as { accessibilityLabel: string }).accessibilityLabel).toContain(condition === 'empty' ? 'Live departures up to date' : expected);
+    if (!expanded) {
+      const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+      expect((button.props as { accessibilityLabel: string }).accessibilityLabel).toContain(expected);
+    }
+    expect(elements(tree).filter(node => 'row' in node.props)).toHaveLength(0);
+  }
 });
 
 it.each(['empty', 'outage'] as const)('shows official DLR blank direction and towards with accurate %s coverage', async condition => {
@@ -363,7 +406,7 @@ describe.each([false, true])('compact status with expanded=%s', expanded => {
         onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
       const copy = elements(tree).filter(node => node.type === Label)
         .map(node => Children.toArray(node.props.children).join('')).join(' ');
-      expect(copy).not.toMatch(/Updated|Updating|Predictions may be outdated|seconds old/);
+      if (tone !== 'success') expect(copy).toContain(expected);
       const dot = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
       expect(flattenStyle(dot.props.style)).toEqual({ width: 8, height: 8, flexShrink: 0, borderRadius: 4, backgroundColor: paletteFor(light)[tone] });
       expect(dot.props).toMatchObject({ accessible: expanded, accessibilityLabel: expected });
@@ -611,7 +654,7 @@ it.each([
   ['940GZZALGWP', false, 'loading'], ['940GZZALGWP', true, 'loading'],
   ['940GZZALGWP', false, 'empty'], ['940GZZALGWP', true, 'empty'],
   ['940GZZALGWP', false, 'unavailable'], ['940GZZALGWP', true, 'unavailable'],
-] as const)('omits verification-only caveats for %s with expanded=%s and %s departures', async (stationId, expanded, condition) => {
+] as const)('distinguishes unreviewed mapping from unverified feeds for %s with expanded=%s and %s departures', async (stationId, expanded, condition) => {
   const { catalogue } = await import('../../src/lib/catalogue');
   const { serviceCapability } = await import('../../src/lib/catalogue/capability');
   const station = catalogue.stationsById.get(stationId)!;
@@ -635,10 +678,11 @@ it.each([
   const copy = elements(tree).filter(node => node.type === Label)
     .map(node => Children.toArray(node.props.children).join('')).join(' ');
   expect(copy).not.toMatch(/awaits? verification/);
-  expect(copy).toContain(condition === 'empty' ? 'No departures currently assigned to this platform'
+  const unverified = stationId === '940GZZALGWP' && condition === 'empty';
+  expect(copy).toContain(unverified ? 'Live departures awaiting verification' : condition === 'empty' ? 'No departures currently assigned to this platform'
     : condition === 'loading' ? 'Loading departures' : 'Departures request failed. Predictions may be outdated');
   const status = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
-  expect(status.props).toMatchObject({ accessibilityLabel: condition === 'loading' ? 'Loading departures'
+  expect(status.props).toMatchObject({ accessibilityLabel: unverified ? 'Live departures awaiting verification' : condition === 'loading' ? 'Loading departures'
     : condition === 'empty' ? 'Live departures up to date' : 'Departures request failed. Predictions may be outdated' });
   if (!expanded) {
     const button = elements(tree).find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;

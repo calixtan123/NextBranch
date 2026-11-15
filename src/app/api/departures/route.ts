@@ -69,13 +69,16 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
     const feeds = departureFeeds(station);
     const transport = deps.lineArrivals ?? ((_line: string, stop: string) => deps.arrivals ? deps.arrivals(stop) : getLineArrivals(_line, stop));
     const results = await Promise.allSettled(feeds.map(feed => transport(feed.lineId, feed.stopAreaId)));
-    const current = results.flatMap((result, index) => result.status === "fulfilled"
-      ? normalizeRailPredictions(result.value.filter(arrival => arrival.lineId === feeds[index]!.lineId && arrival.naptanId === feeds[index]!.stopAreaId), now)
+    const exactRecords = results.map((result, index) => result.status === "fulfilled"
+      ? result.value.filter(arrival => arrival.lineId === feeds[index]!.lineId && arrival.naptanId === feeds[index]!.stopAreaId)
       : []);
+    const currentByFeed = exactRecords.map(records => normalizeRailPredictions(records, now));
+    const current = currentByFeed.flat();
     const states = results.map((result, index) => ({
       ...feeds[index]!,
       liveState: result.status === "rejected" ? "unavailable" as const
-        : current.some(train => train.lineId === feeds[index]!.lineId && train.stopAreaId === feeds[index]!.stopAreaId) ? "available" as const : "empty" as const,
+        : currentByFeed[index]!.length ? "available" as const : "empty" as const,
+      ...(!currentByFeed[index]!.length && exactRecords[index]!.length ? { freshness: "stale" as const } : {}),
     }));
     const failures = results.filter(result => result.status === "rejected");
     if (feeds.length && failures.length === feeds.length) {
@@ -91,7 +94,8 @@ export function createDeparturesHandler(deps: DeparturesDependencies = live) {
       .toSorted((a, b) => new Date(b).getTime() - new Date(a).getTime());
     return response({
       station: { id: stationId, name: byId.get(stationId)?.name ?? station.station_name },
-      catalogue: { ...catalogueMetadata(station, !feeds.length ? "unverified" : failures.length ? "partial" : current.length ? "available" : "empty"), feeds: states },
+      catalogue: { ...catalogueMetadata(station, !feeds.length ? "unverified" : failures.length ? "partial"
+        : current.length ? "available" : "empty"), feeds: states },
       observedAt: now.toISOString(),
       newestPredictionGeneratedAt: timestamps[0] ?? null,
       refreshAfterSeconds: 30,

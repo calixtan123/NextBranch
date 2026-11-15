@@ -80,12 +80,28 @@ it("verifies DLR's exact unique service/platform number while preserving blank d
   expect(catalogueMetadata(station, "empty").platforms).toEqual(catalogueMetadata(station, "unavailable").platforms);
 });
 
-it.each([["HUBLEW", "5"], ["HUBTOG", "1"]])("leaves uncaptured DLR platform %s/%s browsable with supported feed but unverified matching", (stationId, number) => {
+it.each([["HUBLEW", "5"], ["HUBTOG", "1"]])("assigns an explicit unique live DLR identity %s/%s while retaining static save eligibility", (stationId, number) => {
   const station = catalogue.stationsById.get(stationId)!;
   const platform = station.platforms.find(p => p.platform_number === number)!;
   const service = platform.services.find(s => s.line_id === "dlr")!;
   expect(serviceCapability(station, platform, service)).toMatchObject({ feed: "supported", mapping: "unverified" });
-  expect(physicalPlatformForTrain(station, { platformConfirmed: true, platform: number, direction: null, lineId: "dlr", stopAreaId: service.stop_area_naptan_code })).toBeNull();
+  expect(physicalPlatformForTrain(station, { platformConfirmed: true, platform: number, direction: null, lineId: "dlr", stopAreaId: service.stop_area_naptan_code })).toBe(platform.platform_id);
+});
+
+it('assigns the unique explicit Acton Town eastbound live identity without changing static capabilities', () => {
+  const station = catalogue.stationsById.get('940GZZLUACT')!;
+  const platform = station.platforms.find(item => item.platform_number === '4')!;
+  const service = platform.services.find(item => item.line_id === 'district')!;
+  const train = { lineId: 'district', stopAreaId: service.stop_area_naptan_code,
+    platform: '4', direction: 'Eastbound' as const, platformConfirmed: true };
+  expect(serviceCapability(station, platform, service).mapping).toBe('unverified');
+  expect(physicalPlatformForTrain(station, train)).toBe(platform.platform_id);
+  for (const extra of [{ direction: 'Westbound' as const }, { stopAreaId: 'other' },
+    { lineId: 'circle' }, { platformConfirmed: false }]) {
+    expect(physicalPlatformForTrain(station, { ...train, ...extra })).toBeNull();
+  }
+  const ambiguous = { ...station, platforms: [...station.platforms, { ...platform, platform_id: 'duplicate' }] };
+  expect(physicalPlatformForTrain(ambiguous, train)).toBeNull();
 });
 
 it("reviews 99 of 101 DLR platform/service pairs without expanding other modes and returns no feeds for empty stations", async () => {
@@ -139,9 +155,11 @@ it('verifies Elizabeth numbered and letter platforms by exact service stop and p
   expect(serviceCapability(station, platform, service)).toMatchObject({ feed: 'supported', mapping: 'supported' });
   const train = { lineId: 'elizabeth', stopAreaId: '910GEALINGB', platform: '3', direction: null, platformConfirmed: true };
   expect(physicalPlatformForTrain(station, train)).toBe(platform.platform_id);
-  for (const extra of [{ stopAreaId: 'HUBEAL' }, { stopAreaId: undefined }, { lineId: 'national-rail' }, { platform: '1' }, { direction: 'Eastbound' as const }]) {
+  for (const extra of [{ stopAreaId: 'HUBEAL' }, { stopAreaId: undefined }, { lineId: 'national-rail' }, { platform: '99' }, { direction: 'Eastbound' as const }]) {
     expect(physicalPlatformForTrain(station, { ...train, ...extra })).toBeNull();
   }
+  const unreviewed = station.platforms.find(item => item.platform_number === '1')!;
+  expect(physicalPlatformForTrain(station, { ...train, platform: '1' })).toBe(unreviewed.platform_id);
   const duplicate = { ...station, platforms: [...station.platforms, { ...platform, platform_id: 'duplicate', cardinal_direction: 'Eastbound' as const }] };
   expect(serviceCapability(duplicate, platform, service).mapping).toBe('unverified');
   expect(catalogueMetadata(station, 'empty').platforms.find(p => p.platformNumber === '3')!.services.map(s => [s.lineId, s.capability.feed])).toEqual([['elizabeth', 'supported'], ['national-rail', 'unsupported']]);
