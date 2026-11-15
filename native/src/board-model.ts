@@ -175,7 +175,7 @@ export function boardStatus(
   if (!state.snapshot) return { tone: 'dim', label: 'Loading departures' };
   if (state.snapshot.timing?.suspended) return { tone: 'warning', label: 'Refreshing departures after app resume' };
   if (responseAge(state.snapshot, now, feeds.length ? feeds : undefined) > FRESH_FOR) {
-    return { tone: 'warning', label: 'Departures are over 30 seconds old' };
+    return { tone: 'warning', label: `Departures are over ${FRESH_FOR / 1_000} seconds old` };
   }
   const stale = feeds.filter(feed => feed.freshness === 'stale').length;
   if (stale) {

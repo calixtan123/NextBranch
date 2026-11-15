@@ -191,8 +191,8 @@ it('coalesces station owners, reuses fresh detail, isolates errors and retains s
   owner.own([C]);
   await settle();
   expect(request).toHaveBeenCalledTimes(2);
-  expect(isStale(owner.get(C), now + 30_000, true)).toBe(false);
-  expect(isStale(owner.get(C), now + 30_001, true)).toBe(true);
+  expect(isStale(owner.get(C), now + 60_000, true)).toBe(false);
+  expect(isStale(owner.get(C), now + 60_001, true)).toBe(true);
   failCamden = true;
   await owner.refresh([C]);
   expect(owner.get(C).snapshot).toMatchObject(snapshot);
@@ -416,6 +416,8 @@ it('shares alias refresh cooldown, offline snapshots and app-wide rate limiting'
   limited = false;
   await vi.advanceTimersByTimeAsync(1);
   expect(request.mock.calls.slice(3).map(([id]) => id).sort()).toEqual([C, L].sort());
+  expect(isStale(owner.get('alias'), Date.now(), true)).toBe(false);
+  await vi.advanceTimersByTimeAsync(15_001);
   expect(isStale(owner.get('alias'), Date.now(), true)).toBe(true);
   owner.dispose();
 });
@@ -474,7 +476,7 @@ it.each(['Morden via Bank', 'Kennington via Charing Cross', 'Hammersmith (Hammer
 });
 
 
-it.each([[29_999, 'success'], [30_000, 'success'], [30_001, 'warning']] as const)(
+it.each([[59_999, 'success'], [60_000, 'success'], [60_001, 'warning']] as const)(
   'projects successful data aged %s ms with tone %s, including empty responses', (age, tone) => {
     for (const platforms of [snapshot.platforms, []]) {
       expect(boardStatus({ snapshot: { ...snapshot, platforms }, error: null, pending: false }, now + age, true).tone).toBe(tone);
@@ -484,7 +486,7 @@ it.each([[29_999, 'success'], [30_000, 'success'], [30_001, 'warning']] as const
 it('keeps cached freshness and failure while refreshing and clears failure on success', () => {
   const state = { snapshot, error: null, pending: true };
   expect(boardStatus(state, now, true).tone).toBe('success');
-  expect(boardStatus(state, now + 30_001, true).tone).toBe('warning');
+  expect(boardStatus(state, now + 60_001, true).tone).toBe('warning');
   expect(boardStatus(state, now, false).tone).toBe('danger');
   for (const error of ['timeout', 'unavailable', 'limited', 'invalid', 'configuration'] as const) {
     expect(boardStatus({ ...state, error }, now, true).tone).toBe('danger');

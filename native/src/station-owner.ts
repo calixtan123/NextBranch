@@ -5,8 +5,11 @@ import type { FailureKind, Snapshot, StationTransport } from './api';
 
 const DEADLINE = 20_000;
 const MANUAL_COOLDOWN = 10_000;
-/** Successful snapshots remain fresh through this age in milliseconds. */
-export const FRESH_FOR = 30_000;
+/**
+ * Successful snapshots remain fresh through this age in milliseconds.
+ * Covers 30s polling, 15s tolerated cache age and 10s combined request latency.
+ */
+export const FRESH_FOR = 60_000;
 const MAX_TIMER = 2_147_483_647;
 type Outcome = 'success' | 'failure' | 'cancelled';
 type Flight = { controller: AbortController; result: Promise<Outcome> };

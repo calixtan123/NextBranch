@@ -116,15 +116,15 @@ it('preserves exact fixture freshness boundaries despite advancing request sched
   await vi.advanceTimersByTimeAsync(0);
   const fresh = runtime.stations.get(colindale);
   const stale = runtime.stations.get(id);
-  expect(responseAge(fresh.snapshot!, runtime.now())).toBe(30_000);
-  expect(responseAge(stale.snapshot!, runtime.now())).toBe(30_001);
+  expect(responseAge(fresh.snapshot!, runtime.now())).toBe(60_000);
+  expect(responseAge(stale.snapshot!, runtime.now())).toBe(60_001);
   expect(isStale(fresh, runtime.now(), true)).toBe(false);
   expect(isStale(stale, runtime.now(), true)).toBe(true);
   expect(boardStatus(fresh, runtime.now(), true).tone).toBe('success');
   expect(boardStatus(stale, runtime.now(), true).tone).toBe('warning');
   expect(fresh.snapshot?.timing?.uncertaintyMs).toBe(0);
   await vi.advanceTimersByTimeAsync(60_000);
-  expect(responseAge(fresh.snapshot!, runtime.now())).toBe(30_000);
+  expect(responseAge(fresh.snapshot!, runtime.now())).toBe(60_000);
 });
 
 it('keeps delayed synthetic loading deterministic while its request deadline advances', async () => {

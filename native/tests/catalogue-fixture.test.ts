@@ -87,8 +87,8 @@ it('replays exact freshness boundaries and physical platform identities for nati
   const runtime = fixtureRuntime('status-age', true);
   const fresh = await runtime.transport(colindale, signal);
   const stale = await runtime.transport(camden, signal);
-  expect(runtime.now() - Date.parse(fresh.observedAt)).toBe(30_000);
-  expect(runtime.now() - Date.parse(stale.observedAt)).toBe(30_001);
+  expect(runtime.now() - Date.parse(fresh.observedAt)).toBe(60_000);
+  expect(runtime.now() - Date.parse(stale.observedAt)).toBe(60_001);
   expect(runtime.cards.every(card => Boolean(card.physicalPlatformId))).toBe(true);
   expect(boardRows(fresh, runtime.cards[0], runtime.now(), 3)).toHaveLength(3);
 });

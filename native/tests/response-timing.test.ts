@@ -22,18 +22,18 @@ it.each([-600_000, 600_000])('ignores wall-clock skew %s and later adjustments t
     expect(initial.map(row => row.countdown)).toEqual(boardRows(input(), selection, server, 3).map(row => row.countdown));
     expect(isStale(owner.get(id), elapsed, true)).toBe(false);
     vi.setSystemTime(server - skew * 3);
-    elapsed += 30_001;
+    elapsed += 60_001;
     expect(isStale(owner.get(id), elapsed, true)).toBe(true);
     expect(boardStatus(owner.get(id), elapsed, true).tone).toBe('warning');
     expect(boardRows(owner.get(id).snapshot, selection, elapsed, 3).map(row => row.countdown))
-      .toEqual(boardRows(input(), selection, server + 30_001, 3).map(row => row.countdown));
+      .toEqual(boardRows(input(), selection, server + 60_001, 3).map(row => row.countdown));
   } finally { owner.dispose(); }
 });
 
 it('includes response body parsing in conservative request uncertainty and retains mixed cached feed ages', async () => {
   vi.useFakeTimers();
   let elapsed = 0;
-  const old = { lineId: 'northern', stopAreaId: id, liveState: 'available', fetchedAt: new Date(server - 25_000).toISOString() };
+  const old = { lineId: 'northern', stopAreaId: id, liveState: 'available', fetchedAt: new Date(server - 55_000).toISOString() };
   const fresh = { lineId: 'district', stopAreaId: 'other', liveState: 'available', fetchedAt: camden.observedAt };
   const payload = { ...camden, generatedAt: camden.observedAt, observedAt: old.fetchedAt,
     catalogue: { stationId: id, liveState: 'available', platforms: [], feeds: [old, fresh] } };
@@ -68,12 +68,15 @@ it('expires assigned and unassigned rows on one reference and invalidates suspen
     fail = true;
     owner.setActive(true);
     expect(isStale(owner.get(id), elapsed, true)).toBe(true);
+    expect(boardStatus(owner.get(id), elapsed, true)).toEqual({ tone: 'warning', label: 'Refreshing departures after app resume' });
     expect(boardRows(owner.get(id).snapshot, selection, elapsed, 3)).toEqual([]);
     await vi.advanceTimersByTimeAsync(0);
     expect(isStale(owner.get(id), elapsed, true)).toBe(true);
+    expect(boardStatus(owner.get(id), elapsed, true)).toEqual({ tone: 'danger', label: 'Departures request failed. Predictions may be outdated' });
     fail = false;
     expect(await owner.refresh([id])).toBe('success');
     expect(isStale(owner.get(id), elapsed, true)).toBe(false);
+    expect(boardStatus(owner.get(id), elapsed, true).tone).toBe('success');
     expect(boardRows(owner.get(id).snapshot, selection, elapsed, 3).length).toBeGreaterThan(0);
   } finally { owner.dispose(); }
 });
