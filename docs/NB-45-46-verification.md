@@ -39,3 +39,40 @@ git diff --check
 ```
 
 Controlled-clock and React element assertions provide the evidence recorded here. Physical-device VoiceOver and live-network observations remain release verification work.
+
+# NB-46 preference recovery verification
+
+## Recovery and preservation policy
+
+Preference loading classifies decoded data explicitly as valid, corrupt or a future version. Malformed JSON, invalid roots, malformed or unsupported version values and corrupt version-one fields recover to defaults with valid-entry salvage. The decoder validates unknown values before reading their fields. Shape-valid saved selections retain historical recovery and canonical identity migration even when the current catalogue cannot offer them for a new save. Missing optional interface appearance and card style remain compatible with older version-one data.
+
+A well-formed object with an integer version greater than one is protected before validating its other fields. Its original stored bytes remain intact and the app explains that a newer app version saved them. A storage read rejection also disables writes and keeps the existing read/session-only warning. Changes in these protected sessions still work in memory.
+
+Corruption recovery enqueues a version-one snapshot through the existing serialized write queue. The queue captures JSON before notifying subscribers, so a subscriber saving immediately on readiness cannot overtake recovery. Each rapid change keeps its own immutable snapshot. Successful recovery retains its explanatory reset warning. A later successful user save clears that explanation. A rejected reset reports `Could not save platform preferences. Changes may only be available for this session.` and a later save can retry successfully.
+
+## Behavioral evidence
+
+Tests use Arrange / Act / Assert. Arrange seeds stored bytes or a controlled storage failure. Act loads preferences, makes changes and flushes queued writes. Assert checks visible state, warnings, exact stored snapshots and a newly created preferences owner loading the saved result.
+
+The initial regression command failed 17 cases with 11 passing against the previous implementation. After recovery was implemented, the 28 cases passed. An additional subscriber-ordering regression initially failed with 28 passing, then passed after enqueueing snapshots before listener notification.
+
+```sh
+npm --prefix native test -- --configLoader runner --cache=false tests/preferences.test.ts
+```
+
+The final related verification passed 200 tests across ten files, including 29 focused preference cases.
+
+```sh
+npm --prefix native test -- --configLoader runner --cache=false tests/preferences.test.ts tests/canonical-saved.test.ts tests/offline-discovery.test.ts tests/manage-reorder.test.ts tests/interface-controls.test.ts tests/settings-theme.test.ts tests/app-navigation.test.ts tests/live-screens.test.ts tests/glass-controls.test.ts tests/about-privacy.test.ts
+```
+
+Coverage includes valid legacy records, malformed JSON, primitive and array roots, missing required fields, malformed version values, invalid collection fields, invalid entries with retained selections/style/theme/recents, future-version byte preservation, read failure with zero writes, rejected recovery followed by a successful save and relaunch, delayed recovery followed by rapid queued changes, and immediate saves from readiness subscribers. Existing tests also cover save failures, duplicate/overflow handling, undo, reorder, canonical saved identity and interface appearance persistence.
+
+Native type checking and whitespace validation passed with exit code 0.
+
+```sh
+npm --prefix native run typecheck
+git diff --check
+```
+
+These checks use controlled asynchronous storage. Physical-device AsyncStorage persistence, supported app-update behavior and release-device verification remain under NB-32.

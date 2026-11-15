@@ -167,3 +167,143 @@ it('applies session interface choices and preserves warnings when preference sto
   unread.setInterfaceTheme('dark');
   expect(unread.get()).toMatchObject({ interfaceTheme: 'dark', warning: expect.stringContaining('session') });
 });
+
+
+it.each(['{broken', 'null', '[]', '42', '"text"', '{"version":1}', '{"version":0}', '{"version":"2"}', '{"version":1.5}', '{"version":-1}', '{"cards":[]}'])(
+  'resets corrupt preferences %s and persists subsequent saves across relaunch', async raw => {
+    const storage = makeStorage();
+    storage.getItem.mockResolvedValue(raw);
+    const owner = createPreferences(storage, catalogue);
+    await owner.load();
+    expect(owner.get()).toMatchObject({ ready: true, cards: [], mode: 'amber', recent: [], warning: expect.stringContaining('reset') });
+    await owner.flush();
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(storage.setItem.mock.lastCall![1])).toEqual({ version: 1, cards: [], mode: 'amber', recent: [] });
+    expect(owner.get().warning).toContain('reset');
+    expect(owner.save(a)).toBe('saved');
+    owner.setMode('modern');
+    await owner.flush();
+    expect(owner.get().warning).toBeNull();
+    const restored = createPreferences({ ...storage, getItem: async () => storage.setItem.mock.lastCall![1] }, catalogue);
+    await restored.load();
+    expect(restored.get()).toMatchObject({ cards: [a], mode: 'modern', warning: null });
+  },
+);
+
+it('salvages valid current-version fields and records while repairing corrupt fields', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue(JSON.stringify({ version: 1, cards: [null, 2, {}, { ...a, style: 'broken' }, { ...b, style: 'modern' }], mode: 'broken', recent: [camden, null, 'missing', colindale], interfaceTheme: 'dark' }));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  await owner.flush();
+  expect(owner.get()).toMatchObject({ cards: [a, { ...b, style: 'modern' }], mode: 'amber', recent: [camden, colindale], interfaceTheme: 'dark', warning: expect.stringContaining('reset') });
+  expect(JSON.parse(storage.setItem.mock.lastCall![1])).toEqual({ version: 1, cards: [a, { ...b, style: 'modern' }], mode: 'amber', recent: [camden, colindale], interfaceTheme: 'dark' });
+});
+
+it.each([{ cards: {}, mode: 'custom', recent: [] }, { cards: [a], mode: 'modern', recent: {} }])(
+  'repairs invalid collection fields while keeping other valid preferences', async fields => {
+    const storage = makeStorage();
+    storage.getItem.mockResolvedValue(JSON.stringify({ version: 1, ...fields }));
+    const owner = createPreferences(storage, catalogue);
+    await owner.load();
+    await owner.flush();
+    expect(owner.get().warning).toContain('reset');
+    expect(owner.get().mode).toBe(fields.mode);
+    expect(owner.get().cards).toEqual(Array.isArray(fields.cards) ? fields.cards : []);
+    expect(owner.get().recent).toEqual([]);
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+  },
+);
+
+it('preserves future-version bytes before applying current-schema validation', async () => {
+  const raw = '  {"version": 7, "cards": "future representation", "mode": null}  ';
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue(raw);
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  expect(owner.get().warning).toContain('newer');
+  expect(owner.get().warning).toContain('session');
+  owner.save(a);
+  owner.setMode('modern');
+  await owner.flush();
+  expect(storage.setItem).not.toHaveBeenCalled();
+  expect(await storage.getItem()).toBe(raw);
+});
+
+it('protects unread bytes and reports a read warning without scheduling a reset', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockRejectedValue(new Error('denied'));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  owner.save(a);
+  await owner.flush();
+  expect(owner.get().warning).toContain('Could not read');
+  expect(storage.setItem).not.toHaveBeenCalled();
+});
+
+it('reports a rejected reset accurately and retries through a later save that survives relaunch', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue('{broken');
+  storage.setItem.mockRejectedValueOnce(new Error('denied'));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  await owner.flush();
+  expect(owner.get().warning).toContain('Could not save');
+  expect(owner.get().warning).toContain('session');
+  owner.save(a);
+  await owner.flush();
+  expect(storage.setItem).toHaveBeenCalledTimes(2);
+  expect(owner.get().warning).toBeNull();
+  const restored = createPreferences({ ...storage, getItem: async () => storage.setItem.mock.lastCall![1] }, catalogue);
+  await restored.load();
+  expect(restored.get()).toMatchObject({ cards: [a], warning: null });
+});
+
+it('queues a delayed recovery snapshot before rapid saves and keeps each snapshot immutable', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue('{broken');
+  let finishReset!: () => void;
+  storage.setItem.mockImplementationOnce(() => new Promise<void>(resolve => { finishReset = resolve; }));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  owner.save(a);
+  owner.setMode('modern');
+  owner.save(b);
+  expect(storage.setItem).toHaveBeenCalledTimes(1);
+  finishReset();
+  await owner.flush();
+  expect(storage.setItem.mock.calls.map(call => JSON.parse(call[1]))).toEqual([
+    { version: 1, cards: [], mode: 'amber', recent: [] },
+    { version: 1, cards: [a], mode: 'amber', recent: [] },
+    { version: 1, cards: [a], mode: 'modern', recent: [] },
+    { version: 1, cards: [a, b], mode: 'modern', recent: [] },
+  ]);
+  expect(owner.get().warning).toBeNull();
+});
+
+it('loads valid legacy optional fields without a reset write or warning', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue(JSON.stringify({ version: 1, cards: [a], mode: 'amber', recent: [] }));
+  const owner = createPreferences(storage, catalogue);
+  await owner.load();
+  await owner.flush();
+  expect(owner.get()).toMatchObject({ cards: [a], warning: null });
+  expect(storage.setItem).not.toHaveBeenCalled();
+});
+
+it('queues recovery before ready subscribers can save a new preference', async () => {
+  const storage = makeStorage();
+  storage.getItem.mockResolvedValue('{broken');
+  const owner = createPreferences(storage, catalogue);
+  let saved = false;
+  owner.subscribe(() => {
+    if (owner.get().ready && !saved) {
+      saved = true;
+      owner.save(a);
+    }
+  });
+  await owner.load();
+  await owner.flush();
+  expect(storage.setItem.mock.calls.map(call => JSON.parse(call[1]).cards)).toEqual([[], [a]]);
+  expect(owner.get().warning).toBeNull();
+});
