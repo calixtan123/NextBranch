@@ -132,6 +132,33 @@ it.each([
   expect(JSON.stringify(input)).toBe(before);
 });
 
+it.each([
+  ['Bank DLR Station', null, 'Bank', ''],
+  ['Lewisham DLR Station', 'Lewisham via Canary Wharf', 'Lewisham', 'via Canary Wharf'],
+  ['  Lewisham  dLr   sTaTiOn  ', null, 'Lewisham', ''],
+  ['  Bank  dLr   sTaTiOn  VIA  Poplar  ', 'Bank via poplar', 'Bank VIA Poplar', ''],
+  ['Lewisham DLR Station via Canary Wharf DLR Station', null, 'Lewisham via Canary Wharf DLR Station', ''],
+  ['Lewisham via Canary Wharf DLR Station', 'Lewisham via Canary Wharf DLR Station', 'Lewisham via Canary Wharf DLR Station', ''],
+  ['Lewisham DLR Station', 'Lewisham via Canary Wharf DLR Station', 'Lewisham', 'via Canary Wharf DLR Station'],
+  ['Canary Wharf', null, 'Canary Wharf', ''],
+  ['Old DLR Station Approach', null, 'Old DLR Station Approach', ''],
+  ['Old DLR Junction DLR Station', null, 'Old DLR Junction', ''],
+  ['OldDLR Station', null, 'OldDLR Station', ''],
+  ['DLR Station', null, 'Unknown destination', ''],
+  ['  ', null, 'Unknown destination', ''],
+  [null, null, 'Unknown destination', ''],
+])('presents DLR destination %s with advertised route %s and retains the source identity', (destinationName, towards, destination, branch) => {
+  const departure = { ...snapshot.platforms[0].departures[0], lineId: 'dlr', destinationName, towards };
+  const input = { ...snapshot, platforms: [{ ...snapshot.platforms[0], departures: [departure] }] };
+  const before = JSON.stringify(input);
+
+  const rows = boardRows(input, a, now, 3);
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ id: departure.id, lineId: 'dlr', destination, branch });
+  expect(JSON.stringify(input)).toBe(before);
+});
+
 it('counts unassigned predictions through the exact 30-second grace boundary', () => {
   const unassigned = snapshot.platforms.find(group => group.platform === null)!.departures[0];
   const arrival = Date.parse(unassigned.expectedArrival);
