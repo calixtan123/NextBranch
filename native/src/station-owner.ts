@@ -36,8 +36,9 @@ export function isStale(state: StationState, now: number, online: boolean): bool
  * now : function, optional
  *     Monotonic request scheduling clock; defaults to performance.now.
  * observationNow : function, optional
- *     Elapsed clock used by board consumers. Defaults to the scheduling clock;
- *     frozen synthetic fixtures inject their deterministic clock here.
+ *     Elapsed clock used for response duration and by board consumers. Defaults
+ *     to the scheduling clock; frozen synthetic fixtures inject their
+ *     deterministic clock here so execution jitter cannot age the specimen.
  * resolveStation : function, optional
  *     Maps service aliases to the canonical station owning their underlying feeds.
  *     The identity default preserves existing transport callers.
@@ -91,7 +92,7 @@ export function createStationOwner(transport: StationTransport, now = () => perf
   }
   function start(id: string): Flight {
     const entry = entryFor(id);
-    const startedAt = now();
+    const startedAt = observationNow();
     const controller = new AbortController();
     const deadline = Symbol('deadline');
     const cancellation = Symbol('cancelled');
@@ -115,7 +116,8 @@ export function createStationOwner(transport: StationTransport, now = () => perf
         entry.error = 'unavailable';
         return 'failure';
       }
-      entry.snapshot = anchorResponse(data, observationNow(), Math.max(0, now() - startedAt));
+      const receivedAt = observationNow();
+      entry.snapshot = anchorResponse(data, receivedAt, Math.max(0, receivedAt - startedAt));
       entry.error = null;
       return 'success';
     }, (error: unknown) => {
