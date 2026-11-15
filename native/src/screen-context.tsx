@@ -72,7 +72,8 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
   const hold = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dragging = useRef(false);
   const callback = useRef(refresh);
-  callback.current = refresh;
+  const pullEnabled = scrollEnabled && Boolean(refresh);
+  callback.current = pullEnabled ? refresh : undefined;
   const endPull = () => {
     dragging.current = false;
     clearTimeout(hold.current);
@@ -81,8 +82,8 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
   };
   const focused = useIsFocused();
   useEffect(() => {
-    if (!focused || !refresh) endPull();
-  }, [focused, Boolean(refresh)]);
+    if (!focused || !pullEnabled) endPull();
+  }, [focused, pullEnabled]);
   useEffect(() => () => clearTimeout(hold.current), []);
   return <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <View style={[ui.row, {
@@ -98,9 +99,9 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
     <ScrollView style={{ flex: 1 }} scrollEnabled={scrollEnabled}
       automaticallyAdjustKeyboardInsets automaticallyAdjustContentInsets={false} contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
-      onScrollBeginDrag={refresh ? () => { dragging.current = true; } : undefined}
-      onScrollEndDrag={refresh ? endPull : undefined}
-      onScroll={refresh ? event => {
+      onScrollBeginDrag={pullEnabled ? () => { dragging.current = true; } : undefined}
+      onScrollEndDrag={pullEnabled ? endPull : undefined}
+      onScroll={pullEnabled ? event => {
         if (!dragging.current || refreshing) return;
         const distance = -event.nativeEvent.contentOffset.y;
         setPull(distance >= 60 ? 'hold' : distance > 8 ? 'pull' : undefined);
@@ -114,9 +115,9 @@ export function Surface({ title, onBack, headerAction, children, refresh, refres
           hold.current = undefined;
         }
       } : undefined}
-      scrollEventThrottle={refresh ? 32 : undefined}
+      scrollEventThrottle={pullEnabled ? 32 : undefined}
       contentContainerStyle={[ui.body, width > 600 && { width: 600, alignSelf: 'center' }]}
-      refreshControl={refresh ? <RefreshControl onRefresh={refresh} refreshing={refreshing} tintColor={colors.dim} /> : undefined}>
+      refreshControl={refresh ? <RefreshControl enabled={pullEnabled} onRefresh={() => callback.current?.()} refreshing={refreshing} tintColor={colors.dim} /> : undefined}>
       {(pull || refreshing) && <Label tone="dim" size={11} style={{ textAlign: 'center', marginBottom: 10 }}>
         {refreshing ? 'Refreshing…' : pull === 'hold' ? 'Hold to refresh' : 'Pull down to refresh'}
       </Label>}

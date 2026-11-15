@@ -1,6 +1,6 @@
 /** Exercises the native offline search, picker and details without network or native views. */
 import { Children, isValidElement, type ReactNode, type ReactElement } from 'react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as shared from '../../src/lib/catalogue';
 import sourceSnapshot from '../../data/tfl-station-platform-inventory/tfl-station-platform-lines.json';
 import { createCatalogue, createCanonicalCatalogue, selectionKey } from '../src/catalogue';
@@ -13,9 +13,18 @@ import { HomeScreen, DeparturesScreen } from '../src/LiveScreens';
 import { CardDisplayScreen } from '../src/ManageScreens';
 import type { Screen } from '../src/navigation';
 
-const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), query: '', setQuery: vi.fn() }));
-vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: () => [hooks.query, hooks.setQuery] }));
-vi.mock('react-native', () => ({ View: 'View', TextInput: 'TextInput', Keyboard: { dismiss: vi.fn() }, AccessibilityInfo: { announceForAccessibility: vi.fn() } }));
+const hooks = vi.hoisted(() => ({ runtime: vi.fn(), preferences: vi.fn(), query: '', setQuery: vi.fn(), cleanups: [] as (() => void)[] }));
+vi.mock('react', async original => ({
+  ...await original<typeof import('react')>(),
+  useState: (initial: unknown) => initial === undefined ? [undefined, vi.fn()] : [hooks.query, hooks.setQuery],
+  useMemo: (factory: () => unknown) => factory(),
+  useRef: (initial: unknown) => ({ current: initial }),
+  useLayoutEffect: (effect: () => void | (() => void)) => {
+    const cleanup = effect();
+    if (cleanup) hooks.cleanups.push(cleanup);
+  },
+}));
+vi.mock('react-native', () => ({ View: 'View', TextInput: 'TextInput', AppState: { currentState: 'active', addEventListener: () => ({ remove: vi.fn() }) }, Keyboard: { dismiss: vi.fn() }, AccessibilityInfo: { announceForAccessibility: vi.fn() } }));
 vi.mock('../src/screen-context', () => ({ Surface: 'Surface', TextAction: 'TextAction', useRuntime: hooks.runtime, usePreferences: hooks.preferences, useBoardTime: () => 0, useRefresh: () => ({ refresh: vi.fn(), refreshing: false }) }));
 vi.mock('../src/GlassControls', () => ({ GlassSurface: 'GlassSurface', GlassAction: 'GlassAction' }));
 vi.mock('../src/PlatformBoard', () => ({ PlatformBoard: 'PlatformBoard', platformName: (selection: { platform: string }) => 'Platform ' + selection.platform }));
@@ -35,7 +44,7 @@ const discovery = () => createDiscovery(() => shared);
 const reviewed = createCatalogue({ version: 1, platforms: [
   { stationId: '940GZZLUCTN', platform: '1', direction: 'Northbound' },
 ] });
-const navigation = () => ({ goBack: vi.fn(), navigate: vi.fn() });
+const navigation = () => ({ goBack: vi.fn(), navigate: vi.fn(), isFocused: () => true, addListener: () => vi.fn() });
 const picker = (stationId: string, nav = navigation()) => PickerScreen({ navigation: nav, route: { params: { stationId } } } as unknown as Screen<'Picker'>);
 /** Locates a physical row by stable identity instead of its changing display copy. */
 const platformRow = (tree: ReactNode, platformId: string) => nodes(tree).find(node => node.type === 'Result' && node.key?.endsWith(platformId))!;
@@ -43,9 +52,11 @@ const details = (stationId: string, platformId: string) => PlatformDetailsScreen
 
 beforeEach(() => {
   hooks.query = '';
-  hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: createCanonicalCatalogue(shared.catalogue), synthetic: false, preferences: { selectStation: vi.fn() } });
+  hooks.runtime.mockReturnValue({ discovery: discovery(), catalogue: createCanonicalCatalogue(shared.catalogue), synthetic: false, preferences: { selectStation: vi.fn(), subscribe: () => vi.fn() } });
   hooks.preferences.mockReturnValue({ recent: [], mode: 'amber', cards: [] });
 });
+
+afterEach(() => hooks.cleanups.splice(0).forEach(cleanup => cleanup()));
 
 it('loads the validated full catalogue offline and recovers a missing or invalid bundle', () => {
   const fetch = vi.spyOn(globalThis, 'fetch');

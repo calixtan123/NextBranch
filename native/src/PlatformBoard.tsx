@@ -15,7 +15,7 @@ import { lineLabels, platformPickerTitle } from './line-presentation';
 import { glyphs } from './glyphs';
 import type { Style } from './preferences';
 import { type createStationOwner } from './station-owner';
-import { Action, Label, ui, usePalette } from './theme';
+import { Action, Label, ui, usePalette, type CardPressInteraction } from './theme';
 
 const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '#251F15', text: '#FFAA25', step: 6 };
 const modern = { background: '#080C10', dot: '#29303B', frame: '#1B3444', rule: '#4F9BBB', text: '#BDEBFF', step: 7 };
@@ -129,8 +129,9 @@ function TrainRow({ row, index, style, width, expanded, last }: {
 export const platformName = (selection: Selection) => platformPickerTitle(selection.direction, selection.platform);
 
 /** Shared Home and detail board, including stale or partial matching snapshots. */
-export function PlatformBoard({ selection, style, state, now, online, expanded = false, onOpen, onReview, station }: {
+export function PlatformBoard({ selection, style, state, now, online, expanded = false, onOpen, onReview, station, pressInteraction }: {
   selection: Selection; style: Style; state: LiveState; now: number; online: boolean; limited: boolean; expanded?: boolean;
+  pressInteraction?: CardPressInteraction;
   onOpen?: () => void; onReview: () => void; station?: AppStation;
 }) {
   const colors = usePalette();
@@ -227,7 +228,7 @@ export function PlatformBoard({ selection, style, state, now, online, expanded =
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
     borderRadius: 10, overflow: 'hidden', marginBottom: expanded ? 10 : 18, boxShadow: '0 2px 8px #00000020',
   }}>
-    {onOpen ? <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={description}
+    {onOpen ? <Pressable {...pressInteraction} onPress={onOpen} accessibilityRole="button" accessibilityLabel={description}
       accessibilityHint="Opens platform departures" style={({ pressed }) => ({ opacity: pressed ? .68 : 1 })}>
       {content}
     </Pressable> : content}
