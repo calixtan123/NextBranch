@@ -50,8 +50,10 @@ export function App() {
       preferences.expireUndo();
       stations.setActive(state === 'active');
     });
+    // API results establish endpoint availability, so disable unused fallback HTTP probes.
+    if (!synthetic) NetInfo.configure({ reachabilityShouldRun: () => false });
     const network = synthetic ? undefined : NetInfo.addEventListener(state => {
-      stations.setOnline(state.isConnected !== false && state.isInternetReachable !== false);
+      stations.setOnline(state.isConnected !== false);
     });
     AccessibilityInfo.isReduceMotionEnabled().then(enabled => { if (current) setReducedMotion(enabled); });
     const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);

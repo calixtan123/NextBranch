@@ -1,15 +1,22 @@
 /** Covers App initialization at mocked native and navigation lifecycle boundaries. */
 import { Children, isValidElement, type ReactNode } from 'react';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
 import { createPreferences } from '../src/preferences';
 import { createCatalogue } from '../src/catalogue';
+import { createStationOwner } from '../src/station-owner';
+import { decodeSnapshot, type StationTransport } from '../src/api';
+import camden from '../assets/camden-mixed.json';
 
 const boundary = vi.hoisted(() => ({
   effect: vi.fn<(effect: () => void | (() => void)) => void>(),
   runtime: vi.fn(), appearance: vi.fn(), scheme: 'dark',
   slots: [] as unknown[], cursor: 0, subscriptions: [] as (() => void)[],
   navigation: { isReady: vi.fn(() => false), getCurrentRoute: vi.fn() },
+  configureNetwork: vi.fn(), subscribeNetwork: vi.fn(), unsubscribeNetwork: vi.fn(),
+  network: undefined as ((state: { isConnected: boolean | null; isInternetReachable: boolean | null }) => void) | undefined,
+  foreground: undefined as ((state: string) => void) | undefined,
+  removeForeground: vi.fn(), removeMotion: vi.fn(),
 }));
 vi.mock('react', async importOriginal => ({
   ...await importOriginal<typeof import('react')>(),
@@ -28,13 +35,23 @@ vi.mock('react', async importOriginal => ({
 vi.mock('react-native', () => ({
   AccessibilityInfo: {
     isReduceMotionEnabled: async () => false,
-    addEventListener: () => ({ remove: vi.fn() }),
+    addEventListener: () => ({ remove: boundary.removeMotion }),
   },
-  AppState: { currentState: 'active', addEventListener: () => ({ remove: vi.fn() }) },
+  AppState: { currentState: 'active', addEventListener: (_event: string, listener: (state: string) => void) => {
+    boundary.foreground = listener;
+    return { remove: boundary.removeForeground };
+  } },
   Appearance: { setColorScheme: boundary.appearance },
   StatusBar: 'StatusBar', useColorScheme: () => boundary.scheme,
 }));
-vi.mock('@react-native-community/netinfo', () => ({ default: { addEventListener: () => vi.fn() } }));
+vi.mock('@react-native-community/netinfo', () => ({ default: {
+  configure: boundary.configureNetwork,
+  addEventListener: (listener: typeof boundary.network) => {
+    boundary.subscribeNetwork();
+    boundary.network = listener;
+    return boundary.unsubscribeNetwork;
+  },
+} }));
 vi.mock('@react-navigation/native', () => ({
   NavigationContainer: 'NavigationContainer', DarkTheme: { colors: {} }, DefaultTheme: { colors: {} },
 }));
@@ -131,7 +148,17 @@ beforeEach(() => {
   boundary.runtime.mockClear();
   boundary.appearance.mockClear();
   boundary.scheme = 'dark';
+  boundary.navigation.isReady.mockReturnValue(false);
+  boundary.navigation.getCurrentRoute.mockReset();
+  boundary.configureNetwork.mockClear();
+  boundary.subscribeNetwork.mockClear();
+  boundary.unsubscribeNetwork.mockClear();
+  boundary.removeForeground.mockClear();
+  boundary.removeMotion.mockClear();
+  boundary.network = undefined;
+  boundary.foreground = undefined;
 });
+afterEach(() => vi.useRealTimers());
 
 /** Collects real root presentation props without mounting native stack views. */
 function nodes(node: ReactNode): import('react').ReactElement<Record<string, any>>[] {
@@ -187,4 +214,158 @@ it('registers About and privacy on the native full-screen stack', () => {
   const about = nodes(App()).find(node => node.props.name === 'About');
   expect(about?.props.component).toBe('AboutScreen');
   expect(about?.props.options?.presentation ?? 'card').toBe('card');
+});
+
+
+const stationId = camden.station.id;
+const successfulSnapshot = decodeSnapshot(camden, stationId);
+
+/** Exercises the real owner through the App's native lifecycle callbacks. */
+function mountLifecycle(transport: StationTransport, synthetic = false) {
+  const stations = createStationOwner(transport);
+  const preferences = {
+    subscribe: () => () => undefined,
+    load: async () => undefined,
+    get: () => ({ cards: [{ stationId, platform: 'A', direction: 'Southbound' }], removal: null }),
+    expireUndo: vi.fn(),
+  };
+  boundary.runtime.mockReturnValue({ preferences, stations, catalogue: { has: () => true }, synthetic });
+  boundary.navigation.isReady.mockReturnValue(true);
+  boundary.navigation.getCurrentRoute.mockReturnValue({ name: 'Home' });
+  const tree = App();
+  const cleanup = boundary.effect.mock.calls[0][0]();
+  return { stations, ready: readyCallback(tree)!, cleanup: () => cleanup?.() };
+}
+
+it.each([
+  [true, false],
+  [true, null],
+  [null, null],
+  [null, false],
+] as const)('lets the API establish availability when connected is %s and reachability is %s', async (isConnected, isInternetReachable) => {
+  vi.useFakeTimers({ now: Date.parse(camden.observedAt) });
+  const transport = vi.fn<StationTransport>(async () => successfulSnapshot);
+  const app = mountLifecycle(transport);
+  try {
+    boundary.network!({ isConnected, isInternetReachable });
+    app.ready();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(app.stations.isOnline()).toBe(true);
+    expect(app.stations.get(stationId)).toMatchObject({ snapshot: successfulSnapshot, error: null, pending: false });
+  } finally {
+    app.cleanup();
+  }
+});
+
+it('disables fallback HTTP probes before subscribing to native connectivity', () => {
+  const app = mountLifecycle(async () => successfulSnapshot);
+  try {
+    expect(boundary.configureNetwork).toHaveBeenCalledTimes(1);
+    const configuration = boundary.configureNetwork.mock.calls[0][0];
+    expect(configuration.reachabilityShouldRun()).toBe(false);
+    expect(configuration.useNativeReachability).not.toBe(false);
+    expect(boundary.configureNetwork.mock.invocationCallOrder[0]).toBeLessThan(boundary.subscribeNetwork.mock.invocationCallOrder[0]);
+  } finally {
+    app.cleanup();
+  }
+});
+
+it('cancels an explicit disconnect and immediately recovers through a reachability false negative on reconnect', async () => {
+  vi.useFakeTimers({ now: Date.parse(camden.observedAt) });
+  const transport = vi.fn<StationTransport>()
+    .mockImplementationOnce(() => new Promise(() => {}))
+    .mockResolvedValue(successfulSnapshot);
+  const app = mountLifecycle(transport);
+  try {
+    app.ready();
+    await vi.advanceTimersByTimeAsync(0);
+    const signal = transport.mock.calls[0][1];
+    boundary.network!({ isConnected: false, isInternetReachable: false });
+    expect(signal.aborted).toBe(true);
+    expect(app.stations.isOnline()).toBe(false);
+    expect(await app.stations.refresh([stationId])).toBeNull();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(app.stations.get(stationId).pending).toBe(false);
+    boundary.network!({ isConnected: true, isInternetReachable: false });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(app.stations.get(stationId)).toMatchObject({ snapshot: successfulSnapshot, error: null, pending: false });
+    expect(transport).toHaveBeenCalledTimes(2);
+  } finally {
+    app.cleanup();
+  }
+});
+
+it('keeps API failure visible and refreshes successfully on foreground resume despite false reachability', async () => {
+  vi.useFakeTimers({ now: Date.parse(camden.observedAt) });
+  const transport = vi.fn<StationTransport>()
+    .mockRejectedValueOnce({ kind: 'unavailable' })
+    .mockResolvedValue(successfulSnapshot);
+  const app = mountLifecycle(transport);
+  try {
+    boundary.network!({ isConnected: true, isInternetReachable: false });
+    app.ready();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(app.stations.get(stationId)).toMatchObject({ error: 'unavailable', pending: false });
+    boundary.foreground!('background');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(transport).toHaveBeenCalledTimes(1);
+    boundary.foreground!('active');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(app.stations.get(stationId)).toMatchObject({ snapshot: successfulSnapshot, error: null, pending: false });
+    expect(transport).toHaveBeenCalledTimes(2);
+  } finally {
+    app.cleanup();
+  }
+});
+
+it('exposes the request deadline and recovers on foreground resume with false reachability', async () => {
+  vi.useFakeTimers({ now: Date.parse(camden.observedAt) });
+  const transport = vi.fn<StationTransport>()
+    .mockImplementationOnce(() => new Promise(() => {}))
+    .mockResolvedValue(successfulSnapshot);
+  const app = mountLifecycle(transport);
+  try {
+    boundary.network!({ isConnected: true, isInternetReachable: false });
+    app.ready();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(transport.mock.calls[0][1].aborted).toBe(true);
+    expect(app.stations.get(stationId)).toMatchObject({ error: 'timeout', pending: false });
+    boundary.foreground!('background');
+    boundary.foreground!('active');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(app.stations.get(stationId)).toMatchObject({ snapshot: successfulSnapshot, error: null, pending: false });
+  } finally {
+    app.cleanup();
+  }
+});
+
+it('removes native subscriptions and aborts owned requests when the App unmounts', async () => {
+  vi.useFakeTimers();
+  const transport = vi.fn<StationTransport>(() => new Promise(() => {}));
+  const app = mountLifecycle(transport);
+  app.ready();
+  await vi.advanceTimersByTimeAsync(0);
+  app.cleanup();
+  expect(boundary.unsubscribeNetwork).toHaveBeenCalledTimes(1);
+  expect(boundary.removeForeground).toHaveBeenCalledTimes(1);
+  expect(boundary.removeMotion).toHaveBeenCalledTimes(1);
+  expect(transport.mock.calls[0][1].aborted).toBe(true);
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it('keeps synthetic fixtures independent of device connectivity and NetInfo configuration', async () => {
+  vi.useFakeTimers({ now: Date.parse(camden.observedAt) });
+  const app = mountLifecycle(async () => successfulSnapshot, true);
+  try {
+    app.ready();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(boundary.configureNetwork).not.toHaveBeenCalled();
+    expect(boundary.subscribeNetwork).not.toHaveBeenCalled();
+    expect(app.stations.get(stationId)).toMatchObject({ snapshot: successfulSnapshot, error: null, pending: false });
+  } finally {
+    app.cleanup();
+  }
+  expect(boundary.unsubscribeNetwork).not.toHaveBeenCalled();
 });
