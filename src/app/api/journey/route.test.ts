@@ -22,17 +22,45 @@ const request = (from: string | null, to: string | null) =>
     `http://local/api/journey${from && to ? `?from=${from}&to=${to}` : ""}`,
   );
 describe("journey API", () => {
-  it("rejects invalid query before downstream requests", async () => {
-    const arrivals = vi.fn();
-    const timetable = vi.fn();
-    const get = createJourneyHandler({ ...base, arrivals, timetable });
-    expect((await get(request(null, null))).status).toBe(400);
+  // Break: scalar conversion hides repeated endpoints or silently accepts extra keys.
+  it.each([
+    ["repeated from with a valid final value", "from=unknown&from=940GZZLUCTN&to=940GZZLUEGW"],
+    ["repeated from with an unknown final value", "from=940GZZLUCTN&from=unknown&to=940GZZLUEGW"],
+    ["repeated to with a valid final value", "from=940GZZLUCTN&to=unknown&to=940GZZLUEGW"],
+    ["repeated to with an unknown final value", "from=940GZZLUCTN&to=940GZZLUEGW&to=unknown"],
+    ["identical repeated from", "from=940GZZLUCTN&from=940GZZLUCTN&to=940GZZLUEGW"],
+    ["identical repeated to", "from=940GZZLUCTN&to=940GZZLUEGW&to=940GZZLUEGW"],
+    ["both endpoints repeated", "from=940GZZLUCTN&from=940GZZLUCTN&to=940GZZLUEGW&to=940GZZLUEGW"],
+    ["unexpected key", "from=940GZZLUCTN&to=940GZZLUEGW&debug=1"],
+    ["unexpected empty key", "from=940GZZLUCTN&to=940GZZLUEGW&=1"],
+    ["missing endpoints", ""],
+    ["missing from", "to=940GZZLUEGW"],
+    ["missing to", "from=940GZZLUCTN"],
+    ["empty from", "from=&to=940GZZLUEGW"],
+    ["empty to", "from=940GZZLUCTN&to="],
+    ["both endpoints empty", "from=&to="],
+    ["unknown from", "from=unknown&to=940GZZLUEGW"],
+    ["unknown to", "from=940GZZLUCTN&to=unknown"],
+    ["equal endpoints", "from=940GZZLUCTN&to=940GZZLUCTN"],
+  ])("rejects %s before downstream requests", async (_description, query) => {
+    const arrivals = vi.fn(async () => []);
+    const routes = vi.fn(base.routes);
+    const timetable = vi.fn(base.timetable);
+    const get = createJourneyHandler({ ...base, arrivals, routes, timetable });
+    const result = await get(new Request(`http://local/api/journey?${query}`));
+    expect(result.status).toBe(400);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "INVALID_JOURNEY" });
+    expect(routes).not.toHaveBeenCalled();
     expect(arrivals).not.toHaveBeenCalled();
     expect(timetable).not.toHaveBeenCalled();
   });
   // Break: a hosting-level limiter denies a request but the public boundary still
   // starts topology, arrival, or timetable work instead of returning retry guidance.
-  it("returns the public rate-limit contract before validating or fetching a journey", async () => {
+  it.each([
+    "from=940GZZLUCTN&to=940GZZLUEGW",
+    "from=unknown&from=940GZZLUCTN&to=940GZZLUEGW",
+  ])("returns the public rate-limit contract before validating or fetching a journey for %s", async (query) => {
     const arrivals = vi.fn();
     const routes = vi.fn();
     const timetable = vi.fn();
@@ -43,7 +71,7 @@ describe("journey API", () => {
       timetable,
       rateLimit: async () => ({ allowed: false }),
     });
-    const result = await get(request("940GZZLUCTN", "940GZZLUEGW"));
+    const result = await get(new Request(`http://local/api/journey?${query}`));
     expect(result.status).toBe(429);
     expect(result.headers.get("Retry-After")).toBe("30");
     expect(result.headers.get("Cache-Control")).toBe("no-store");
@@ -67,13 +95,20 @@ describe("journey API", () => {
     expect(timetable).not.toHaveBeenCalled();
   });
   it("keeps a valid empty origin as no-store 200", async () => {
-    const get = createJourneyHandler({ ...base, arrivals: async () => [] });
+    const arrivals = vi.fn(async () => []);
+    const routes = vi.fn(base.routes);
+    const timetable = vi.fn(base.timetable);
+    const get = createJourneyHandler({ ...base, arrivals, routes, timetable });
     const response = await get(request("940GZZLUCTN", "940GZZLUEGW"));
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     const body = await response.json();
     expect(body.trains).toEqual([]);
     expect(body).toHaveProperty("minutesSaved", null);
+    expect(body.journey).toEqual({ from: "940GZZLUCTN", to: "940GZZLUEGW" });
+    expect(routes).toHaveBeenCalledTimes(1);
+    expect(arrivals.mock.calls).toEqual([["940GZZLUCTN"], ["940GZZLUEGW"]]);
+    expect(timetable).toHaveBeenCalledExactlyOnceWith("940GZZLUCTN", "940GZZLUEGW");
   });
   it("maps a malformed origin arrivals payload to the public 503 response", async () => {
     const get = createJourneyHandler({

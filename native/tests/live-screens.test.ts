@@ -231,6 +231,9 @@ async function setupHome(count: number, review = false) {
   const storage = { getItem: async () => raw, setItem: vi.fn(async (_key: string, value: string) => { raw = value; }) };
   const preferences = createPreferences(storage, catalogue);
   await preferences.load();
+  await preferences.flush();
+  expect(preferences.get().warning).toBeNull();
+  expect(storage.setItem).not.toHaveBeenCalled();
   const states = new Map(selections.map(card => [card.stationId, { pending: false, error: null }]));
   hooks.runtime.mockReturnValue({ preferences, catalogue, stations: {
     get: (id: string) => states.get(id), isOnline: () => true, isRateLimited: () => false,
