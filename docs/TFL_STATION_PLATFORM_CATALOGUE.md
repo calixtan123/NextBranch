@@ -296,3 +296,52 @@ Refresh the inventory with `npm run refresh:catalogue -- --archive /path/to/tfl-
 Run targeted regressions with `npm test -- src/lib/catalogue/capability.test.ts src/app/api/departures/route.test.ts src/lib/tfl/client.test.ts src/lib/rail/departures.test.ts` and `npm --prefix native test -- tests/departures.test.ts tests/server-departures-contract.test.ts tests/offline-discovery.test.ts tests/canonical-saved.test.ts tests/platform-board-layout.test.ts`. Run Northern regressions with `npm test -- src/lib/northern src/app/api/journey/route.test.ts src/lib/journey-view.test.ts src/components/Planner.test.tsx`.
 
 Full gates are `npm run verify`, `python3 -m pytest -q tests/catalogue`, `npm --prefix native run typecheck` and `npm --prefix native test`. Final candidate runtime gates are `npm run build`, `npm run test:e2e` and `npm --prefix native run export:ios`.
+
+## Confirmed app scope and integration decisions
+
+These decisions were confirmed by the user on 10 November 2026 during the NB-4 grill-with-docs review.
+
+### Passenger-platform eligibility
+
+Include a physical platform when it is customer-facing and at least one published service belongs to an in-scope TfL line. The agreed scope includes Underground, DLR, Elizabeth line, the six named London Overground lines, Tram and the retained cable-car service. A station appears in search when it retains at least one eligible platform.
+
+Apply eligibility per platform at mixed TfL/National Rail stations. Exclude platforms served exclusively by National Rail. Keep a shared TfL/National Rail platform as one selection and preserve all its published service relationships and descriptions. Keep the complete extraction as the reference snapshot and report filtered app counts separately.
+
+### Delivery alongside NB-3
+
+Catalogue filtering, station-search logic and server departures work can begin while NB-3 completes its acceptance checks. Integrate native search, picker, saved cards and preferences after NB-3 is accepted and merged. Coordinate overlapping ownership and repeat the relevant acceptance checks on the integrated result. Both offline catalogue delivery and verified live departures remain required for NB-4 completion.
+
+### Departure coverage and saving
+
+- A shared TfL/National Rail platform's board shows TfL departures for this delivery. Clearly label the board's departure coverage while preserving the platform's published service descriptions.
+- A platform with a stable physical identity and verified arrival matching can be selected and saved when its cardinal direction is blank. Show “Direction unavailable”. Use physical-platform identity for the saved selection.
+- A qualifying platform whose arrival feed is confirmed unsupported remains searchable and its details remain available. Explain the unsupported live feed and keep Save unavailable until a supported feed exists.
+- Temporary failure of a supported arrival feed keeps existing saved cards recoverable.
+
+Acceptance must exercise each of these cases alongside the ticket's existing multi-line, migration, offline and mapping checks. The domain terms are defined in [GLOSSARY.md](../GLOSSARY.md). [NB-4](https://synapse21.atlassian.net/browse/NB-4).
+
+### Additional saving decisions
+
+The user accepted all three recommendations in the second grill-with-docs round.
+
+1. **Partial TfL departure coverage permits saving.** Allow saving a shared physical platform when at least one TfL service has a supported arrival feed and verified matching to that platform. Preserve every published service in the platform details. Identify which TfL lines have live departures available and explain missing coverage for the others. Assign predictions only for verified service/platform mappings.
+2. **Unverified platform matching prevents saving.** When no supported TfL service can be reliably matched to the physical platform, keep its published details browsable and Save unavailable. Explain that live platform matching awaits verification. A station-level feed alone does not establish platform membership. Colindale's duplicate platform NaPTAN must be resolved with unambiguous evidence.
+3. **Supported-feed outages and empty snapshots permit first-time saving.** Once physical identity and matching are verified and a TfL feed is supported, permit saving during a temporary request failure or a successful snapshot with no upcoming trains. Display the current condition accurately and let the saved card recover through normal refresh. An immediate successful response or a nonempty departure list is unnecessary for saving.
+
+### Acceptance cases for the confirmed saving rules
+
+| Platform condition | Browse details | Save | Required presentation |
+| --- | --- | --- | --- |
+| At least one supported, verified TfL service | Yes | Available | Published platform information and available TfL departures |
+| Some TfL services have unsupported or unverified coverage, with at least one supported and verified | Yes | Available | Explicit per-line live coverage and reasons for missing coverage |
+| Cardinal direction blank, with a supported and verified TfL service | Yes | Available | Direction unavailable |
+| All TfL arrival feeds confirmed unsupported | Yes | Unavailable | Explain unsupported live departures |
+| Supported feed exists, but all physical-platform matching remains unverified | Yes | Unavailable | Explain that platform matching awaits verification |
+| Supported and verified platform during a temporary outage | Yes | Available, including first-time saving | Live departures temporarily unavailable |
+| Supported and verified platform with a successful empty snapshot | Yes | Available, including first-time saving | No upcoming departures |
+
+Existing saved supported-feed cards remain recoverable during outages. The platform eligibility filter, migration requirements, ambiguity handling and existing acceptance criteria continue to apply.
+
+### Design review checkpoint
+
+The two interview rounds settled the product decisions discussed for NB-4. The catalogue, search, server departures and native search-to-save integration are implemented in the current source. The NB-5 through NB-13 sections above record the delivered behavior, evidence and remaining acceptance limits.

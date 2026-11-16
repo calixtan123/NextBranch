@@ -304,6 +304,8 @@ it('defers newly owned stations after 429 and exposes the reason until the share
   owner.own([L]);
   expect(owner.get(L).error).toBeNull();
   expect(owner.isRateLimited()).toBe(true);
+  expect(boardStatus(owner.get(L), Date.now(), true, [], owner.isRateLimited()).label)
+    .toBe('Updates paused. Retrying shortly.');
   expect(await owner.refresh([L])).toBeNull();
   await vi.advanceTimersByTimeAsync(15_000);
   expect(request.mock.calls.map(([id]) => id)).toEqual([C, L]);
@@ -535,4 +537,66 @@ it('uses exact relevant line and stop feeds independently of station-wide partia
     feeds: [{ ...relevant[0], liveState: 'unavailable' as const }] } } };
   expect(boardStatus(failed, now, true, relevant)).toMatchObject({ tone: 'danger', label: 'Live departures temporarily unavailable' });
   expect(boardStatus(failed, now, true, []).tone).toBe('success');
+});
+
+
+it.each([
+  { online: false, error: 'limited', expected: 'Offline. Predictions may be outdated' },
+  { online: true, error: 'configuration', expected: 'Live departures are unavailable' },
+  { online: true, error: 'invalid', expected: 'Station unavailable. Review your selection' },
+  { online: true, error: 'unavailable', expected: 'Updates paused. Retrying shortly.' },
+  { online: true, error: 'limited', expected: 'Updates paused. Retrying shortly.' },
+  { online: true, error: null, expected: 'Updates paused. Retrying shortly.' },
+] as const)('gives $error online=$online deliberate precedence during shared cooldown', ({ online, error, expected }) => {
+  for (const cached of [undefined, snapshot]) {
+    expect(boardStatus({ snapshot: cached, error, pending: false }, now + 31_000, online, [], true).label).toBe(expected);
+  }
+});
+
+it.each([
+  { header: '45', seconds: 45 }, { header: null, seconds: 30 }, { header: 'malformed', seconds: 30 },
+])('presents initial and cached HTTP 429 with Retry-After $header until existing automatic retry', async ({ header, seconds }) => {
+  for (const cached of [false, true]) {
+    vi.useFakeTimers({ now });
+    const expiredSoon = { ...snapshot, platforms: [{ ...snapshot.platforms[0], departures: [{
+      ...snapshot.platforms[0].departures[0], expectedArrival: new Date(now - 1_000).toISOString(),
+    }] }] };
+    const success = () => new Response(JSON.stringify({ ...snapshot, observedAt: new Date(Date.now()).toISOString() }));
+    const request = vi.fn<typeof fetch>();
+    if (cached) request.mockResolvedValueOnce(new Response(JSON.stringify(expiredSoon)));
+    request.mockResolvedValueOnce(new Response('<html>Limited</html>', {
+      status: 429, headers: header === null ? {} : { 'Retry-After': header },
+    })).mockImplementation(async () => success());
+    const owner = createStationOwner(httpTransport('https://example.test', false, request), Date.now);
+    const status = () => boardStatus(owner.get(C), Date.now(), owner.isOnline(), [], owner.isRateLimited());
+    try {
+      owner.own([C, C]);
+      await settle();
+      if (cached) {
+        expect(boardRows(owner.get(C).snapshot, a, Date.now(), 3)).toHaveLength(1);
+        await owner.refresh([C]);
+      }
+      expect(status()).toEqual({ tone: 'warning', label: 'Updates paused. Retrying shortly.' });
+      expect(owner.get(C).snapshot !== undefined).toBe(cached);
+      expect(await owner.refresh([C, C])).toBeNull();
+      const calls = request.mock.calls.length;
+      expect(calls).toBe(cached ? 2 : 1);
+      await vi.advanceTimersByTimeAsync(seconds * 1_000 - 1);
+      expect(owner.isRateLimited()).toBe(true);
+      expect(request).toHaveBeenCalledTimes(calls);
+      if (cached) {
+        expect(boardRows(owner.get(C).snapshot, a, Date.now(), 3)).toEqual([]);
+        expect(owner.get(C).snapshot).toEqual({ ...expiredSoon, timing: {
+          receivedAt: now, serverAtReceipt: Date.parse(expiredSoon.observedAt), uncertaintyMs: 0, approximate: true,
+        } });
+        expect(isStale(owner.get(C), Date.now(), true)).toBe(true);
+      }
+      await vi.advanceTimersByTimeAsync(1);
+      expect(request).toHaveBeenCalledTimes(calls + 1);
+      expect(owner.isRateLimited()).toBe(false);
+      expect(status()).toEqual({ tone: 'success', label: 'Live departures up to date' });
+    } finally {
+      owner.dispose();
+    }
+  }
 });

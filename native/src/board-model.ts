@@ -153,6 +153,9 @@ export function wrapMatrix(value: string, width: number, scale: number) {
  * relevantFeeds : feed keys, optional
  *     Supported services for the selected physical platform.
  *
+ * limited : boolean, optional
+ *     Shared owner cooldown, taking precedence over request failure and age.
+ *
  * Returns
  * -------
  * object
@@ -160,11 +163,12 @@ export function wrapMatrix(value: string, width: number, scale: number) {
  */
 export function boardStatus(
   state: ReturnType<ReturnType<typeof createStationOwner>['get']>, now: number, online: boolean,
-  relevantFeeds: readonly { lineId: string; stopAreaId: string }[] = [],
+  relevantFeeds: readonly { lineId: string; stopAreaId: string }[] = [], limited = false,
 ): { tone: 'success' | 'warning' | 'danger' | 'dim'; label: string } {
   if (!online) return { tone: 'danger', label: 'Offline. Predictions may be outdated' };
   if (state.error === 'invalid') return { tone: 'danger', label: 'Station unavailable. Review your selection' };
   if (state.error === 'configuration') return { tone: 'danger', label: 'Live departures are unavailable' };
+  if (limited) return { tone: 'warning', label: 'Updates paused. Retrying shortly.' };
   if (state.error) return { tone: 'danger', label: 'Departures request failed. Predictions may be outdated' };
   const feeds = state.snapshot?.catalogue?.feeds?.filter(feed =>
     relevantFeeds.some(service => service.lineId === feed.lineId && service.stopAreaId === feed.stopAreaId)) ?? [];

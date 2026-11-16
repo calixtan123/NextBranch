@@ -864,3 +864,35 @@ describe.each(['amber', 'modern'] as const)('%s status footer', style => {
     boundary.fontScale = 1;
   });
 });
+
+
+describe.each(['amber', 'modern'] as const)('%s cooldown presentation', style => {
+  it.each([false, true])('shows one accessible pause for initial and cached boards, expanded=%s', expanded => {
+    for (const cached of [false, true]) {
+      boundary.fontScale = 3.12;
+      const now = Date.parse('2026-11-10T12:00:00Z');
+      const snapshot: Snapshot = { station: { id: '940GZZLUKSX', name: "King's Cross St. Pancras" },
+        observedAt: new Date(now).toISOString(), newestPredictionGeneratedAt: null, refreshAfterSeconds: 30,
+        platforms: [{ platform: 'A', direction: 'Southbound', departures: [{ id: 'train', destinationName: 'Morden',
+          towards: null, expectedArrival: new Date(now + 60_000).toISOString(), secondsToStation: 60 }] }] };
+      const tree = PlatformBoard({ selection: { stationId: snapshot.station.id, platform: 'A', direction: 'Southbound' },
+        style, now, online: true, limited: true, expanded,
+        state: { error: 'limited', pending: false, snapshot: cached ? snapshot : undefined },
+        onOpen: expanded ? undefined : vi.fn(), onReview: vi.fn() });
+      const nodes = elements(tree);
+      const copy = nodes.filter(node => node.type === Label && node.props.children === 'Updates paused. Retrying shortly.');
+      expect(copy).toHaveLength(1);
+      expect(copy[0].props).not.toHaveProperty('numberOfLines');
+      const dot = nodes.find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'image')!;
+      expect(dot.props).toMatchObject({ accessible: false });
+      expect(nodes.filter(node => 'row' in node.props)).toHaveLength(cached ? 1 : 0);
+      if (expanded) {
+        expect(copy[0].props).toMatchObject({ accessible: true });
+      } else {
+        const card = nodes.find(node => (node.props as { accessibilityRole?: string }).accessibilityRole === 'button')!;
+        expect((card.props as { accessibilityLabel: string }).accessibilityLabel.split('Updates paused. Retrying shortly.')).toHaveLength(2);
+      }
+    }
+    boundary.fontScale = 1;
+  });
+});

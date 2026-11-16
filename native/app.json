@@ -5,7 +5,21 @@
     "version": "0.0.1",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios"],
-    "ios": { "bundleIdentifier": "com.nextbranch.app", "supportsTablet": false }
+    "platforms": [
+      "ios"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.nextbranch.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5b3e4c9b-dcdf-4fec-97f0-55aa1d6a613a"
+      }
+    },
+    "owner": "calixtan"
   }
 }

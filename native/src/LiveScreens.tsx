@@ -234,6 +234,8 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
         <IconButton icon="settings" label="Settings" size={16} tone="dim" onPress={() => navigation.navigate('Settings')} />
       </View>
     </View>
+    {online && limited && ids.some(id => !['invalid', 'configuration'].includes(stations.get(id).error ?? '')) &&
+      <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Refresh is paused until automatic retry.</Label>}
     {online && !limited && ids.some(id => {
       const state = stations.get(id);
       return Boolean(state.error && state.error !== 'invalid') ||
@@ -284,6 +286,8 @@ export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
       <Label size={11} tone="dim" style={{ marginBottom: 10 }}>
         Selected physical platform{state.snapshot ? ` · ${count} upcoming` : ''}
       </Label>
+      {online && limited && state.error !== 'invalid' && state.error !== 'configuration' &&
+        <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Refresh is paused until automatic retry.</Label>}
       {online && !limited && (state.error && state.error !== 'invalid' ||
         state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable')) &&
         <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Pull down to refresh</Label>}
