@@ -71,3 +71,9 @@ The live-screens failure reproduces on unchanged tracked native files. Its fixtu
 NB-34 commit `bd646b42df314d55c23f6fc80361859ad560a218` adopted Expo 58.0.25 and retained the same React, React Native, SVG, AsyncStorage and NetInfo versions reviewed here. This assessment preserves that compatible set. NB-50 documents the separate root-toolchain minimatch path, with its own upstream remediation condition. [Root dependency review](security/NB-50-root-dependency-audit.md)
 
 NB-30's existing release record describes historical tests and a placeholder-origin export. Its earlier four-moderate native count is superseded for this assessment by the fresh three-record audit. Existing signed archive, actual production-origin connectivity and physical-device evidence remain release gates. NB-27 must retain the exact candidate commit and native lockfile identity when archiving, and carry this advisory disposition into archive evidence. NB-32 supplies physical acceptance. This assessment makes no native dependency change, and its placeholder-origin export establishes JavaScript bundling only. Final signed archive and device proof remain pending with their release owners. [Release verification](TESTFLIGHT_VERIFICATION.md)
+
+## Subsequent verification and scope
+
+On 16 November 2026, the scoped Home fixture repair in `de2fbfd` supplied the missing version-1 `recent` field and checked that setup produces zero repair writes before gesture actions. Independent review approved the change. The full native suite then passed 527 tests across 21 files, with `npm run typecheck` and `git diff --check` both exiting 0. This supersedes the live-screens verification limitation above.
+
+The user subsequently deferred NB-52 and NB-54. The shared dependency research above was completed before that instruction. NB-52 remains open for later work. NB-51 retains the supported dependency set and the documented upstream remediation condition.
