@@ -83,9 +83,15 @@ export function createJourneyHandler(deps: JourneyDependencies = live) {
     if (!decision.allowed)
       return response(RATE_LIMIT_RESPONSE, 429, { "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS) });
     const topologyStartedAt = Date.now();
-    const parsed = journeyQuery.safeParse(
-      Object.fromEntries(new URL(request.url).searchParams),
-    );
+    const params = new URL(request.url).searchParams;
+    // Reject extra keys and repeated endpoints before scalar conversion loses them.
+    if (
+      params.size !== 2 ||
+      params.getAll("from").length !== 1 ||
+      params.getAll("to").length !== 1
+    )
+      return response({ error: "INVALID_JOURNEY" }, 400);
+    const parsed = journeyQuery.safeParse(Object.fromEntries(params));
     if (
       !parsed.success ||
       parsed.data.from === parsed.data.to ||
