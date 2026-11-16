@@ -178,12 +178,15 @@ async function setupHome(count: number, review = false) {
     stationId: ['940GZZLUCTN', '940GZZLUCND', '940GZZLUGDG'][index], platform, direction: 'Southbound',
   }));
   const catalogue = createCatalogue({ version: 1, platforms: review ? selections.filter(card => card.platform !== 'B') : selections });
-  let raw = JSON.stringify({ version: 1, mode: 'custom', cards: selections.map((card, index) => ({
+  let raw = JSON.stringify({ version: 1, mode: 'custom', recent: [], cards: selections.map((card, index) => ({
     ...card, style: index === 0 ? 'modern' : 'amber',
   })) });
   const storage = { getItem: async () => raw, setItem: vi.fn(async (_key: string, value: string) => { raw = value; }) };
   const preferences = createPreferences(storage, catalogue);
   await preferences.load();
+  await preferences.flush();
+  expect(preferences.get().warning).toBeNull();
+  expect(storage.setItem).not.toHaveBeenCalled();
   const states = new Map(selections.map(card => [card.stationId, { pending: false, error: null }]));
   hooks.runtime.mockReturnValue({ preferences, catalogue, stations: {
     get: (id: string) => states.get(id), isOnline: () => true, isRateLimited: () => false,
