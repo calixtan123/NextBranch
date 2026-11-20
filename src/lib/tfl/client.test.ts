@@ -50,6 +50,27 @@ describe("TfL arrivals boundary", () => {
     expect(fetcher.mock.calls[2]?.[1]).toMatchObject({ next: { revalidate: 43_200 } });
   });
 
+  it("records one redacted fetch-attempt marker before an arrivals fetch", async () => {
+    const secretKey = "secret-key";
+    const stationId = "940GZZLUCTN";
+    process.env.TFL_API_KEY = secretKey;
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => arrival }));
+
+    try {
+      await client.getArrivals(stationId);
+
+      const attempts = diagnostic.mock.calls.filter(([event]) => event === "tfl_fetch_attempt");
+      expect(attempts).toEqual([["tfl_fetch_attempt", { operation: "arrivals" }]]);
+      expect(JSON.stringify(attempts)).not.toContain(secretKey);
+      expect(JSON.stringify(attempts)).not.toContain(stationId);
+      expect(JSON.stringify(attempts)).not.toContain("api.tfl.gov.uk");
+      expect(JSON.stringify(attempts)).not.toContain("/Line/");
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
   it("coalesces parallel misses and reuses a completed feed inside the TTL", async () => {
     process.env.TFL_API_KEY = "test-key";
     let resolve!: (value: { ok: boolean; json: () => Promise<typeof arrival> }) => void;
@@ -67,6 +88,74 @@ describe("TfL arrivals boundary", () => {
 
     await expect(client.getArrivals("940GZZLUCTN")).resolves.toEqual(arrival);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not record another fetch attempt for a coalesced request or arrivals cache hit", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    let resolve!: (value: { ok: boolean; json: () => Promise<typeof arrival> }) => void;
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn().mockImplementationOnce(() => new Promise((done) => { resolve = done; })));
+
+    try {
+      const first = client.getArrivals("940GZZLUCTN");
+      const second = client.getArrivals("940GZZLUCTN");
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+      resolve({ ok: true, json: async () => arrival });
+      await Promise.all([first, second]);
+      await client.getArrivals("940GZZLUCTN");
+
+      expect(diagnostic.mock.calls.filter(([event]) => event === "tfl_fetch_attempt"))
+        .toEqual([["tfl_fetch_attempt", { operation: "arrivals" }]]);
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
+  it("records an attempt when TfL returns an upstream failure", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => [] }));
+
+    try {
+      await expect(client.getArrivals("940GZZLUCTN")).rejects.toMatchObject({ code: "upstream" });
+
+      expect(diagnostic.mock.calls.filter(([event]) => event === "tfl_fetch_attempt"))
+        .toEqual([["tfl_fetch_attempt", { operation: "arrivals" }]]);
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
+  it("does not record a fetch attempt when TfL configuration is missing", async () => {
+    delete process.env.TFL_API_KEY;
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn());
+
+    try {
+      await expect(client.getArrivals("940GZZLUCTN")).rejects.toMatchObject({ code: "config" });
+
+      expect(diagnostic.mock.calls.filter(([event]) => event === "tfl_fetch_attempt")).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
+  it("does not record a fetch attempt when the caller has already cancelled", async () => {
+    process.env.TFL_API_KEY = "test-key";
+    const caller = new AbortController();
+    caller.abort();
+    const diagnostic = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn());
+
+    try {
+      await expect(client.getRoutes(caller.signal)).rejects.toMatchObject({ code: "upstream" });
+
+      expect(diagnostic.mock.calls.filter(([event]) => event === "tfl_fetch_attempt")).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      diagnostic.mockRestore();
+    }
   });
 
   // Break: a rejected coalesced request remains in the overlap registry and makes
