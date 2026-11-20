@@ -9,6 +9,7 @@ deliberately serial because each attempt consumes the shared key's budget.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
@@ -163,7 +164,17 @@ def live_request(key: str) -> Callable[[str], Response]:
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
         try:
             with opener.open(url, timeout=TIMEOUT_SECONDS) as raw:
-                payload = raw.read(MAX_RESPONSE_BYTES + 1)
+                try:
+                    payload = raw.read(MAX_RESPONSE_BYTES + 1)
+                except (OSError, http.client.HTTPException):
+                    return Response(
+                        raw.status,
+                        parse_retry_after(raw.headers.get("Retry-After")),
+                        None,
+                        round((time.monotonic() - started) * 1000),
+                        body_kind="read-error",
+                        started_at=started_at,
+                    )
                 if len(payload) > MAX_RESPONSE_BYTES:
                     return Response(raw.status, parse_retry_after(raw.headers.get("Retry-After")), None, round((time.monotonic() - started) * 1000), len(payload), "too-large", started_at)
                 try:
@@ -181,7 +192,7 @@ def live_request(key: str) -> Callable[[str], Response]:
                 return Response(raw.status, parse_retry_after(raw.headers.get("Retry-After")), body, round((time.monotonic() - started) * 1000), len(payload), kind, started_at)
         except urllib.error.HTTPError as error:
             return Response(error.code, parse_retry_after(error.headers.get("Retry-After")), None, round((time.monotonic() - started) * 1000), started_at=started_at)
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+        except (OSError, http.client.HTTPException):
             return Response(0, None, None, round((time.monotonic() - started) * 1000), started_at=started_at)
     return request
 

@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import json
 import io
+import http.client
 
 import pytest
 
@@ -101,6 +102,43 @@ def test_malformed_json_keeps_status_and_byte_count(monkeypatch):
     monkeypatch.setattr(runner.urllib.request, "build_opener", lambda *_: Opener())
     result = runner.live_request("secret")("/Line/northern/Arrivals")
     assert (result.status, result.response_bytes, result.body_kind) == (200, 8, "malformed")
+
+
+@pytest.mark.parametrize("error", [
+    ConnectionResetError("actual-secret"),
+    http.client.IncompleteRead(b"actual-secret"),
+])
+def test_cli_preserves_samples_when_a_response_body_read_fails(monkeypatch, tmp_path, error):
+    """Persist earlier samples and a redacted failure when a body read breaks."""
+    class Raw(io.BytesIO):
+        status = 200
+        headers = {}
+
+        def read(self, size):
+            if self.getvalue() == b"broken":
+                raise error
+            return super().read(size)
+
+    bodies = iter([b"[]", b"broken", b"[]"])
+    class Opener:
+        def open(self, *_args, **_kwargs):
+            return Raw(next(bodies))
+
+    monkeypatch.setenv("TFL_API_KEY", "actual-secret")
+    monkeypatch.setattr(runner.urllib.request, "build_opener", lambda *_: Opener())
+    clock = Clock()
+    paced_capture = runner.PacedCapture
+    monkeypatch.setattr(runner, "PacedCapture", lambda *args: paced_capture(*args, clock.now, clock.sleep))
+    output = tmp_path / "capture.json"
+
+    assert runner.main(["--live", "--line", "northern", "--stop", "a", "--available-headroom", "3", "--output", str(output)]) == 0
+
+    evidence = output.read_text()
+    samples = json.loads(evidence)["triads"][0]["samples"]
+    assert [item["bodyKind"] for item in samples] == ["empty", "read-error", "empty"]
+    assert samples[1]["status"] == 200
+    assert samples[1]["records"] == []
+    assert "actual-secret" not in evidence
 
 
 def test_live_requires_explicit_opt_in_without_network(monkeypatch, tmp_path):
