@@ -19,8 +19,9 @@ function displayVia(value: string | null | undefined): string {
   return `via ${compact ?? via[1]}`;
 }
 
-/** Projects an exact physical platform before sorting and taking its visible row limit. */
-export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit: 3 | 5) {
+/** Projects an exact platform. Widgets exclude arrivals once their prediction time passes. */
+export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit: 3 | 5,
+  timing: 'board' | 'upcoming' = 'board') {
   if (snapshot?.station.id !== selection.stationId) return [];
   now = responseTime(snapshot, now);
   const clock = new Date(now);
@@ -28,7 +29,10 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
     .filter(group => selection.physicalPlatformId ? group.physicalPlatformId === selection.physicalPlatformId :
       group.physicalPlatformId !== null && group.platform === selection.platform && group.direction === selection.direction)
     .flatMap(group => group.departures)
-    .filter(row => Date.parse(row.expectedArrival) + DEPARTED_GRACE * 1000 >= now)
+    .filter(row => {
+      const expected = Date.parse(row.expectedArrival);
+      return timing === 'upcoming' ? expected > now : expected + DEPARTED_GRACE * 1000 >= now;
+    })
     .sort((a, b) => Date.parse(a.expectedArrival) - Date.parse(b.expectedArrival) || a.id.localeCompare(b.id))
     .slice(0, limit)
     .map(row => {

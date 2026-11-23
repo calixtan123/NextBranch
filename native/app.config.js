@@ -60,11 +60,24 @@ function assertReleaseOrigin(value) {
 }
 
 module.exports = ({ config }) => {
+  const prototype = process.env.EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE === '1';
   if (process.env.NEXTBRANCH_RELEASE_BUILD === '1') {
+    if (prototype) throw new Error('The development widget prototype cannot be included in a release build');
     assertReleaseOrigin(process.env.EXPO_PUBLIC_NEXTBRANCH_API_URL);
     for (const name of ['EXPO_PUBLIC_NEXTBRANCH_FIXTURE', 'EXPO_PUBLIC_NEXTBRANCH_SEED']) {
       if (process.env[name]) throw new Error(`${name} must not be set for a release build`);
     }
   }
-  return { ...config, icon: './assets/icon.png' };
+  const widgetPlugin = ['expo-widgets', {
+    widgets: [{
+      name: require('./src/widget-name.json'),
+      displayName: 'Saved Platforms',
+      description: 'Departures for your saved platforms in NextBranch.',
+      ios: { supportedFamilies: ['systemMedium'], initialLayout: './src/SavedPlatformWidget.tsx' },
+    }],
+  }];
+  return { ...config, icon: './assets/icon.png',
+    // Expo runs Xcode mods in reverse registration order, so create the target first.
+    ...(prototype ? { plugins: [...config.plugins ?? [], './widget/with-saved-platform-widget', widgetPlugin] } : {}),
+  };
 };
