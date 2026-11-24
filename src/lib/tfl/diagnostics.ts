@@ -79,3 +79,15 @@ export function createDiagnostic(input: DiagnosticInput): Diagnostic {
 export function recordServerDiagnostic(input: DiagnosticInput): void {
   console.info("tfl_diagnostic", createDiagnostic(input));
 }
+
+/**
+ * Records that the server is about to call TfL.
+ *
+ * Parameters
+ * ----------
+ * operation : DiagnosticOperation
+ *     A fixed operation category. Request details are deliberately excluded.
+ */
+export function recordTflFetchAttempt(operation: DiagnosticOperation): void {
+  console.info("tfl_fetch_attempt", { operation: normalizeOperation(operation) });
+}

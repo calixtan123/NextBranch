@@ -9,7 +9,7 @@ import {
   type Timetable,
   type Topology,
 } from "@/lib/northern/schemas";
-import { recordServerDiagnostic, type DiagnosticOperation } from "./diagnostics";
+import { recordServerDiagnostic, recordTflFetchAttempt, type DiagnosticOperation } from "./diagnostics";
 
 /** Classifies safe, public failures without including credential-bearing URLs. */
 export class TflError extends Error {
@@ -41,6 +41,7 @@ const completedArrivals = new Map<string, ArrivalsFeed>();
 /** Fetch a complete payload before the deadline or caller cancellation. */
 async function get(
   path: string,
+  operation: DiagnosticOperation,
   cache: "live" | "topology" = "topology",
   callerSignal?: AbortSignal,
 ): Promise<unknown> {
@@ -65,6 +66,8 @@ async function get(
     // Settle independently of transport cooperation, including body reads.
     // Promise.race also observes late transport rejection after cancellation.
     const payload = (async () => {
+      signal.throwIfAborted();
+      recordTflFetchAttempt(operation);
       const response = await fetch(url, {
         ...(cache === "topology"
           ? { next: { revalidate: TOPOLOGY_REVALIDATE_SECONDS } }
@@ -106,7 +109,7 @@ async function fetchArrivals(lineId: string, id: string, signal?: AbortSignal): 
   return diagnose("arrivals", async () => {
     try {
       return parseArrivals(
-        await get(`/Line/${encodeURIComponent(lineId)}/Arrivals/${encodeURIComponent(id)}`, "live", signal),
+        await get(`/Line/${encodeURIComponent(lineId)}/Arrivals/${encodeURIComponent(id)}`, "arrivals", "live", signal),
       ).filter((arrival) => arrival.naptanId === id && arrival.lineId === lineId);
     } catch (error) {
       if (error instanceof TflError) throw error;
@@ -232,7 +235,7 @@ export async function getLineArrivalsFeed(lineId: string, id: string, signal?: A
 export async function getRoutes(signal?: AbortSignal): Promise<Topology[]> {
   return diagnose("topology", async () => {
     try {
-      const raw = await get("/Line/northern/Route/Sequence/all", "topology", signal);
+      const raw = await get("/Line/northern/Route/Sequence/all", "topology", "topology", signal);
       const values = Array.isArray(raw) ? raw : [raw];
       return values.map((value) => topologySchema.parse(value));
     } catch (error) {
@@ -253,6 +256,7 @@ export async function getTimetable(
       const timetable = timetableSchema.parse(
         await get(
           `/Line/northern/Timetable/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}`,
+          "timetable",
           "topology",
           signal,
         ),
