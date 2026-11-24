@@ -272,6 +272,9 @@ private struct SavedPlatformView: View {
           Text(platform)
             .font(.caption2)
             .foregroundStyle(.secondary)
+            .minimumScaleFactor(0.8)
+            .truncationMode(.middle)
+            .accessibilityLabel(Text(platform))
         }
         if let row = entry.board?.rows.first {
           HStack(alignment: .firstTextBaseline, spacing: 4) {
