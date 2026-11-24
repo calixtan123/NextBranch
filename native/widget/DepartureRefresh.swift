@@ -3,11 +3,11 @@ import Foundation
 /// Requests the existing departures API only when WidgetKit wakes the extension or the user taps refresh.
 private actor DepartureRefresh {
   static let shared = DepartureRefresh()
-  private static let automaticInterval: TimeInterval = 15 * 60
+  private static let automaticInterval: TimeInterval = 60
   private static let manualInterval: TimeInterval = 30
   private var inFlight: Task<Void, Never>?
 
-  func update(_ configuration: SavedConfiguration) async {
+  func update(_ configuration: SavedConfiguration, rawPages: [Data]) async {
     guard let origin = configuration.origin else { return }
     let pages = configuration.pages.filter { $0.review != true }
     let stations = Set(pages.map { $0.selection.stationId })
@@ -18,16 +18,22 @@ private actor DepartureRefresh {
     }
     let now = Date.now
     let requested = WidgetPreferences.defaults?.bool(forKey: WidgetPreferences.refreshKey) ?? false
-    WidgetPreferences.defaults?.removeObject(forKey: WidgetPreferences.refreshKey)
     let cache = RefreshCache.load(origin)
     let newStations = !stations.isSubset(of: Set(cache.stations))
     let readsDue = requested || newStations || now >= cache.nextAutomatic
-    let allFresh = pages.allSatisfy { ($0.board.expiresAt ?? 0) > milliseconds(now) }
+    let allFresh = pages.allSatisfy { ($0.board.staleAt ?? $0.board.expiresAt ?? 0) > milliseconds(now) }
     guard readsDue, requested || !allFresh, now >= cache.nextAllowed else { return }
+    WidgetPreferences.defaults?.removeObject(forKey: WidgetPreferences.refreshKey)
 
     let task = Task {
-      let result = await Self.fetch(stations.sorted(), origin: origin, start: now)
-      result.save()
+      let results = await Self.fetch(stations.sorted(), origin: origin)
+      let responses = Self.merge(results.compactMap(\.response), into: cache, for: pages, rawPages: rawPages)
+      let retry = results.compactMap(\.retryAt).max() ?? now
+      RefreshCache(
+        origin: origin, stations: stations.sorted(), responses: responses,
+        nextAutomatic: now.addingTimeInterval(Self.automaticInterval),
+        nextAllowed: max(now.addingTimeInterval(Self.manualInterval), retry)
+      ).save()
     }
     inFlight = task
     await task.value
@@ -38,17 +44,35 @@ private actor DepartureRefresh {
     guard let origin = configuration.origin else { return now.addingTimeInterval(automaticInterval) }
     let cache = RefreshCache.load(origin)
     // WidgetKit can coalesce or delay requests. Avoid asking it to wake on an expired deadline.
-    return max(now.addingTimeInterval(5 * 60), cache.nextAutomatic, cache.nextAllowed)
+    return max(now.addingTimeInterval(automaticInterval), cache.nextAutomatic, cache.nextAllowed)
   }
 
-  private static func fetch(_ stations: [String], origin: URL, start: Date) async -> RefreshCache {
+  /// Keeps the last accepted response for each platform, even when a sibling feed succeeds.
+  private static func merge(
+    _ fetched: [CachedDeparture], into cache: RefreshCache, for pages: [SavedConfiguration.Page], rawPages: [Data]
+  ) -> [CachedDeparture] {
+    let projection = fetched.isEmpty ? nil : widgetProjection()
+    let inputs = rawPages.compactMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+    return pages.compactMap { page in
+      let previous = cache.response(for: page)
+      guard let next = fetched.first(where: { $0.station == page.selection.stationId }),
+            let input = next.projectionInput, let raw = inputs.first(where: { $0["key"] as? String == page.key }),
+            projection?.invokeMethod("shouldCacheWidgetResponse", withArguments: [
+              raw, previous?.projectionInput as Any? ?? NSNull(), input
+            ])?.toBool() == true
+      else { return previous?.saved(for: page.key) }
+      return next.saved(for: page.key)
+    }
+  }
+
+  private static func fetch(_ stations: [String], origin: URL) async -> [StationFetch] {
     let config = URLSessionConfiguration.ephemeral
     config.requestCachePolicy = .reloadIgnoringLocalCacheData
     config.timeoutIntervalForRequest = 8
     config.timeoutIntervalForResource = 10
     let session = URLSession(configuration: config, delegate: NoRedirects(), delegateQueue: nil)
     defer { session.finishTasksAndInvalidate() }
-    let completed = await withTaskGroup(of: StationFetch.self, returning: [StationFetch].self) { group in
+    return await withTaskGroup(of: StationFetch.self, returning: [StationFetch].self) { group in
       for station in stations {
         group.addTask { await read(station, origin: origin, session: session) }
       }
@@ -56,13 +80,6 @@ private actor DepartureRefresh {
       for await result in group { results.append(result) }
       return results
     }
-    let now = Date.now
-    let retry = completed.compactMap(\.retryAt).max() ?? now
-    return RefreshCache(
-      origin: origin, stations: stations, responses: completed.compactMap(\.response),
-      nextAutomatic: start.addingTimeInterval(automaticInterval),
-      nextAllowed: max(start.addingTimeInterval(manualInterval), retry)
-    )
   }
 
   private static func read(_ station: String, origin: URL, session: URLSession) async -> StationFetch {
@@ -107,6 +124,7 @@ private struct StationFetch: Sendable {
 
 private struct CachedDeparture: Codable, Sendable {
   var station: String
+  var pageKey: String?
   var body: Data
   var receivedAt: Double
   var duration: Double
@@ -114,6 +132,12 @@ private struct CachedDeparture: Codable, Sendable {
   var projectionInput: [String: Any]? {
     guard let payload = try? JSONSerialization.jsonObject(with: body) else { return nil }
     return ["body": payload, "receivedAt": receivedAt, "duration": duration]
+  }
+
+  func saved(for key: String) -> Self {
+    var response = self
+    response.pageKey = key
+    return response
   }
 }
 
@@ -130,6 +154,11 @@ private struct RefreshCache: Codable, Sendable {
        let cache = try? JSONDecoder().decode(Self.self, from: data),
        cache.origin == origin { return cache }
     return Self(origin: origin, stations: [], responses: [], nextAutomatic: .distantPast, nextAllowed: .distantPast)
+  }
+
+  func response(for page: SavedConfiguration.Page) -> CachedDeparture? {
+    responses.first { $0.pageKey == page.key }
+      ?? responses.first { $0.pageKey == nil && $0.station == page.selection.stationId }
   }
 
   func save() {

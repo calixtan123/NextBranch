@@ -6,7 +6,7 @@ import { selectionKey } from './catalogue';
 import type { createRuntime } from './runtime';
 import { effectiveStyle } from './preferences';
 import { savedPlatformWidget } from './SavedPlatformWidget';
-import { widgetBoard, type WidgetConfiguration } from './widget-timeline';
+import { widgetBoard, type WidgetBoard, type WidgetConfiguration } from './widget-timeline';
 
 /** Publishes the current order, appearance and cached boards in one snapshot. */
 export function connectSavedPlatformWidgets({
@@ -14,10 +14,13 @@ export function connectSavedPlatformWidgets({
 }: ReturnType<typeof createRuntime>) {
   let published: string | undefined;
   let previousTiming: Array<Snapshot['timing']> = [];
+  let boards: Map<string, WidgetBoard> | undefined;
+  let connected = true;
   const apiOrigin = synthetic ? undefined : process.env.EXPO_PUBLIC_NEXTBRANCH_API_URL;
   const publish = () => {
     const { ready, cards, mode, interfaceTheme } = preferences.get();
-    if (!ready || !stations.isActive()) return;
+    const previous = boards;
+    if (!previous || !ready || !stations.isActive()) return;
     const observationNow = now();
     const wallNow = Date.now();
     const online = stations.isOnline();
@@ -25,6 +28,7 @@ export function connectSavedPlatformWidgets({
     const config: WidgetConfiguration = {
       ...(apiOrigin ? { apiOrigin } : {}),
       pages: cards.map(selection => {
+        const key = selectionKey(selection);
         const state = stations.get(selection.stationId);
         const station = discovery.catalogue?.stationsByAnyId.get(selection.stationId);
         const platform = station?.platforms.find(platform => platform.platform_id === selection.physicalPlatformId);
@@ -33,9 +37,10 @@ export function connectSavedPlatformWidgets({
           .filter(service => serviceCapability(station, platform, service).feed === 'supported')
           .map(service => ({ lineId: service.line_id, stopAreaId: service.stop_area_naptan_code })) : [];
         const board = widgetBoard({ selection, catalogue, state, online, limited, observationNow, wallNow,
+          previous: previous.get(key),
           stationName: station?.station_name ?? state.snapshot?.station.name ?? byId.get(selection.stationId)?.name ?? selection.stationId,
           style: effectiveStyle(mode, selection), interfaceTheme, services, relevantFeeds });
-        return { key: selectionKey(selection), selection, board, relevantFeeds, ...(services ? { services } : {}),
+        return { key, selection, board, relevantFeeds, ...(services ? { services } : {}),
           ...(!catalogue.has(selection) ? { review: true } : {}) };
       }),
     };
@@ -45,11 +50,12 @@ export function connectSavedPlatformWidgets({
       stations.get(selection.stationId).snapshot?.timing);
     const signature = JSON.stringify(config.pages.map(({ board, ...page }) => {
       const { expiresAt, rows, ...summary } = board;
-      return [page, summary, rows.map(({ expiresAt, ...row }) => row)];
+      return [page, summary, rows.map(({ expiresAt, countdown, ...identity }) => identity)];
     }));
     if (signature === published && timing.every((anchor, index) => anchor === previousTiming[index])) return;
     try {
       savedPlatformWidget.updateSnapshot(config);
+      boards = new Map(config.pages.map(({ key, board }) => [key, board]));
       published = signature;
       previousTiming = timing;
     } catch (error) {
@@ -58,8 +64,17 @@ export function connectSavedPlatformWidgets({
   };
   const stopPreferences = preferences.subscribe(publish);
   const stopStations = stations.subscribe(publish);
-  publish();
+  // Restore the app's last successful boards before publishing an empty startup state.
+  void savedPlatformWidget.getTimeline().catch(error => {
+    console.warn('Could not read the saved-platform widget', error);
+    return [];
+  }).then(([entry]) => {
+    if (!connected) return;
+    boards = new Map(entry?.props.pages?.map(({ key, board }) => [key, board]));
+    publish();
+  });
   return () => {
+    connected = false;
     stopPreferences();
     stopStations();
   };

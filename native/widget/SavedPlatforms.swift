@@ -18,6 +18,15 @@ private enum WidgetPreferences {
 
 private func milliseconds(_ date: Date) -> Double { date.timeIntervalSince1970 * 1_000 }
 
+/// Loads the same departure projection used by both the timeline and the refresh cache.
+private func widgetProjection() -> JSValue? {
+  guard let data = Data(base64Encoded: "__WIDGET_PROJECTION__"),
+        let script = String(data: data, encoding: .utf8), let context = JSContext()
+  else { return nil }
+  context.evaluateScript(script)
+  return context.objectForKeyedSubscript("NextBranchWidgetProjection")
+}
+
 /// The selected departure board projected by the shared app code.
 private struct SavedBoard: Decodable {
   struct Palette: Decodable {
@@ -31,10 +40,9 @@ private struct SavedBoard: Decodable {
 
   struct Row: Decodable {
     var identity: String
-    var time: String
-    var expiresAt: Double
+    var countdown: String?
     var destinationMatrix: [[String]]?
-    var timeMatrix: [String]?
+    var countdownMatrix: [String]?
   }
 
   struct LineMarker: Decodable {
@@ -52,6 +60,7 @@ private struct SavedBoard: Decodable {
   var colors: Palette?
   var interfaceTheme: String?
   var expiresAt: Double?
+  var staleAt: Double?
   var ordinalMatrices: [[String]]?
 
   static func decode(_ value: Any?) -> Self? {
@@ -67,6 +76,7 @@ private struct SavedConfiguration: Decodable, Sendable {
     struct Board: Decodable, Sendable {
       var interfaceTheme: String?
       var expiresAt: Double?
+      var staleAt: Double?
     }
     var key: String
     var review: Bool?
@@ -142,7 +152,10 @@ private struct SavedProvider: TimelineProvider {
     published.getSnapshot(in: context) { result in
       Task {
         if let configuration = Self.configuration(from: result.props) {
-          await DepartureRefresh.shared.update(configuration)
+          let pages = (result.props?["pages"] as? [[String: Any]] ?? []).compactMap {
+            try? JSONSerialization.data(withJSONObject: $0)
+          }
+          await DepartureRefresh.shared.update(configuration, rawPages: pages)
         }
         // The app may have removed, restyled or reordered platforms while the request ran.
         published.getSnapshot(in: context) { latest in
@@ -169,20 +182,16 @@ private struct SavedProvider: TimelineProvider {
     let page = config.pages[index]
     let count = config.pages.count
     let cached = config.origin.flatMap { origin in
-      RefreshCache.load(origin).responses.first { $0.station == page.selection.stationId }?.projectionInput
+      RefreshCache.load(origin).response(for: page)?.projectionInput
     }
     var entry = SavedEntry(
       date: now, board: SavedBoard.decode(raw[index]["board"]), page: index + 1,
       count: count, previous: count > 1 ? config.pages[(index + count - 1) % count].key : nil,
       next: count > 1 ? config.pages[(index + 1) % count].key : nil,
-      canRefresh: config.origin != nil && config.pages.contains { $0.review != true }
+      canRefresh: config.origin != nil && page.review != true
     )
     // Share platform matching, branch wording, formatting and expiry with the foreground app.
-    guard let scriptData = Data(base64Encoded: "__WIDGET_PROJECTION__"),
-          let script = String(data: scriptData, encoding: .utf8), let js = JSContext()
-    else { return [entry] }
-    js.evaluateScript(script)
-    guard let projection = js.objectForKeyedSubscript("NextBranchWidgetProjection"),
+    guard let projection = widgetProjection(),
           let result = projection.invokeMethod("projectWidgetTimeline",
             withArguments: [raw[index], cached as Any? ?? NSNull(), milliseconds(now)]),
           let timeline = result.toArray() as? [[String: Any]], !timeline.isEmpty
@@ -198,6 +207,7 @@ private struct SavedProvider: TimelineProvider {
 @available(iOS 17.0, *)
 private struct SavedPlatformView: View {
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.widgetFamily) private var widgetFamily
   var entry: SavedEntry
 
   private var dark: Bool {
@@ -206,14 +216,36 @@ private struct SavedPlatformView: View {
   private var foreground: Color { Color(boardHex: dark ? "#ECEDEF" : "#222528") }
   private var secondary: Color { Color(boardHex: dark ? "#929398" : "#60646B") }
 
+  private var fresh: Bool {
+    // WidgetKit can render a future timeline entry before displaying it.
+    let displayTime = milliseconds(max(.now, entry.date))
+    return (entry.board?.staleAt ?? entry.board?.expiresAt ?? 0) > displayTime
+  }
+
+  private var status: String {
+    fresh ? "Departures are up to date" : "Departures may be out of date"
+  }
+
   var body: some View {
+    Group {
+      if widgetFamily == .accessoryRectangular {
+        lockScreen
+          .containerBackground(.clear, for: .widget)
+      } else {
+        homeScreen
+          .containerBackground(Color(boardHex: dark ? "#171719" : "#FFFFFF"), for: .widget)
+      }
+    }
+    .privacySensitive()
+  }
+
+  private var homeScreen: some View {
     VStack(spacing: 0) {
       if let board = entry.board {
-        let now = milliseconds(.now)
         heading(board)
-        SavedDeparturePanel(board: board, now: now)
+        SavedDeparturePanel(board: board, roomy: widgetFamily == .systemLarge)
           .invalidatableContent()
-        footer(fresh: (board.expiresAt ?? 0) > now)
+        footer
       } else {
         VStack(spacing: 4) {
           Text("NextBranch").font(.headline)
@@ -223,8 +255,69 @@ private struct SavedPlatformView: View {
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }
-    .privacySensitive()
-    .containerBackground(Color(boardHex: dark ? "#171719" : "#FFFFFF"), for: .widget)
+  }
+
+  private var lockScreen: some View {
+    HStack(spacing: 0) {
+      if entry.board != nil {
+        lockScreenStatus
+      }
+      VStack(alignment: .leading, spacing: 2) {
+        Text(entry.board?.station ?? "NextBranch")
+          .font(.caption.weight(.semibold))
+          .minimumScaleFactor(0.85)
+          .accessibilityAddTraits(.isHeader)
+        if let platform = entry.board?.platform {
+          Text(platform)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        if let row = entry.board?.rows.first {
+          HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(row.identity)
+              .lineLimit(2)
+              .minimumScaleFactor(0.85)
+            Spacer(minLength: 0)
+            if let countdown = row.countdown {
+              Text(countdown).monospacedDigit().fixedSize()
+            }
+          }
+          .font(.caption.weight(.semibold))
+          .accessibilityElement(children: .combine)
+          .invalidatableContent()
+        } else {
+          Text(entry.board?.message ?? "Save a platform in NextBranch")
+            .font(.caption2)
+            .lineLimit(2)
+        }
+      }
+      .lineLimit(1)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(.horizontal, 4)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .foregroundStyle(.primary)
+  }
+
+  private var lockScreenStatus: some View {
+    // Different shapes preserve the status when iOS renders the widget in one tint.
+    let symbol = Image(systemName: fresh ? "circle.fill" : "diamond")
+      .font(.system(size: 9, weight: .semibold))
+    return Group {
+      if entry.canRefresh {
+        Button(intent: RefreshDepartures()) {
+          symbol.frame(width: 24, height: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Refresh departures")
+        .accessibilityValue(status)
+      } else {
+        symbol
+          .frame(width: 18)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(status)
+      }
+    }
   }
 
   private func heading(_ board: SavedBoard) -> some View {
@@ -297,12 +390,20 @@ private struct SavedPlatformView: View {
     .minimumScaleFactor(0.7)
   }
 
-  private func footer(fresh: Bool) -> some View {
-    HStack(spacing: 0) {
-      Circle()
-        .fill(Color(boardHex: fresh ? (dark ? "#6BCC8B" : "#247A40") : (dark ? "#F2AC48" : "#824A03")))
-        .frame(width: 8, height: 8)
-        .accessibilityLabel(fresh ? "Departures are up to date" : "Departures are not up to date")
+  private var footer: some View {
+    let dot = Circle()
+      .fill(Color(boardHex: fresh ? (dark ? "#6BCC8B" : "#247A40") : (dark ? "#F2AC48" : "#9A6207")))
+      .frame(width: 8, height: 8)
+      .frame(width: 44, height: 44)
+      .contentShape(Rectangle())
+    return HStack(spacing: 0) {
+      if entry.canRefresh {
+        Button(intent: RefreshDepartures()) { dot }
+          .accessibilityLabel("Refresh departures")
+          .accessibilityValue(status)
+      } else {
+        dot.accessibilityLabel(status)
+      }
       Spacer(minLength: 4)
       if entry.count > 1 {
         Text("\(entry.page)/\(entry.count)")
@@ -316,15 +417,11 @@ private struct SavedPlatformView: View {
         Button(intent: ChoosePlatform(key: next)) { control("chevron.down", compact: true) }
           .accessibilityLabel("Next platform")
       }
-      if entry.canRefresh {
-        Button(intent: RefreshDepartures()) { control("arrow.clockwise") }
-          .accessibilityLabel("Refresh departures")
-      }
     }
     .font(.system(size: 11).monospacedDigit())
     .foregroundStyle(secondary)
     .buttonStyle(.plain)
-    .padding(.leading, 20)
+    .padding(.leading, 2)
     .padding(.trailing, 12)
     .frame(height: 44)
   }
@@ -343,20 +440,19 @@ private struct SavedPlatformView: View {
 /// Gives each display style the same three departure slots between the header and controls.
 private struct SavedDeparturePanel: View {
   var board: SavedBoard
-  var now: Double
+  var roomy: Bool
 
   private var amber: Bool { board.style == "amber" }
-  private var expired: Bool { board.expiresAt.map { $0 <= now } ?? false }
   private var colors: SavedBoard.Palette {
     board.colors ?? .init(background: "#080C10", dot: "#29303B", frame: "#1B3444", rule: "#4F9BBB", text: "#BDEBFF", step: 7)
   }
   private var ink: Color { Color(boardHex: colors.text) }
 
   var body: some View {
-    let rows = expired ? [] : Array(board.rows.filter { $0.expiresAt > now }.prefix(3))
+    let rows = Array(board.rows.prefix(3))
     Group {
       if rows.isEmpty {
-        Text(expired ? "Waiting for fresh departures" : board.message ?? "No upcoming departures")
+        Text(board.message ?? "No upcoming departures")
           .font(.system(size: 12))
           .foregroundStyle(ink)
           .lineLimit(2)
@@ -404,10 +500,12 @@ private struct SavedDeparturePanel: View {
     let ordinal = String(index + 1)
     let matrix = board.ordinalMatrices.flatMap { $0.indices.contains(index) ? $0[index] : nil }
     let family = amber ? "AvenirNext-Regular" : "GillSans"
+    let countdown = row.countdown ?? "—"
+    let step: CGFloat = roomy ? 2.2 : 1.8
     return HStack(spacing: 7) {
       Group {
         if let matrix {
-          WidgetLED(lines: [matrix], color: ink, maxDotStep: 1.8)
+          WidgetLED(lines: [matrix], color: ink, maxDotStep: step)
         } else {
           Text(amber ? ordinal : ordinal + ".").font(.custom(family, size: 15))
         }
@@ -415,29 +513,32 @@ private struct SavedDeparturePanel: View {
       .frame(width: 16, alignment: .leading)
       Group {
         if let destination = row.destinationMatrix {
-          WidgetLED(lines: destination, color: ink, maxDotStep: 1.8)
+          WidgetLED(lines: destination, color: ink, maxDotStep: step)
         } else {
           Text(row.identity)
-            .font(.custom(amber ? family : "GillSans-SemiBold", size: amber ? 14 : 16))
+            .font(.custom(amber ? family : "GillSans-SemiBold", size: roomy ? 19 : amber ? 14 : 16))
             .lineLimit(2)
             .minimumScaleFactor(0.7)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       Group {
-        if let time = row.timeMatrix {
-          WidgetLED(lines: [time], color: ink, maxDotStep: 1.6, trailing: true)
+        if let matrix = row.countdownMatrix {
+          WidgetLED(lines: [matrix], color: ink, maxDotStep: step, trailing: true)
         } else {
-          Text(row.time).font(.custom(amber ? family : "GillSans-SemiBold", size: 15).monospacedDigit())
+          Text(countdown)
+            .font(.custom(amber ? family : "GillSans-SemiBold", size: roomy ? 19 : 15).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
       }
-      .frame(width: 49, alignment: .trailing)
+      .frame(width: roomy ? 74 : 61, alignment: .trailing)
     }
     .foregroundStyle(ink)
     .padding(.horizontal, 16)
     .frame(maxHeight: .infinity)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("\(ordinal), \(row.identity), expected at \(row.time) London time")
+    .accessibilityLabel([ordinal, row.identity, row.countdown].compactMap { $0 }.joined(separator: ", "))
   }
 
   private func rule(_ hex: String) -> some View {
@@ -491,7 +592,7 @@ struct SavedPlatforms: Widget {
     }
     .configurationDisplayName("Saved Platforms")
     .description("Switch between your saved platform departure boards.")
-    .supportedFamilies([.systemMedium])
+    .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular])
     .contentMarginsDisabled()
   }
 }

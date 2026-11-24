@@ -10,10 +10,49 @@ import { connectSavedPlatformWidgets } from '../src/widget-publisher';
 import type { WidgetConfiguration } from '../src/widget-timeline';
 
 vi.mock('../src/SavedPlatformWidget', () => ({
-  savedPlatformWidget: { updateSnapshot: vi.fn<(config: WidgetConfiguration) => void>() },
+  savedPlatformWidget: {
+    getTimeline: vi.fn(async (): Promise<{ date: Date; props: WidgetConfiguration }[]> => []),
+    updateSnapshot: vi.fn<(config: WidgetConfiguration) => void>(),
+  },
 }));
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.useRealTimers();
+});
+
+it('preserves the published platform board when the app restarts offline', async () => {
+  vi.useFakeTimers();
+  const fixture = fixtureRuntime('three-card-home', true);
+  const storage = { getItem: async () => null, setItem: async () => {} };
+  const preferences = createPreferences(storage, fixture.catalogue, Date.now, undefined, fixture.cards);
+  const stations = createStationOwner(fixture.transport, () => performance.now(), fixture.now);
+  stations.setOnline(false);
+  const selection = fixture.cards[0];
+  const board = {
+    station: 'Colindale', rows: [{ id: 'saved', identity: 'Morden', countdown: '2 min', expiresAt: Date.now() + 120_000 }],
+    expiresAt: Date.now() + 38_000,
+  };
+  vi.mocked(savedPlatformWidget.getTimeline).mockResolvedValueOnce([{ date: new Date(), props: {
+    pages: [{ key: selectionKey(selection), selection, board, relevantFeeds: [] }],
+  } }]);
+  const panel = vi.mocked(savedPlatformWidget.updateSnapshot);
+  const stop = connectSavedPlatformWidgets({
+    preferences, stations, catalogue: fixture.catalogue, discovery: createDiscovery(), now: fixture.now, synthetic: true,
+  });
+  try {
+    await preferences.load();
+    stations.own([selection.stationId]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(panel.mock.lastCall?.[0].pages[0]?.board).toMatchObject({
+      rows: board.rows, expiresAt: board.expiresAt, staleAt: Date.now(),
+    });
+    expect(panel.mock.lastCall?.[0].pages[1]?.board.rows).toEqual([]);
+  } finally {
+    stop();
+    stations.dispose();
+  }
+});
 
 it('extends the widget timeline when a successful fixture refresh has the same observation time', async () => {
   vi.useFakeTimers();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayCountdown, remainingSeconds, secondsToOrigin } from './time';
+import { displayCountdown, londonTime, remainingSeconds, secondsToOrigin } from './time';
 
 describe('countdown', () => {
   it.each([
@@ -39,5 +39,16 @@ describe('absolute arrival precision', () => {
   it('preserves invalid-date rejection through non-finite seconds', () => {
     expect(remainingSeconds('invalid', now)).toBeNaN();
     expect(secondsToOrigin('invalid', now)).toBeNaN();
+  });
+});
+
+describe('London wall-clock labels', () => {
+  it.each([
+    ['2026-01-15T08:05:00Z', '08:05'],
+    ['2026-07-15T08:05:00Z', '09:05'],
+    ['2026-10-25T00:59:00Z', '01:59'],
+    ['2026-10-25T01:00:00Z', '01:00'],
+  ])('formats %s as %s in London', (arrival, expected) => {
+    expect(londonTime(arrival)).toBe(expected);
   });
 });
