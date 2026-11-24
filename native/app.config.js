@@ -73,7 +73,7 @@ module.exports = ({ config }) => {
       name: require('./src/widget-name.json'),
       displayName: 'Saved Platforms',
       description: 'Departures for your saved platforms in NextBranch.',
-      ios: { supportedFamilies: ['systemMedium', 'systemLarge', 'accessoryRectangular'], initialLayout: './src/SavedPlatformWidget.tsx' },
+      ios: { supportedFamilies: ['systemMedium', 'systemLarge'], initialLayout: './src/SavedPlatformWidget.tsx' },
     }],
   }];
   return { ...config, icon: './assets/icon.png',

@@ -228,19 +228,6 @@ private struct SavedPlatformView: View {
   }
 
   var body: some View {
-    Group {
-      if widgetFamily == .accessoryRectangular {
-        lockScreen
-          .containerBackground(.clear, for: .widget)
-      } else {
-        homeScreen
-          .containerBackground(Color(boardHex: dark ? "#171719" : "#FFFFFF"), for: .widget)
-      }
-    }
-    .privacySensitive()
-  }
-
-  private var homeScreen: some View {
     VStack(spacing: 0) {
       if let board = entry.board {
         heading(board)
@@ -256,72 +243,8 @@ private struct SavedPlatformView: View {
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }
-  }
-
-  private var lockScreen: some View {
-    HStack(spacing: 0) {
-      if entry.board != nil {
-        lockScreenStatus
-      }
-      VStack(alignment: .leading, spacing: 2) {
-        Text(entry.board?.station ?? "NextBranch")
-          .font(.caption.weight(.semibold))
-          .minimumScaleFactor(0.85)
-          .accessibilityAddTraits(.isHeader)
-        if let platform = entry.board?.platform {
-          Text(platform)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .minimumScaleFactor(0.8)
-            .truncationMode(.middle)
-            .accessibilityLabel(Text(platform))
-        }
-        if let row = entry.board?.rows.first {
-          HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(row.identity)
-              .lineLimit(2)
-              .minimumScaleFactor(0.85)
-            Spacer(minLength: 0)
-            if let countdown = row.countdown {
-              Text(countdown).monospacedDigit().fixedSize()
-            }
-          }
-          .font(.caption.weight(.semibold))
-          .accessibilityElement(children: .combine)
-          .invalidatableContent()
-        } else {
-          Text(entry.board?.message ?? "Save a platform in NextBranch")
-            .font(.caption2)
-            .lineLimit(2)
-        }
-      }
-      .lineLimit(1)
-      .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    .padding(.horizontal, 4)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    .foregroundStyle(.primary)
-  }
-
-  private var lockScreenStatus: some View {
-    // Different shapes preserve the status when iOS renders the widget in one tint.
-    let symbol = Image(systemName: fresh ? "circle.fill" : "diamond")
-      .font(.system(size: 9, weight: .semibold))
-    return Group {
-      if entry.canRefresh {
-        Button(intent: RefreshDepartures()) {
-          symbol.frame(width: 24, height: 44).contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Refresh departures")
-        .accessibilityValue(status)
-      } else {
-        symbol
-          .frame(width: 18)
-          .accessibilityElement(children: .ignore)
-          .accessibilityLabel(status)
-      }
-    }
+    .containerBackground(Color(boardHex: dark ? "#171719" : "#FFFFFF"), for: .widget)
+    .privacySensitive()
   }
 
   private func heading(_ board: SavedBoard) -> some View {
@@ -395,19 +318,13 @@ private struct SavedPlatformView: View {
   }
 
   private var footer: some View {
-    let dot = Circle()
-      .fill(Color(boardHex: fresh ? (dark ? "#6BCC8B" : "#247A40") : (dark ? "#F2AC48" : "#9A6207")))
-      .frame(width: 8, height: 8)
-      .frame(width: 44, height: 44)
-      .contentShape(Rectangle())
-    return HStack(spacing: 0) {
-      if entry.canRefresh {
-        Button(intent: RefreshDepartures()) { dot }
-          .accessibilityLabel("Refresh departures")
-          .accessibilityValue(status)
-      } else {
-        dot.accessibilityLabel(status)
-      }
+    HStack(spacing: 0) {
+      Circle()
+        .fill(Color(boardHex: fresh ? (dark ? "#6BCC8B" : "#247A40") : (dark ? "#F2AC48" : "#9A6207")))
+        .frame(width: 8, height: 8)
+        .frame(width: 44, height: 44)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(status)
       Spacer(minLength: 4)
       if entry.count > 1 {
         Text("\(entry.page)/\(entry.count)")
@@ -420,6 +337,10 @@ private struct SavedPlatformView: View {
           .accessibilityLabel("Previous platform")
         Button(intent: ChoosePlatform(key: next)) { control("chevron.down", compact: true) }
           .accessibilityLabel("Next platform")
+      }
+      if entry.canRefresh {
+        Button(intent: RefreshDepartures()) { control("arrow.clockwise") }
+          .accessibilityLabel("Refresh departures")
       }
     }
     .font(.system(size: 11).monospacedDigit())
@@ -596,7 +517,7 @@ struct SavedPlatforms: Widget {
     }
     .configurationDisplayName("Saved Platforms")
     .description("Switch between your saved platform departure boards.")
-    .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular])
+    .supportedFamilies([.systemMedium, .systemLarge])
     .contentMarginsDisabled()
   }
 }

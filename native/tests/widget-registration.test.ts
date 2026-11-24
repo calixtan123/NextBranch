@@ -8,7 +8,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-it('registers one prototype widget for both the Home Screen and Lock Screen', () => {
+it('registers one prototype widget for the medium and large Home Screen sizes', () => {
   vi.stubEnv('EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE', '1');
   vi.stubEnv('NEXTBRANCH_RELEASE_BUILD', '');
 
@@ -18,7 +18,7 @@ it('registers one prototype widget for both the Home Screen and Lock Screen', ()
   expect(widgetPlugin?.[1].widgets).toEqual([expect.objectContaining({
     name: 'SavedPlatforms',
     ios: expect.objectContaining({
-      supportedFamilies: expect.arrayContaining(['systemMedium', 'systemLarge', 'accessoryRectangular']),
+      supportedFamilies: ['systemMedium', 'systemLarge'],
     }),
   })]);
 });

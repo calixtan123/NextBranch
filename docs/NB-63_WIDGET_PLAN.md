@@ -1,13 +1,12 @@
-# NextBranch Home Screen and Lock Screen widgets
+# NextBranch Home Screen widgets
 
-The first version lets iPhone testers switch between saved platform departures in one Home Screen widget without buying anything. A rectangular Lock Screen widget shows the next departure for the same selected platform. The production version makes Home Screen departure boards a paid feature. The in-app Home cards set the platform order and appearance. [NB-63](https://synapse21.atlassian.net/browse/NB-63)
+The first version lets iPhone testers switch between saved platform departures in one Home Screen widget without buying anything. The production version makes Home Screen departure boards a paid feature. The in-app Home cards set the platform order and appearance. [NB-63](https://synapse21.atlassian.net/browse/NB-63)
 
 ## Development prototype
 
 - Add the medium or large **Saved Platforms** widget. iOS sets the dimensions for each size. Use its up and down buttons to cycle through the saved cards in Manage Platforms order. The selected platform stays selected when cards move and falls back to the first card if removed. iOS handles vertical swipes for system widget stacks. WidgetKit exposes tap controls inside an individual Home Screen widget.
-- The Lock Screen widget shows the station, selected platform, next destination and countdown in a rectangular slot. A filled circle marks fresh departures and an outlined diamond marks stale data in the system tint. Tap the status symbol to request the same refresh where available. Use the Home Screen widget to switch platforms. iOS controls the Lock Screen widget’s size, tint and visibility on a locked device.
 - Each Home Screen page reserves the same space for the station, platform and direction, three departure rows, and footer. The heading uses the app card’s system font and coloured line marker. A long station name can use the full heading width, with the line label beside the platform below it. Amber uses orange dot-matrix destination text where it fits. Modern uses blue Gill Sans type and row dividers. Each page follows its card’s effective style in the app.
-- The extension uses the same departures API as the app when iOS wakes it, even while NextBranch is closed. It deduplicates saved platforms at the same station, requests another automatic refresh after about a minute, and honors `Retry-After`. iOS decides when it runs. Tap the dot to request a refresh, subject to the server’s retry window and a 30-second cooldown.
+- The extension uses the same departures API as the app when iOS wakes it, even while NextBranch is closed. It deduplicates saved platforms at the same station, requests another automatic refresh after about a minute, and honors `Retry-After`. iOS decides when it runs. When available, tap the circular-arrow button at the right of the footer to request a refresh, subject to the server’s retry window and a 30-second cooldown.
 - The widget displays the app’s minute countdown and “Due” wording. Both use absolute train timestamps, and the app’s clock-time labels follow London time, including British Summer Time. The widget keeps the last displayed predictions when an update is delayed or fails. The footer dot is green for fresh data and yellow when a refresh is needed. VoiceOver reads the status and refresh action where available.
 - The extension is opt-in for local development. The standard release configuration omits the extension, and a release build explicitly rejects the prototype flag.
 
@@ -25,14 +24,10 @@ npm run ios
 
 1. Open NextBranch and wait for all three boards to load. If you have multiple simulators, add `-- --device "NextBranch Widget Test"` to `npm run ios` to target the dedicated simulator by name. To try real saved platforms, unset the fixture and seed variables, set `EXPO_PUBLIC_NEXTBRANCH_API_URL` to the live API origin, and restart the development server.
 2. On the iPhone Home Screen, hold an empty area, choose **Edit** and **Add Widget**, then search for **NextBranch**. Choose the medium or large **Saved Platforms** widget. Remove any earlier numbered prototype widgets from the Home Screen.
-3. Hold the Lock Screen, choose **Customise** and **Lock Screen**, then tap **Add Widgets** below the clock. Find **NextBranch**, add the rectangular **Saved Platforms** widget and tap **Done**. If there is no space, move or remove another widget.
-4. Return to the Home Screen and tap the down button through all saved platforms. Tap up to go back. Check heading fit, board size and appearance against the saved cards. Reorder a card and check that it remains selected. Remove that card and check that the widget selects the first saved card.
-5. Check the Lock Screen follows the same platform selection and shows the same first destination and countdown. Check the no-platform and no-departure states, the circle and diamond in the system tint, and VoiceOver’s refresh and freshness labels.
-6. Use a reachable API origin and real saved platforms to test extension-initiated refresh. Close NextBranch and check the widget after an automatic wake. Tap the yellow dot, then check a failed response keeps the last predictions and a fresh response with no trains updates the board. The built-in fixture tests paging and appearance with illustrative data and disables widget network requests.
+3. Tap the down button through all saved platforms. Tap up to go back. Check heading fit, board size and appearance against the saved cards. Reorder a card and check that it remains selected. Remove that card and check that the widget selects the first saved card.
+4. Use a reachable API origin and real saved platforms to test extension-initiated refresh. Close NextBranch and check the widget after an automatic wake. When the dot is yellow, tap the circular-arrow button. Check that a failed response keeps the last predictions and a fresh response with no trains updates the board. With VoiceOver, check that the dot announces freshness and the button is labelled **Refresh departures**. The built-in fixture tests paging and appearance with illustrative data and disables widget network requests.
 
 WidgetKit decides when to run a requested refresh and draw the latest status. [Apple’s widget update guidance](https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date) · [Apple’s interactive widget guidance](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)
-
-Picker placement, compact layout, tint, privacy, and refresh interaction on the Lock Screen require simulator or device verification. The existing simulator runs below covered the Home Screen.
 
 ## Single-widget simulator verification
 
