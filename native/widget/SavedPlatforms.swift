@@ -111,6 +111,7 @@ struct ChoosePlatform: AppIntent {
 
   func perform() async throws -> some IntentResult {
     WidgetPreferences.defaults?.set(key, forKey: WidgetPreferences.pageKey)
+    WidgetCenter.shared.reloadTimelines(ofKind: WidgetPreferences.kind)
     return .result()
   }
 }
