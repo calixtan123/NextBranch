@@ -19,11 +19,10 @@ function displayVia(value: string | null | undefined): string {
   return `via ${compact ?? via[1]}`;
 }
 
-/** Projects an exact physical platform before sorting and taking its visible row limit. */
-export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit: 3 | 5) {
+/** Projects current departures for an exact platform, in arrival order. */
+export function boardRows(snapshot: Snapshot | undefined, selection: Selection, now: number, limit?: 3 | 5) {
   if (snapshot?.station.id !== selection.stationId) return [];
   now = responseTime(snapshot, now);
-  const clock = new Date(now);
   return snapshot.platforms
     .filter(group => selection.physicalPlatformId ? group.physicalPlatformId === selection.physicalPlatformId :
       group.physicalPlatformId !== null && group.platform === selection.platform && group.direction === selection.direction)
@@ -42,7 +41,7 @@ export function boardRows(snapshot: Snapshot | undefined, selection: Selection, 
         lineId: row.lineId,
         destination,
         branch,
-        countdown: displayCountdown(remainingSeconds(row.expectedArrival, clock)),
+        countdown: displayCountdown(remainingSeconds(row.expectedArrival, now)),
         expectedArrival: row.expectedArrival,
       };
     });

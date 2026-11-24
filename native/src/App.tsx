@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { AccessibilityInfo, Appearance, AppState, StatusBar, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Appearance, AppState, Platform, StatusBar, useColorScheme } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -71,6 +71,17 @@ export function App() {
   useEffect(() => {
     Appearance.setColorScheme(interfaceTheme ?? 'unspecified');
   }, [interfaceTheme]);
+
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE === '1' && __DEV__ && Platform.OS === 'ios') {
+      try {
+        const { connectSavedPlatformWidgets } = require('./widget-publisher') as typeof import('./widget-publisher');
+        return connectSavedPlatformWidgets(runtime);
+      } catch (error) {
+        console.warn('Could not start the saved-platform widgets', error);
+      }
+    }
+  }, [runtime]);
 
   const systemTheme = light ? DefaultTheme : DarkTheme;
   return <SafeAreaProvider>

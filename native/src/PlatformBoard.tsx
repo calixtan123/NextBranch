@@ -9,6 +9,7 @@ import { londonTime } from '../../src/lib/northern/time';
 import {
   boardRows, boardStatus, departureIdentity, glyphAdvance, glyphHeight, layoutFor, matrixDotSize, matrixDotStep, matrixWidth, unassignedCount, wrapMatrix,
 } from './board-model';
+import { boardPalette } from './board-palette';
 import type { Selection } from './catalogue';
 import { LineLabels } from './LineLabels';
 import { lineLabels, platformPickerTitle } from './line-presentation';
@@ -17,8 +18,7 @@ import type { Style } from './preferences';
 import { type createStationOwner } from './station-owner';
 import { Action, Label, ui, usePalette, type CardPressInteraction } from './theme';
 
-const amber = { background: '#0C0C09', dot: '#30281B', frame: '#3D2E14', rule: '#251F15', text: '#FFAA25', step: 6 };
-const modern = { background: '#080C10', dot: '#29303B', frame: '#1B3444', rule: '#4F9BBB', text: '#BDEBFF', step: 7 };
+const { amber, modern } = boardPalette;
 const glowBlur = 1.25;
 const glowPadding = 4;
 const modernStackWidth = 290;
@@ -79,7 +79,7 @@ function TrainRow({ row, index, style, width, expanded, last }: {
 }) {
   const { fontScale } = useWindowDimensions();
   const isAmber = style === 'amber';
-  const board = isAmber ? amber : modern;
+  const board = boardPalette[style];
   const text = row.identity;
   const matrix = layoutFor(style, fontScale, text) === 'matrix' && width > 0;
   const scale = .85;
@@ -155,7 +155,7 @@ export function PlatformBoard({ selection, style, state, now, online, limited, e
   const caveats = [...new Set([departureCoverage, ...details ?? []].filter((detail): detail is string => Boolean(detail)))];
   const rows = boardRows(state.snapshot, selection, now, expanded ? 5 : 3)
     .map(row => ({ ...row, identity: departureIdentity(row, platform?.services) }));
-  const board = style === 'amber' ? amber : modern;
+  const board = boardPalette[style];
   const capabilities = platform?.services.map(service => serviceCapability(station!, platform, service));
   const relevantFeeds = platform?.services
     .filter((_service, index) => capabilities![index].feed === 'supported')
