@@ -5,6 +5,14 @@
       "environment": "production",
       "autoIncrement": true,
       "env": { "NEXTBRANCH_RELEASE_BUILD": "1" }
+    },
+    "testflight": {
+      "extends": "production",
+      "env": {
+        "NEXTBRANCH_RELEASE_BUILD": "1",
+        "EXPO_PUBLIC_NEXTBRANCH_TESTFLIGHT_WIDGET": "1",
+        "EXPO_PUBLIC_NEXTBRANCH_MOCK_PLANS": "1"
+      }
     }
   },
   "submit": { "production": {} }

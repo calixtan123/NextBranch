@@ -8,7 +8,7 @@ private actor DepartureRefresh {
   private var inFlight: Task<Void, Never>?
 
   func update(_ configuration: SavedConfiguration, rawPages: [Data]) async {
-    guard let origin = configuration.origin else { return }
+    guard WidgetPreferences.allowsPublishedAccess, let origin = configuration.origin else { return }
     let pages = configuration.pages.filter { $0.review != true }
     let stations = Set(pages.map { $0.selection.stationId })
     guard !stations.isEmpty else { return }
@@ -26,7 +26,9 @@ private actor DepartureRefresh {
     WidgetPreferences.defaults?.removeObject(forKey: WidgetPreferences.refreshKey)
 
     let task = Task {
+      guard WidgetPreferences.allowsPublishedAccess else { return }
       let results = await Self.fetch(stations.sorted(), origin: origin)
+      // Keep the throttle for this request. The timeline provider checks access again before rendering.
       let responses = Self.merge(results.compactMap(\.response), into: cache, for: pages, rawPages: rawPages)
       let retry = results.compactMap(\.retryAt).max() ?? now
       RefreshCache(
@@ -93,6 +95,7 @@ private actor DepartureRefresh {
     let clock = ContinuousClock()
     let start = clock.now
     do {
+      guard WidgetPreferences.allowsPublishedAccess else { return StationFetch() }
       let (body, response) = try await session.data(for: request)
       guard let http = response as? HTTPURLResponse else { return StationFetch() }
       let now = Date.now

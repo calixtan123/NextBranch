@@ -4,7 +4,7 @@ import { byId } from '../../src/lib/northern/stations';
 import { selectionKey, type Selection } from './catalogue';
 import type { Screen } from './navigation';
 import { platformName } from './PlatformBoard';
-import { type Mode, type Style } from './preferences';
+import { savedCardLimit, type Mode, type Style } from './preferences';
 import { Surface, usePreferences, useRuntime } from './screen-context';
 import { Action, Icon, IconButton, Label, Result, paletteFor, ui, usePalette } from './theme';
 
@@ -80,7 +80,8 @@ function ReorderHandle({ label, first, last, drag, move }: {
 /** Manages the saved order or confirms replacement of a specific slot. */
 export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
   const { preferences, discovery } = useRuntime();
-  const { cards, removal } = usePreferences();
+  const { cards, removal, mockPlan, pausedCards = [] } = usePreferences();
+  const hasVacancy = cards.length < savedCardLimit(mockPlan);
   const colors = usePalette();
   const undoing = route.params?.undo === true;
   const [undoIntent] = useState(() => undoing ? preferences.get().removal : null);
@@ -106,6 +107,21 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
         if (success) navigation.popToTop();
         else Alert.alert('The saved platforms changed', 'Return to the platform board or manage your current selections.');
       } },
+    ]);
+  };
+  const activate = (card: Selection) => {
+    const key = selectionKey(card);
+    const activateInSlot = (swapKey?: string) => {
+      if (preferences.activatePaused(key, swapKey)) {
+        AccessibilityInfo.announceForAccessibility(identity(card, discovery) + ' is active');
+      } else {
+        Alert.alert('The saved platforms changed', 'Choose an active slot again.');
+      }
+    };
+    if (hasVacancy) activateInSlot();
+    else Alert.alert('Swap with an active platform', identity(card, discovery), [
+      ...cards.map(active => ({ text: identity(active, discovery), onPress: () => activateInSlot(selectionKey(active)) })),
+      { text: 'Cancel', style: 'cancel' },
     ]);
   };
   const move = (key: string, delta: number) => {
@@ -180,6 +196,13 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
         </View>;
       })}
     </View>
+    {!replacing && pausedCards.length > 0 && <View style={{ marginTop: 12, marginBottom: 8 }}>
+      <Label bold accessibilityRole="header" style={{ marginBottom: 8 }}>Paused platforms</Label>
+      <Label tone="dim" style={{ marginBottom: 8 }}>Your paused cards and their display styles are saved.</Label>
+      {pausedCards.map(card => <Result key={selectionKey(card)} title={name(card, discovery)}
+        detail={platformName(card) + (hasVacancy ? ' · Move to an active slot' : ' · Swap with an active platform')}
+        onPress={() => activate(card)} />)}
+    </View>}
     <View style={ui.wrap}>
       {!replacing && removal && <Action onPress={undo}>Undo removal</Action>}
       <Action onPress={navigation.goBack} primary>{replacing ? 'Cancel' : 'Done'}</Action>
@@ -190,7 +213,7 @@ export function ManageScreen({ navigation, route }: Screen<'Manage'>) {
 /** Opens appearance and saved-card settings. */
 export function SettingsScreen({ navigation }: Screen<'Settings'>) {
   const { preferences } = useRuntime();
-  const { ready } = usePreferences();
+  const { ready, mockPlan } = usePreferences();
   const colors = usePalette();
   return <Surface title="Settings" onBack={navigation.goBack}>
     <Label tone="dim" style={[textInset, { marginTop: 4 }]}>
@@ -207,7 +230,53 @@ export function SettingsScreen({ navigation }: Screen<'Settings'>) {
     </View>
     <Result title="Appearance" detail="Card display styles" onPress={() => navigation.navigate('Appearance')} />
     <Result title="Manage cards" detail="Customise, reorder or remove platforms" onPress={() => navigation.navigate('Manage')} />
+    {mockPlan && <Result title="Plans" detail="TestFlight Free and Pro" onPress={() => navigation.navigate('Plans')} />}
     <Result title="About and privacy" detail="Beta feedback, data use and coverage" onPress={() => navigation.navigate('About')} />
+  </Surface>;
+}
+
+/** Switches the local TestFlight plan and optionally finishes a pending save. */
+export function PlansScreen({ navigation, route }: Screen<'Plans'>) {
+  const { preferences, discovery } = useRuntime();
+  const { mockPlan } = usePreferences();
+  const pending = route.params?.pendingSave;
+  const tryPro = () => {
+    preferences.setMockPlan('pro');
+    if (pending) {
+      const result = preferences.save(pending);
+      if (result === 'saved' || result === 'duplicate') {
+        AccessibilityInfo.announceForAccessibility('Pro is active. Platform saved.');
+        navigation.popToTop();
+        return;
+      }
+    }
+    AccessibilityInfo.announceForAccessibility('Pro is active');
+  };
+  return <Surface title="Plans" onBack={navigation.goBack}>
+    <Label tone="dim" style={textInset}>
+      These are TestFlight mock plans. Switching plans is free and takes effect on this device.
+    </Label>
+    <Label bold style={textInset}>Current mock plan · {mockPlan === 'pro' ? 'Pro' : 'Free'}</Label>
+    {pending && <View style={textInset}>
+      <Label bold accessibilityRole="header" style={{ marginBottom: 6 }}>{identity(pending, discovery)}</Label>
+      <Label tone="dim" style={{ marginBottom: 8 }}>
+        {mockPlan === 'free' ? 'Your Free slots are full. Replace a saved platform or try Pro to keep more active cards.'
+          : 'Your Pro slots are full. Replace a saved platform to finish this save.'}
+      </Label>
+      <Action onPress={() => navigation.navigate('Manage', { replacement: pending })}>Replace a saved platform</Action>
+    </View>}
+    <Label bold size={18} accessibilityRole="header" style={{ marginBottom: 5 }}>Free</Label>
+    <Label tone="dim" style={textInset}>Two active platform cards, a sample ad on Home and a locked widget.</Label>
+    {mockPlan === 'pro' && <View style={textInset}>
+      <Action onPress={() => {
+        preferences.setMockPlan('free');
+        AccessibilityInfo.announceForAccessibility('Free is active');
+      }}>Switch to Free</Action>
+    </View>}
+    <Label bold size={18} accessibilityRole="header" style={{ marginBottom: 5 }}>Pro</Label>
+    <Label tone="dim" style={textInset}>Seven active platform cards, the Saved Platforms widget and ad-free Home.</Label>
+    <Label style={textInset}>Example prices · £8.99/year or £1.49/month</Label>
+    {mockPlan === 'free' && <View style={textInset}><Action primary onPress={tryPro}>Try Pro</Action></View>}
   </Surface>;
 }
 

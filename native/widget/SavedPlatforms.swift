@@ -10,6 +10,27 @@ private enum WidgetPreferences {
   static let pageKey = "nextbranch-widget-page"
   static let refreshKey = "nextbranch-widget-refresh-requested"
   static let cacheKey = "nextbranch-widget-departures-cache"
+  static let plansURL = URL(string: "nextbranch://plans")
+
+  static func allowsAccess(_ props: [String: Any]?) -> Bool {
+    #if NEXTBRANCH_MOCK_PLANS
+    return props?["mockPlan"] as? String == "pro"
+    #else
+    return true
+    #endif
+  }
+
+  static var allowsPublishedAccess: Bool {
+    #if NEXTBRANCH_MOCK_PLANS
+    // Read the same snapshot as Expo's provider for intents and late rendering.
+    guard WidgetsStorage.appGroupIdentifier != nil,
+          let entry = WidgetsStorage.getArray(forKey: "__expo_widgets_\(kind)_timeline")?.first as? [String: Any],
+          entry["timestamp"] is Int else { return false }
+    return allowsAccess(entry["props"] as? [String: Any])
+    #else
+    return true
+    #endif
+  }
   static var defaults: UserDefaults? {
     guard let group = WidgetsStorage.appGroupIdentifier else { return nil }
     return UserDefaults(suiteName: group)
@@ -110,6 +131,7 @@ struct ChoosePlatform: AppIntent {
   init(key: String) { self.key = key }
 
   func perform() async throws -> some IntentResult {
+    guard WidgetPreferences.allowsPublishedAccess else { return .result() }
     WidgetPreferences.defaults?.set(key, forKey: WidgetPreferences.pageKey)
     WidgetCenter.shared.reloadTimelines(ofKind: WidgetPreferences.kind)
     return .result()
@@ -122,6 +144,7 @@ struct RefreshDepartures: AppIntent {
   static var isDiscoverable: Bool = false
 
   func perform() async throws -> some IntentResult {
+    guard WidgetPreferences.allowsPublishedAccess else { return .result() }
     WidgetPreferences.defaults?.set(true, forKey: WidgetPreferences.refreshKey)
     return .result()
   }
@@ -135,13 +158,16 @@ private struct SavedEntry: TimelineEntry {
   var previous: String?
   var next: String?
   var canRefresh = false
+  var locked = false
 }
 
 /// Reuses the public Expo provider to read the snapshot. This provider owns the visible timeline.
 private struct SavedProvider: TimelineProvider {
   private let published = WidgetsTimelineProvider(name: WidgetPreferences.kind)
 
-  func placeholder(in context: Context) -> SavedEntry { SavedEntry(date: .now) }
+  func placeholder(in context: Context) -> SavedEntry {
+    SavedEntry(date: .now, locked: !WidgetPreferences.allowsPublishedAccess)
+  }
 
   func getSnapshot(in context: Context, completion: @escaping @Sendable (SavedEntry) -> Void) {
     published.getSnapshot(in: context) { result in
@@ -152,17 +178,21 @@ private struct SavedProvider: TimelineProvider {
   func getTimeline(in context: Context, completion: @escaping @Sendable (Timeline<SavedEntry>) -> Void) {
     published.getSnapshot(in: context) { result in
       Task {
-        if let configuration = Self.configuration(from: result.props) {
+        if WidgetPreferences.allowsAccess(result.props), let configuration = Self.configuration(from: result.props) {
           let pages = (result.props?["pages"] as? [[String: Any]] ?? []).compactMap {
             try? JSONSerialization.data(withJSONObject: $0)
           }
           await DepartureRefresh.shared.update(configuration, rawPages: pages)
         }
-        // The app may have removed, restyled or reordered platforms while the request ran.
+        // Read the current plan and cards after refresh. The app can change either during the request.
         published.getSnapshot(in: context) { latest in
           let now = Date.now
-          let configuration = Self.configuration(from: latest.props) ?? SavedConfiguration(pages: [])
           let entries = Self.entries(from: latest.props, now: now)
+          guard WidgetPreferences.allowsAccess(latest.props) else {
+            completion(Timeline(entries: entries, policy: .never))
+            return
+          }
+          let configuration = Self.configuration(from: latest.props) ?? SavedConfiguration(pages: [])
           completion(Timeline(entries: entries, policy: .after(DepartureRefresh.nextWake(configuration, now: now))))
         }
       }
@@ -175,6 +205,7 @@ private struct SavedProvider: TimelineProvider {
   }
 
   private static func entries(from props: [String: Any]?, now: Date) -> [SavedEntry] {
+    guard WidgetPreferences.allowsAccess(props) else { return [SavedEntry(date: now, locked: true)] }
     guard let config = configuration(from: props), !config.pages.isEmpty,
           let raw = props?["pages"] as? [[String: Any]]
     else { return [SavedEntry(date: now)] }
@@ -228,8 +259,19 @@ private struct SavedPlatformView: View {
   }
 
   var body: some View {
+    let locked = entry.locked || !WidgetPreferences.allowsPublishedAccess
     VStack(spacing: 0) {
-      if let board = entry.board {
+      if locked {
+        VStack(spacing: 6) {
+          Text("Saved Platforms").font(.headline).accessibilityAddTraits(.isHeader)
+          Text("Available with NextBranch Pro").font(.subheadline)
+          Text("View Plans").font(.subheadline.bold())
+        }
+        .multilineTextAlignment(.center)
+        .foregroundStyle(foreground)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
+      } else if let board = entry.board {
         heading(board)
         SavedDeparturePanel(board: board, roomy: widgetFamily == .systemLarge)
           .invalidatableContent()
@@ -244,6 +286,7 @@ private struct SavedPlatformView: View {
       }
     }
     .containerBackground(Color(boardHex: dark ? "#171719" : "#FFFFFF"), for: .widget)
+    .widgetURL(locked ? WidgetPreferences.plansURL : nil)
     .privacySensitive()
   }
 

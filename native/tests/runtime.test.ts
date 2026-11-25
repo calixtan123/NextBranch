@@ -164,3 +164,18 @@ it('retains conservative live body parsing duration on the monotonic clock throu
   expect(state.snapshot?.timing?.receivedAt).toBe(8_000);
   expect(responseAge(state.snapshot!, runtime.now())).toBe(8_000);
 });
+
+it.each([
+  { dev: false, widget: '', mock: '', enabled: false },
+  { dev: false, widget: '', mock: '1', enabled: false },
+  { dev: false, widget: '1', mock: '', enabled: false },
+  { dev: true, widget: '1', mock: '1', enabled: false },
+  { dev: false, widget: '1', mock: '1', enabled: true },
+])('enables mock plans only in the TestFlight release bundle ($dev, $widget, $mock)', async ({ dev, widget, mock, enabled }) => {
+  vi.stubGlobal('__DEV__', dev);
+  vi.stubEnv('EXPO_PUBLIC_NEXTBRANCH_TESTFLIGHT_WIDGET', widget);
+  vi.stubEnv('EXPO_PUBLIC_NEXTBRANCH_MOCK_PLANS', mock);
+  runtime = createRuntime();
+  await runtime.preferences.load();
+  expect(runtime.preferences.get().mockPlan).toBe(enabled ? 'free' : undefined);
+});

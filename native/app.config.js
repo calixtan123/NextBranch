@@ -61,7 +61,13 @@ function assertReleaseOrigin(value) {
 
 module.exports = ({ config }) => {
   const prototype = process.env.EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE === '1';
-  if (process.env.NEXTBRANCH_RELEASE_BUILD === '1') {
+  const testFlightWidget = process.env.EXPO_PUBLIC_NEXTBRANCH_TESTFLIGHT_WIDGET === '1';
+  const mockPlans = process.env.EXPO_PUBLIC_NEXTBRANCH_MOCK_PLANS === '1';
+  const release = process.env.NEXTBRANCH_RELEASE_BUILD === '1';
+  if (mockPlans && (!release || !testFlightWidget || prototype)) {
+    throw new Error('Mock plans require the TestFlight widget release configuration');
+  }
+  if (release) {
     if (prototype) throw new Error('The development widget prototype cannot be included in a release build');
     assertReleaseOrigin(process.env.EXPO_PUBLIC_NEXTBRANCH_API_URL);
     for (const name of ['EXPO_PUBLIC_NEXTBRANCH_FIXTURE', 'EXPO_PUBLIC_NEXTBRANCH_SEED']) {
@@ -78,6 +84,12 @@ module.exports = ({ config }) => {
   }];
   return { ...config, icon: './assets/icon.png',
     // Expo runs Xcode mods in reverse registration order, so create the target first.
-    ...(prototype ? { plugins: [...config.plugins ?? [], './widget/with-saved-platform-widget', widgetPlugin] } : {}),
+    ...(mockPlans ? { scheme: 'nextbranch' } : {}),
+    ...(prototype || (release && testFlightWidget) ? {
+      plugins: [...config.plugins ?? [],
+        mockPlans ? ['./widget/with-saved-platform-widget', { mockPlans }] : './widget/with-saved-platform-widget',
+        widgetPlugin,
+      ],
+    } : {}),
   };
 };

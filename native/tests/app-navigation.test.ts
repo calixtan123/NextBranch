@@ -1,7 +1,9 @@
 /** Covers App initialization at mocked native and navigation lifecycle boundaries. */
 import { Children, isValidElement, type ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { getStateFromPath } from '@react-navigation/core';
 import { App } from '../src/App';
+import { plansLinking } from '../src/navigation';
 import { createPreferences } from '../src/preferences';
 import { createCatalogue } from '../src/catalogue';
 import { createStationOwner } from '../src/station-owner';
@@ -53,6 +55,7 @@ vi.mock('@react-native-community/netinfo', () => ({ default: {
   },
 } }));
 vi.mock('@react-navigation/native', () => ({
+  createNavigationContainerRef: () => boundary.navigation,
   NavigationContainer: 'NavigationContainer', DarkTheme: { colors: {} }, DefaultTheme: { colors: {} },
 }));
 vi.mock('@react-navigation/native-stack', () => ({
@@ -62,10 +65,9 @@ vi.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaPr
 vi.mock('../src/LiveScreens', () => ({ HomeScreen: 'HomeScreen', DeparturesScreen: 'DeparturesScreen' }));
 vi.mock('../src/ManageScreens', () => ({
   AppearanceScreen: 'AppearanceScreen', CardDisplayScreen: 'CardDisplayScreen',
-  ManageScreen: 'ManageScreen', SettingsScreen: 'SettingsScreen', AboutScreen: 'AboutScreen',
+  PlansScreen: 'PlansScreen', ManageScreen: 'ManageScreen', SettingsScreen: 'SettingsScreen', AboutScreen: 'AboutScreen',
 }));
 vi.mock('../src/SearchScreens', () => ({ PickerScreen: 'PickerScreen', PlatformDetailsScreen: 'PlatformDetailsScreen', SearchScreen: 'SearchScreen' }));
-vi.mock('../src/navigation', () => ({ navigationRef: boundary.navigation }));
 vi.mock('../src/runtime', () => ({ createRuntime: boundary.runtime }));
 vi.mock('../src/screen-context', () => ({ Runtime: { Provider: 'RuntimeProvider' } }));
 vi.mock('../src/theme', () => ({ Theme: { Provider: 'ThemeProvider' }, paletteFor: (light: boolean) => ({ bg: light ? 'paper' : 'charcoal', surface: light ? 'white' : 'black', fg: light ? 'black' : 'white', border: 'border' }) }));
@@ -368,4 +370,25 @@ it('keeps synthetic fixtures independent of device connectivity and NetInfo conf
     app.cleanup();
   }
   expect(boundary.unsubscribeNetwork).not.toHaveBeenCalled();
+});
+
+it('registers the widget link only for mock plans and initializes Plans with Home behind it', () => {
+  const runtime = { stations: {}, catalogue: {}, synthetic: false };
+  boundary.runtime.mockReturnValue({ ...runtime, preferences: { get: () => ({}), subscribe: () => () => {} } });
+  expect(screenPresentations(App()).some(screen => screen.name === 'Plans')).toBe(false);
+
+  boundary.slots = [];
+  boundary.cursor = 0;
+  boundary.runtime.mockReturnValue({ ...runtime, preferences: { get: () => ({ mockPlan: 'free' }), subscribe: () => () => {} } });
+  const tree = App();
+  expect(screenPresentations(tree)).toContainEqual({ name: 'Plans', presentation: 'card' });
+  expect(nodes(tree).find(node => node.type === 'NavigationContainer')?.props.linking).toBe(plansLinking);
+  const url = 'nextbranch://plans';
+  expect(plansLinking.filter?.(url)).toBe(true);
+  expect(plansLinking.filter?.('nextbranch://departures')).toBe(false);
+  expect(plansLinking.filter?.('nextbranch://plans?pendingSave=untrusted')).toBe(false);
+  const path = url.slice(plansLinking.prefixes[0].length);
+  const state = getStateFromPath(path, plansLinking.config);
+  expect(state?.routes.map(route => route.name)).toEqual(['Home', 'Plans']);
+  expect(state?.index).toBe(1);
 });

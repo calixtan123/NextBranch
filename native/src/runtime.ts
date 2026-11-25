@@ -21,6 +21,8 @@ export function createRuntime() {
     ? (require('./fixture') as typeof import('./fixture'))
       .fixtureRuntime(scenario, process.env.EXPO_PUBLIC_NEXTBRANCH_SEED === '1')
     : null;
+  const mockPlans = !__DEV__ && process.env.EXPO_PUBLIC_NEXTBRANCH_TESTFLIGHT_WIDGET === '1'
+    && process.env.EXPO_PUBLIC_NEXTBRANCH_MOCK_PLANS === '1';
   const discovery = createDiscovery();
   const catalogue: Catalogue = fixture?.catalogue ?? (discovery.catalogue ? createCanonicalCatalogue(discovery.catalogue) : createCatalogue(reviewedCatalogue));
   const elapsed = () => performance.now();
@@ -35,7 +37,7 @@ export function createRuntime() {
     preferences: createPreferences(AsyncStorage, catalogue, Date.now,
       fixture ? fixturePreferencesKey : 'nextbranch.preferences', fixture?.cards,
       id => discovery.catalogue ? discovery.catalogue.stationsByAnyId.has(id) : Boolean(id.trim()),
-      id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
+      id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id, { mockPlans }),
     // Fixture display time is frozen, but cooldowns and polling need elapsed time.
     stations: createStationOwner(fixture?.transport ?? liveTransport(), elapsed, now,
       id => fixture ? id : discovery.catalogue?.stationsByAnyId.get(id)?.station_id ?? id),
