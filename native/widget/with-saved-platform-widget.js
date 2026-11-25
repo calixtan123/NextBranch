@@ -4,7 +4,7 @@ const path = require('node:path');
 const { withXcodeProject } = require('expo/config-plugins');
 const widgetName = require('../src/widget-name.json');
 
-module.exports = config => withXcodeProject(config, async config => {
+module.exports = (config, { mockPlans = false } = {}) => withXcodeProject(config, async config => {
   const project = config.modResults;
   const targetName = 'ExpoWidgetsTarget';
   const widgetTarget = project.pbxNativeTargetSection()[project.findTargetKey(targetName)];
@@ -13,7 +13,9 @@ module.exports = config => withXcodeProject(config, async config => {
   for (const { value } of configurationList.buildConfigurations) {
     // WidgetKit needs metadata for the button intents. Xcode's debug launcher can hide
     // the AppIntents dependency from the extractor by moving it into a separate dylib.
-    buildConfigurations[value].buildSettings.ENABLE_DEBUG_DYLIB = 'NO';
+    const settings = buildConfigurations[value].buildSettings;
+    settings.ENABLE_DEBUG_DYLIB = 'NO';
+    if (mockPlans) settings.SWIFT_ACTIVE_COMPILATION_CONDITIONS = '"$(inherited) NEXTBRANCH_MOCK_PLANS"';
   }
 
   const { rolldown } = await import('rolldown');

@@ -307,3 +307,104 @@ it('queues recovery before ready subscribers can save a new preference', async (
   expect(storage.setItem.mock.calls.map(call => JSON.parse(call[1]).cards)).toEqual([[], [a]]);
   expect(owner.get().warning).toBeNull();
 });
+
+const legacyKey = 'nextbranch.preferences';
+const mockKey = legacyKey + '.testflight-plans';
+const mockCatalogueCards = [a, b, c, d, ...['C', 'D', 'E', 'F'].map(platform => selection(colindale, platform))];
+const mockCatalogue = createCatalogue({ version: 1, platforms: mockCatalogueCards });
+const mockOwner = (storage: Parameters<typeof createPreferences>[0]) =>
+  createPreferences(storage, mockCatalogue, () => 0, undefined, undefined, undefined, undefined, { mockPlans: true });
+const localStorage = (values: Record<string, string> = {}) => ({
+  getItem: vi.fn(async (key: string) => values[key] ?? null),
+  setItem: vi.fn(async (key: string, value: string) => { values[key] = value; }),
+});
+
+it('copies legacy preferences into the isolated Free namespace, preserving the third card and its style', async () => {
+  const legacy = JSON.stringify({ version: 1, cards: [a, b, { ...c, style: 'modern' }], mode: 'custom',
+    recent: [camden], interfaceTheme: 'dark' });
+  const storage = localStorage({ [legacyKey]: legacy });
+  const owner = mockOwner(storage);
+  await owner.load();
+  await owner.flush();
+  expect(owner.get()).toMatchObject({
+    mockPlan: 'free', cards: [{ platform: 'A' }, { platform: 'B' }],
+    pausedCards: [{ ...c, style: 'modern' }], mode: 'custom', recent: [camden], interfaceTheme: 'dark',
+  });
+  expect(await storage.getItem(legacyKey)).toBe(legacy);
+  expect(storage.setItem.mock.calls.map(([key]) => key)).toEqual([mockKey]);
+  expect(JSON.parse((await storage.getItem(mockKey))!)).toEqual({
+    ...JSON.parse(legacy), cards: [a, b], mockPlan: 'free', pausedCards: [{ ...c, style: 'modern' }],
+  });
+
+  const standard = createPreferences(storage, mockCatalogue);
+  await standard.load();
+  standard.setMockPlan('pro');
+  expect(standard.get().mockPlan).toBeUndefined();
+  expect(keys(standard.get().cards)).toEqual(keys([a, b, c]));
+  expect(standard.save(d)).toBe('full');
+});
+
+it('persists downgrade, slot swaps, paused order and styles across relaunch and upgrade', async () => {
+  const storage = localStorage();
+  const [first, second, ...overflow] = mockCatalogueCards.slice(0, 7);
+  const owner = mockOwner(storage);
+  await owner.load();
+  owner.setMockPlan('pro');
+  for (const card of mockCatalogueCards.slice(0, 7)) expect(owner.save(card)).toBe('saved');
+  expect(owner.save(mockCatalogueCards[7])).toBe('full');
+  owner.setStyle(selectionKey(first), 'modern');
+  owner.setStyle(selectionKey(overflow[1]), 'modern');
+  owner.setMockPlan('free');
+  await owner.flush();
+
+  const free = mockOwner(storage);
+  await free.load();
+  expect(free.get().mockPlan).toBe('free');
+  expect(keys(free.get().cards)).toEqual(keys([first, second]));
+  expect(keys(free.get().pausedCards)).toEqual(keys(overflow));
+  expect(free.activatePaused(selectionKey(overflow[1]))).toBe(false);
+  expect(free.activatePaused(selectionKey(overflow[1]), selectionKey(first))).toBe(true);
+  expect(free.get().cards[0].style).toBe('modern');
+  expect(free.get().pausedCards[1].style).toBe('modern');
+
+  free.remove(selectionKey(second));
+  await free.flush();
+  const vacancy = mockOwner(storage);
+  await vacancy.load();
+  expect(keys(vacancy.get().cards)).toEqual(keys([overflow[1]]));
+  expect(vacancy.activatePaused(selectionKey(overflow[0]))).toBe(true);
+  expect(keys(vacancy.get().cards)).toEqual(keys([overflow[1], overflow[0]]));
+  vacancy.setMockPlan('pro');
+  await vacancy.flush();
+
+  const pro = mockOwner(storage);
+  await pro.load();
+  expect(pro.get().mockPlan).toBe('pro');
+  expect(pro.get().pausedCards).toEqual([]);
+  expect(keys(pro.get().cards)).toEqual(keys([overflow[1], overflow[0], first, ...overflow.slice(2)]));
+  expect(pro.get().cards.map(card => card.style).slice(0, 3)).toEqual(['modern', undefined, 'modern']);
+  expect(storage.setItem.mock.calls.every(([key]) => key === mockKey)).toBe(true);
+});
+
+it('enforces active replacement and undo limits while leaving the paused collection alone', async () => {
+  const storage = localStorage();
+  const owner = mockOwner(storage);
+  await owner.load();
+  owner.setMockPlan('pro');
+  for (const card of [a, b, c, d]) owner.save(card);
+  owner.setStyle(selectionKey(b), 'modern');
+  owner.setMockPlan('free');
+  expect(owner.save(c)).toBe('duplicate');
+  expect(owner.save(mockCatalogueCards[4])).toBe('full');
+  expect(owner.replace(selectionKey(c), mockCatalogueCards[4])).toBe(false);
+  expect(owner.replace(selectionKey(a), c)).toBe(false);
+  expect(owner.replace(selectionKey(a), mockCatalogueCards[4])).toBe(true);
+  owner.remove(selectionKey(b));
+  expect(owner.save(mockCatalogueCards[5])).toBe('saved');
+  expect(owner.undo()).toBe('full');
+  expect(owner.undo(selectionKey(c))).toBe('invalid');
+  expect(owner.undo(selectionKey(mockCatalogueCards[5]))).toBe('restored');
+  expect(keys(owner.get().cards)).toEqual(keys([mockCatalogueCards[4], b]));
+  expect(owner.get().cards[1].style).toBe('modern');
+  expect(keys(owner.get().pausedCards)).toEqual(keys([c, d]));
+});

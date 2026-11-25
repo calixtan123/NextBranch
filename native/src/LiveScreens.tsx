@@ -6,7 +6,7 @@ import { selectionKey } from './catalogue';
 import type { Screen } from './navigation';
 import { PlatformBoard, platformName } from './PlatformBoard';
 import { GlassAction } from './GlassControls';
-import { effectiveStyle, majorityStyle, type Card } from './preferences';
+import { effectiveStyle, majorityStyle, savedCardLimit, type Card } from './preferences';
 import { Surface, useBoardTime, usePreferences, useRefresh, useRuntime } from './screen-context';
 import { Action, IconButton, Label, Result, ui, usePalette, type CardPressInteraction } from './theme';
 
@@ -205,7 +205,9 @@ function useHomeReorder(cards: readonly Card[], navigation: Screen<'Home'>['navi
 /** Shows the ordered saved platform boards and Home actions. */
 export function HomeScreen({ navigation }: Screen<'Home'>) {
   const { stations, catalogue, preferences, discovery } = useRuntime();
-  const { cards, mode, removal } = usePreferences();
+  const { cards, mode, removal, mockPlan } = usePreferences();
+  const cardLimit = savedCardLimit(mockPlan);
+  const colors = usePalette();
   const reorder = useHomeReorder(cards, navigation, preferences);
   const accent = majorityStyle(mode, cards);
   const now = useBoardTime();
@@ -227,7 +229,9 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
     <View style={[ui.wrap, { justifyContent: 'space-between', columnGap: 4, rowGap: 0, marginBottom: 8 }]}>
       <View style={[ui.row, { gap: 7, flexShrink: 1 }]}>
         <Label size={17} bold accessibilityRole="header" style={{ flexShrink: 1 }}>Saved platforms</Label>
-        <Label size={15} tone="dim" accessibilityLabel={cards.length + ' of 3 saved platforms'}>{cards.length}/3</Label>
+        <Label size={15} tone="dim" accessibilityLabel={`${cards.length} of ${cardLimit} saved platforms`}>
+          {cards.length}/{cardLimit}
+        </Label>
       </View>
       <View style={[ui.wrap, { columnGap: 0, maxWidth: '100%', minWidth: 0, flexShrink: 1 }]}>
         <GlassAction compact accent={accent} label="Manage platforms" onPress={() => navigation.navigate('Manage')} />
@@ -257,11 +261,18 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
         </View>;
       })}
     </View>
+    {mockPlan === 'free' && <View style={{
+      backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 12,
+      padding: 14, marginBottom: 10, gap: 4,
+    }}>
+      <Label bold accessibilityRole="header">Sample ad · TestFlight</Label>
+      <Label tone="dim">Example placement for NextBranch Free.</Label>
+    </View>}
     {!cards.length && <Label tone="dim" style={{ marginBottom: 10 }}>
       Add a TfL platform to see its next departures here.
     </Label>}
     <View style={ui.wrap}>
-      {cards.length < 3 && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}
+      {cards.length < cardLimit && <GlassAction accent={accent} icon="plus" label="Add a platform" onPress={openSearch} />}
       {removal && <Action onPress={undo}>Undo removal</Action>}
     </View>
   </Surface>;
@@ -270,9 +281,11 @@ export function HomeScreen({ navigation }: Screen<'Home'>) {
 /** Shows a single physical platform with its expanded board and save actions. */
 export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
   const { catalogue, preferences, stations, discovery } = useRuntime();
-  const { cards, mode } = usePreferences();
+  const { cards, mode, mockPlan, pausedCards = [] } = usePreferences();
   const { selection } = route.params;
-  const saved = cards.find(card => selectionKey(card) === selectionKey(selection));
+  const key = selectionKey(selection);
+  const saved = cards.find(card => selectionKey(card) === key);
+  const paused = pausedCards.find(card => selectionKey(card) === key);
   const now = useBoardTime();
   const { refresh, refreshing } = useRefresh();
   const state = stations.get(selection.stationId);
@@ -291,14 +304,21 @@ export function DeparturesScreen({ navigation, route }: Screen<'Departures'>) {
       {online && !limited && (state.error && state.error !== 'invalid' ||
         state.snapshot?.catalogue?.feeds?.some(feed => feed.liveState === 'unavailable')) &&
         <Label tone="dim" size={12} style={{ marginBottom: 10 }}>Pull down to refresh</Label>}
-      <PlatformBoard selection={selection} station={discovery?.catalogue?.stationsByAnyId.get(selection.stationId)} style={effectiveStyle(mode, saved)} state={state} now={now}
+      <PlatformBoard selection={selection} station={discovery?.catalogue?.stationsByAnyId.get(selection.stationId)} style={effectiveStyle(mode, saved ?? paused)} state={state} now={now}
         online={online} limited={limited} expanded onReview={review} />
       <View style={ui.wrap}>
         <Action primary onPress={() => {
+          if (paused) {
+            navigation.navigate('Manage');
+            return;
+          }
           const result = preferences.save(selection);
-          if (result === 'full') navigation.navigate('Manage', { replacement: selection });
+          if (result === 'full') {
+            if (mockPlan === 'free') navigation.navigate('Plans', { pendingSave: selection });
+            else navigation.navigate('Manage', { replacement: selection });
+          }
           if (result === 'saved' || result === 'duplicate') navigation.popToTop();
-        }}>{saved ? '✓ Saved' : 'Save platform'}</Action>
+        }}>{paused ? 'Manage paused platform' : saved ? '✓ Saved' : 'Save platform'}</Action>
         <Action disabled={!online || limited || refreshing || state.pending || state.error === 'configuration' || state.error === 'invalid'}
           onPress={() => void refresh([selection.stationId])}>{refreshing ? 'Refreshing…' : 'Refresh'}</Action>
       </View>

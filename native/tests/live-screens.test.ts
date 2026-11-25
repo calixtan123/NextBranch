@@ -5,6 +5,7 @@ import { createCatalogue } from '../src/catalogue';
 import { createPreferences, selectionKey, type Selection } from '../src/preferences';
 import type { Screen } from '../src/navigation';
 import { DeparturesScreen, HomeScreen, ReviewCard } from '../src/LiveScreens';
+import { PlansScreen } from '../src/ManageScreens';
 import { PlatformBoard } from '../src/PlatformBoard';
 import { Result } from '../src/theme';
 
@@ -469,4 +470,56 @@ it('offers accessible move actions without measurements and preserves activation
   cardPressable(rows()[0]).onAccessibilityAction({ nativeEvent: { actionName: 'moveDown' } });
   expect(hooks.announce).toHaveBeenLastCalledWith('Moved to position 2 of 2');
   expect(await reloaded()).toEqual(['A', 'B']);
+});
+
+it('routes a third Free save to Plans with replacement and saves it after trying Pro', async () => {
+  const first: Selection = { stationId: '940GZZLUCTN', platform: 'A', direction: 'Southbound' };
+  const second = { ...first, platform: 'B' };
+  const selection = { ...first, platform: 'C' };
+  const catalogue = createCatalogue({ version: 1, platforms: [first, second, selection] });
+  const preferences = createPreferences({ getItem: async () => null, setItem: async () => undefined },
+    catalogue, undefined, undefined, [], undefined, undefined, { mockPlans: true });
+  await preferences.load();
+  preferences.save(first);
+  preferences.save(second);
+  hooks.runtime.mockReturnValue({
+    catalogue, preferences,
+    stations: { get: () => ({}), isOnline: () => true, isRateLimited: () => false },
+  });
+  hooks.preferences.mockImplementation(preferences.get);
+  const navigation = { goBack: vi.fn(), navigate: vi.fn(), popToTop: vi.fn() };
+  const departures = DeparturesScreen({ navigation, route: { params: { selection } } } as unknown as Screen<'Departures'>);
+  saveAction(departures)!();
+  expect(navigation.navigate).toHaveBeenCalledWith('Plans', { pendingSave: selection });
+  expect(preferences.get().cards.map(card => card.platform)).toEqual(['A', 'B']);
+
+  const plans = PlansScreen({ navigation, route: { params: { pendingSave: selection } } } as unknown as Screen<'Plans'>);
+  const controls = screenElements(plans);
+  expect(controls.some(node => node.props.children === 'Example prices · £8.99/year or £1.49/month')).toBe(true);
+  controls.find(node => node.props.children === 'Replace a saved platform')!.props.onPress();
+  expect(navigation.navigate).toHaveBeenLastCalledWith('Manage', { replacement: selection });
+  controls.find(node => node.props.children === 'Try Pro')!.props.onPress();
+  expect(preferences.get().mockPlan).toBe('pro');
+  expect(preferences.get().cards.map(card => card.platform)).toEqual(['A', 'B', 'C']);
+  expect(navigation.popToTop).toHaveBeenCalledOnce();
+});
+
+it('shows a single Free sample ad and applies the current limit to Home', () => {
+  const cards = [
+    { stationId: 'first', platform: '1', direction: 'Eastbound' },
+    { stationId: 'second', platform: '2', direction: 'Westbound' },
+  ];
+  hooks.runtime.mockReturnValue({ catalogue: { has: () => true }, preferences: readOnlyPreferences(),
+    stations: { get: () => ({}), isOnline: () => true, isRateLimited: () => false } });
+  for (const { mockPlan, limit, ad } of [
+    { mockPlan: 'free', limit: 2, ad: 1 },
+    { mockPlan: 'pro', limit: 7, ad: 0 },
+    { mockPlan: undefined, limit: 3, ad: 0 },
+  ]) {
+    hooks.preferences.mockReturnValue({ cards, mode: 'amber', mockPlan });
+    const nodes = screenElements(renderHome());
+    expect(nodes.filter(node => node.props.children === 'Sample ad · TestFlight')).toHaveLength(ad);
+    expect(nodes.some(node => node.props.accessibilityLabel === `2 of ${limit} saved platforms`)).toBe(true);
+    expect(nodes.some(node => node.props.label === 'Add a platform')).toBe(limit > 2);
+  }
 });

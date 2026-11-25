@@ -44,13 +44,17 @@ for the pinned design and device-check status.
 ## TestFlight release build
 
 Repository preparation lives in `app.config.js` (release gate and icon),
-`eas.json` (the `production` profile) and `assets/icon.png`. The profile uses
+`eas.json` (the `testflight` and `production` profiles) and `assets/icon.png`. Both profiles use
 remote app version source, the EAS `production` environment and
 `autoIncrement`, so EAS owns the iOS build number. Bundle identifier stays
 `com.nextbranch.app`. The initial TestFlight app version is `0.0.1`.
 
-The release gate runs whenever EAS evaluates the config for the `production`
-profile (`NEXTBRANCH_RELEASE_BUILD=1`). It rejects a missing
+Use the `testflight` build profile for the Saved Platforms widget and the Free
+and Pro preview under **Settings → Plans**. Plan changes are local to the device
+and there are no charges. The `production` build profile ships the standard app.
+
+The release gate runs whenever EAS evaluates a build profile with
+`NEXTBRANCH_RELEASE_BUILD=1`. It rejects a missing
 `EXPO_PUBLIC_NEXTBRANCH_API_URL`, non-HTTPS, credentials, path, query or
 fragment, placeholder or reserved hosts (`example.*`, `.invalid`, `.test`) and
 local or private hosts, and any `EXPO_PUBLIC_NEXTBRANCH_FIXTURE` or `_SEED`.
@@ -77,7 +81,7 @@ remain candidate checks.
 2. Confirm the bundle identifier exists in Apple Developer and App Store
    Connect, and create the app record.
 3. `npx eas-cli env:create --environment production --name EXPO_PUBLIC_NEXTBRANCH_API_URL --value https://<backend-origin> --visibility plaintext`
-4. `npx eas-cli build --platform ios --profile production` (EAS manages
+4. `npx eas-cli build --platform ios --profile testflight` (EAS manages
    credentials and the build number; sign in with the Apple account when asked).
 5. `npx eas-cli submit --platform ios --profile production --latest`
    (Needs an App Store Connect app id or interactive login.)

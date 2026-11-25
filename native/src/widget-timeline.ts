@@ -7,7 +7,7 @@ import { boardPalette } from './board-palette';
 import type { Catalogue, Selection } from './catalogue';
 import type { FailureKind, Snapshot } from './api';
 import { lineColour, lineLabels, platformPickerTitle } from './line-presentation';
-import type { InterfaceTheme, Style } from './preferences';
+import type { InterfaceTheme, MockPlan, Style } from './preferences';
 import { FRESH_FOR } from './station-owner';
 
 export const widgetUnavailableMessage = 'No departures available';
@@ -20,7 +20,7 @@ export type WidgetPage = {
   key: string; selection: Selection; board: WidgetBoard; review?: boolean;
   services?: readonly Service[]; relevantFeeds: readonly { lineId: string; stopAreaId: string }[];
 };
-export type WidgetConfiguration = { pages: WidgetPage[]; apiOrigin?: string };
+export type WidgetConfiguration = { pages: WidgetPage[]; apiOrigin?: string; mockPlan?: MockPlan };
 
 type Departure = { id: string; identity: string; countdown: string; expiresAt: number };
 export type WidgetBoard = {

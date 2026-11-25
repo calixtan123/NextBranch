@@ -5,8 +5,8 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DeparturesScreen, HomeScreen } from './LiveScreens';
-import { AboutScreen, AppearanceScreen, CardDisplayScreen, ManageScreen, SettingsScreen } from './ManageScreens';
-import { navigationRef, type Routes } from './navigation';
+import { AboutScreen, AppearanceScreen, CardDisplayScreen, ManageScreen, PlansScreen, SettingsScreen } from './ManageScreens';
+import { navigationRef, plansLinking, type Routes } from './navigation';
 import { createRuntime } from './runtime';
 import { Runtime } from './screen-context';
 import { PickerScreen, PlatformDetailsScreen, SearchScreen } from './SearchScreens';
@@ -19,7 +19,7 @@ export function App() {
   const [runtime] = useState(createRuntime);
   const [reducedMotion, setReducedMotion] = useState(false);
   const { preferences, stations, catalogue, synthetic } = runtime;
-  const { interfaceTheme } = useSyncExternalStore(preferences.subscribe, preferences.get);
+  const { interfaceTheme, mockPlan } = useSyncExternalStore(preferences.subscribe, preferences.get);
   const systemScheme = useColorScheme();
   const light = (interfaceTheme ?? systemScheme) === 'light';
   const palette = paletteFor(light);
@@ -73,7 +73,9 @@ export function App() {
   }, [interfaceTheme]);
 
   useEffect(() => {
-    if (process.env.EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE === '1' && __DEV__ && Platform.OS === 'ios') {
+    const widgetEnabled = (process.env.EXPO_PUBLIC_NEXTBRANCH_WIDGET_PROTOTYPE === '1' && __DEV__)
+      || (process.env.EXPO_PUBLIC_NEXTBRANCH_TESTFLIGHT_WIDGET === '1' && !__DEV__);
+    if (widgetEnabled && Platform.OS === 'ios') {
       try {
         const { connectSavedPlatformWidgets } = require('./widget-publisher') as typeof import('./widget-publisher');
         return connectSavedPlatformWidgets(runtime);
@@ -89,7 +91,8 @@ export function App() {
       <Runtime.Provider value={runtime}>
         <SafeAreaView style={{ flex: 1, backgroundColor: palette.surface }}>
           <StatusBar barStyle={light ? 'dark-content' : 'light-content'} />
-          <NavigationContainer ref={navigationRef} onReady={syncVisible} onStateChange={syncVisible}
+          <NavigationContainer ref={navigationRef} linking={mockPlan ? plansLinking : undefined}
+            onReady={syncVisible} onStateChange={syncVisible}
             theme={{ ...systemTheme, colors: { ...systemTheme.colors, background: palette.bg, card: palette.surface,
               text: palette.fg, border: palette.border } }}>
             <Stack.Navigator initialRouteName="Home" screenOptions={{
@@ -104,6 +107,7 @@ export function App() {
               <Stack.Screen name="Departures" component={DeparturesScreen} />
               <Stack.Screen name="Manage" component={ManageScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
+              {mockPlan && <Stack.Screen name="Plans" component={PlansScreen} />}
               <Stack.Screen name="About" component={AboutScreen} />
               <Stack.Screen name="Appearance" component={AppearanceScreen} />
               <Stack.Screen name="CardDisplay" component={CardDisplayScreen} />

@@ -130,3 +130,71 @@ it('publishes a single widget with only the current saved platforms using only t
     stations.dispose();
   }
 });
+
+it('publishes a bare Free lock and Pro pages without restoring cached boards on Free', async () => {
+  vi.stubEnv('EXPO_PUBLIC_NEXTBRANCH_API_URL', 'https://www.tfl.gov.uk');
+  const fixture = fixtureRuntime('three-card-home', true);
+  const storage = { getItem: async () => null, setItem: async () => {} };
+  const preferences = createPreferences(storage, fixture.catalogue, Date.now, undefined, fixture.cards,
+    undefined, undefined, { mockPlans: true });
+  const transport = vi.fn(fixture.transport);
+  const stations = createStationOwner(transport, () => performance.now(), fixture.now);
+  stations.setActive(false);
+  const panel = vi.mocked(savedPlatformWidget.updateSnapshot);
+  const stop = connectSavedPlatformWidgets({
+    preferences, stations, catalogue: fixture.catalogue, discovery: createDiscovery(), now: fixture.now, synthetic: false,
+  });
+  try {
+    await preferences.load();
+    expect(panel.mock.lastCall?.[0]).toEqual({ mockPlan: 'free', pages: [] });
+    expect(savedPlatformWidget.getTimeline).not.toHaveBeenCalled();
+
+    preferences.setMockPlan('pro');
+    expect(panel.mock.lastCall?.[0]).toMatchObject({ mockPlan: 'pro', apiOrigin: 'https://www.tfl.gov.uk' });
+    expect(panel.mock.lastCall?.[0].pages.map(({ key }) => key)).toEqual(fixture.cards.map(selectionKey));
+
+    preferences.setMockPlan('free');
+    expect(panel.mock.calls.map(([config]) => config.mockPlan)).toEqual(['free', 'pro', 'free']);
+    expect(panel.mock.lastCall?.[0]).toEqual({ mockPlan: 'free', pages: [] });
+    expect(transport).not.toHaveBeenCalled();
+  } finally {
+    stop();
+    stations.dispose();
+    vi.unstubAllEnvs();
+  }
+});
+
+it('discards an in-flight widget snapshot restore after downgrade', async () => {
+  const fixture = fixtureRuntime('three-card-home', true);
+  const storage = {
+    getItem: async () => JSON.stringify({ version: 1, cards: fixture.cards, mode: 'amber', recent: [],
+      mockPlan: 'pro', pausedCards: [] }),
+    setItem: async () => {},
+  };
+  const preferences = createPreferences(storage, fixture.catalogue, Date.now, undefined, [], undefined, undefined, { mockPlans: true });
+  const stations = createStationOwner(fixture.transport, () => performance.now(), fixture.now);
+  const panel = vi.mocked(savedPlatformWidget.updateSnapshot);
+  type Entry = Awaited<ReturnType<typeof savedPlatformWidget.getTimeline>>[number];
+  let restore!: (entries: Entry[]) => void;
+  vi.mocked(savedPlatformWidget.getTimeline).mockImplementationOnce(() => new Promise(resolve => { restore = resolve; }));
+  const stop = connectSavedPlatformWidgets({
+    preferences, stations, catalogue: fixture.catalogue, discovery: createDiscovery(), now: fixture.now, synthetic: true,
+  });
+  try {
+    await preferences.load();
+    expect(savedPlatformWidget.getTimeline).toHaveBeenCalledOnce();
+    preferences.setMockPlan('free');
+    expect(panel.mock.lastCall?.[0]).toEqual({ mockPlan: 'free', pages: [] });
+    const selection = fixture.cards[0];
+    restore([{ date: new Date(), props: { mockPlan: 'pro', pages: [{
+      key: selectionKey(selection), selection, relevantFeeds: [],
+      board: { station: 'Pro cached station', rows: [] },
+    }] } }]);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(panel.mock.calls.map(([config]) => config.mockPlan)).toEqual(['free']);
+  } finally {
+    stop();
+    stations.dispose();
+  }
+});
