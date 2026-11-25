@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { afterEach, expect, it, vi } from 'vitest';
 
@@ -50,4 +51,10 @@ it('keeps the widget kind and app identity for TestFlight and enables mock gatin
 
   vi.stubEnv('NEXTBRANCH_RELEASE_BUILD', '');
   expect(() => appConfig({ config })).toThrow('Mock plans require the TestFlight widget release configuration');
+});
+
+it('rechecks the published plan at each station request boundary', () => {
+  const source = readFileSync(new URL('../widget/DepartureRefresh.swift', import.meta.url), 'utf8').split('\n');
+  const request = source.findIndex(line => line.includes('try await session.data(for: request)'));
+  expect(source[request - 1]?.trim()).toBe('guard WidgetPreferences.allowsPublishedAccess else { return StationFetch() }');
 });

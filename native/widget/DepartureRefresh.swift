@@ -95,6 +95,7 @@ private actor DepartureRefresh {
     let clock = ContinuousClock()
     let start = clock.now
     do {
+      guard WidgetPreferences.allowsPublishedAccess else { return StationFetch() }
       let (body, response) = try await session.data(for: request)
       guard let http = response as? HTTPURLResponse else { return StationFetch() }
       let now = Date.now
